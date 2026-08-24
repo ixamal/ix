@@ -24,3 +24,5 @@ Too far out. Stay on UE 5.x Blueprints + C++. Verse will be text-native and MCP-
 1. UE OSC `:9000` loopback.
 2. 15s Niagara smoke cache.
 3. Wire `/rekordbox/bpm` and `/rekordbox/fader`.
+
+Crate, OneTagger, Beets-rejection, and NI S8/S88 ideas live in `docs/notes.md` (2026-08-24). Do not treat this Gemini distill as the crate log.
