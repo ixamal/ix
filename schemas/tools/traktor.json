@@ -1,0 +1,11 @@
+{
+  "id": "traktor",
+  "family": "dj",
+  "title": "Traktor",
+  "tools": [
+    { "name": "read_bpm", "params": {} },
+    { "name": "read_fader", "params": {} },
+    { "name": "read_beat_phase", "params": {} },
+    { "name": "read_track_id", "params": {} }
+  ]
+}

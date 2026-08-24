@@ -1,0 +1,23 @@
+{
+  "id": "unreal",
+  "family": "ue",
+  "title": "Unreal Engine 5",
+  "tools": [
+    {
+      "name": "set_cache_time",
+      "params": { "seconds": "float 0-15" }
+    },
+    {
+      "name": "set_density",
+      "params": { "amount": "float 0-1" }
+    },
+    {
+      "name": "set_emissive",
+      "params": { "intensity": "float 0-8" }
+    },
+    {
+      "name": "inspect_level",
+      "params": {}
+    }
+  ]
+}

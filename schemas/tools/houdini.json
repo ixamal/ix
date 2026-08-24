@@ -1,0 +1,10 @@
+{
+  "id": "houdini",
+  "family": "dcc",
+  "title": "SideFX Houdini",
+  "tools": [
+    { "name": "inspect_scene", "params": {} },
+    { "name": "list_nodes", "params": {} },
+    { "name": "export_fbx", "params": { "path": "sandbox path only" } }
+  ]
+}

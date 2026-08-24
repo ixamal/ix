@@ -1,0 +1,12 @@
+{
+  "id": "ableton",
+  "family": "daw",
+  "title": "Ableton Live",
+  "tools": [
+    { "name": "play", "params": {} },
+    { "name": "stop", "params": {} },
+    { "name": "set_tempo", "params": { "bpm": "float 60-220" } },
+    { "name": "arm_track", "params": { "index": "int" } },
+    { "name": "read_tempo", "params": {} }
+  ]
+}

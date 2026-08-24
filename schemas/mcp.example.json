@@ -1,0 +1,37 @@
+{
+  "mcpServers": {
+    "unreal-engine": {
+      "command": "npx",
+      "args": ["-y", "unreal-engine-mcp-server"],
+      "env": {
+        "UE_OSC_HOST": "127.0.0.1",
+        "UE_OSC_PORT": "9000",
+        "UE_PROJECT_PATH": "${HOME}/Documents/Unreal Projects/IX"
+      }
+    },
+    "blender-dcc": {
+      "command": "uvx",
+      "args": ["blender-mcp-server"]
+    },
+    "houdini-dcc": {
+      "command": "python3",
+      "args": ["${HOME}/local_tools/mcp_adapters/houdini.py"]
+    },
+    "ableton-daw": {
+      "command": "python3",
+      "args": ["${HOME}/local_tools/mcp_adapters/ableton.py"],
+      "env": {
+        "ABLETON_OSC_HOST": "127.0.0.1",
+        "ABLETON_OSC_PORT": "11000"
+      }
+    },
+    "dj-rekordbox": {
+      "command": "node",
+      "args": ["${HOME}/local_tools/mcp_adapters/dj_bridge.js"],
+      "env": {
+        "DJ_OSC_HOST": "127.0.0.1",
+        "DJ_OSC_PORT": "9000"
+      }
+    }
+  }
+}
