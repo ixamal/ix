@@ -37,3 +37,6 @@ The Next.js app is the rehearsal hall: OSC inject, Niagara cache playhead, Ollam
 
 ## Runtime
 `python3 -m ix_runtime` binds UDP OSC and a health HTTP port on `127.0.0.1`. It refuses `0.0.0.0`.
+
+## Oracle
+Ollama is not in this repo. On the Mac it is the Homebrew `ollama` CLI, kept alive by LaunchAgent `ai.ixamal.ollama`, listening on `127.0.0.1:11434`, with weights in `~/local_tools/ollama/models`. The rehearsal UI only probes that URL. Install notes: `docs/local-setup.md`.
