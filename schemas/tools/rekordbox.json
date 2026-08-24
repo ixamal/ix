@@ -1,0 +1,11 @@
+{
+  "id": "rekordbox",
+  "family": "dj",
+  "title": "Rekordbox / Pro DJ Link",
+  "tools": [
+    { "name": "read_bpm", "params": {} },
+    { "name": "read_fader", "params": {} },
+    { "name": "read_beat_phase", "params": {} },
+    { "name": "read_track_id", "params": {} }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "protocol": "osc",
+  "bind": {
+    "host": "127.0.0.1",
+    "port": 9000
+  },
+  "cacheSeconds": 15,
+  "addresses": [
+    {
+      "address": "/rekordbox/bpm",
+      "type": "f",
+      "range": [60, 220],
+      "ue": "Niagara sim cache play rate"
+    },
+    {
+      "address": "/rekordbox/fader",
+      "type": "f",
+      "range": [0, 1],
+      "ue": "Volume density / opacity"
+    },
+    {
+      "address": "/rekordbox/beat_phase",
+      "type": "f",
+      "range": [0, 1],
+      "ue": "Explicit cache time = phase * 15s"
+    },
+    {
+      "address": "/rekordbox/deck",
+      "type": "i",
+      "range": [1, 4],
+      "ue": "Scene / look preset"
+    },
+    {
+      "address": "/rekordbox/track_id",
+      "type": "s",
+      "ue": "Optional look switch"
+    },
+    {
+      "address": "/ue/niagara/cache_time",
+      "type": "f",
+      "range": [0, 15],
+      "ue": "Direct sim cache Age / Explicit Time"
+    },
+    {
+      "address": "/ue/niagara/density",
+      "type": "f",
+      "range": [0, 1],
+      "ue": "Smoke density multiplier"
+    }
+  ]
+}

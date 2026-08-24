@@ -1,0 +1,19 @@
+---
+description: Live visuals — UE5 Niagara, OSC, Rekordbox/Traktor
+globs: docs/**/*.md,schemas/osc/**,src/lib/osc-bus.ts,runtime/**/*.py
+---
+
+# Live visual engine
+
+UE 5.x on Apple Silicon. Author volumetrics in Niagara (Grid 3D Gas/Smoke), bake a 15s Niagara Sim Cache, scrub Explicit Time from OSC.
+
+Do not require Houdini or NanoVDB for the first slice. Houdini HDAs are optional later.
+
+OSC plugin in UE listens on `127.0.0.1:9000`.
+
+Map:
+- `/rekordbox/bpm` → play rate
+- `/rekordbox/fader` → density / opacity
+- `/rekordbox/beat_phase` → cache time = phase * 15s
+
+Anyma-style shows are mostly pre-baked caches with live scrub, camera, and lighting. Match that pattern.

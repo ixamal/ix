@@ -1,0 +1,39 @@
+# Architecture
+
+```
+                    CURSOR (control plane)
+                    git · files · this repo
+                              |
+              +---------------+---------------+
+              |                               |
+     Public ix repo                    Off-repo machine
+     ~/github/ixamal/ix                ~/local_tools
+     schemas, OSC spec,                mcp_adapters/
+     Niagara rehearsal UI              ollama/
+     Python loopback runtime           ~/.cursor/mcp.json
+              |                               |
+              +---------------+---------------+
+                              |
+                     127.0.0.1 only
+            OSC :9000    Ollama :11434    UE MCP
+                              |
+              Rekordbox / Traktor / Ableton / Blender / Houdini
+                              |
+                         Unreal Engine 5
+                    Niagara Sim Cache (15s)
+```
+
+## Why Niagara cache, not live fluids
+Cinema-grade pyro at 60 FPS next to Lumen is a bad live bet. Bake the sim. Scrub, reverse, and retime it from DJ beat phase. This is how large LED shows (including Sphere-scale work) actually run: pre-baked beauty, live time and light.
+
+## Why not Omniverse / Zibra / Bifrost for v1
+- Omniverse is not native on macOS.
+- Zibra is a paid GPU codec. Useful later, not required.
+- Maya Bifrost is offline-first.
+- NanoVDB is a fine open alternative when a Houdini cache is needed. It is ASWF, not Nvidia-locked, and compiles for Metal.
+
+## Control plane in this repo
+The Next.js app is the rehearsal hall: OSC inject, Niagara cache playhead, Ollama probe, bridge map, security map. It does not ship Unreal. It does not ship Ollama.
+
+## Runtime
+`python3 -m ix_runtime` binds UDP OSC and a health HTTP port on `127.0.0.1`. It refuses `0.0.0.0`.

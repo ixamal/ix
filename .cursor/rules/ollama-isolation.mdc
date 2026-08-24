@@ -1,0 +1,17 @@
+---
+description: Ollama is off-repo, loopback only
+globs: src/lib/ollama.ts,src/app/oracle/**,scripts/**
+---
+
+# Ollama isolation
+
+Ollama is **not** part of this git tree. Install the binary and models outside the workspace:
+
+- Prefix: `~/local_tools/ollama`
+- Models: `~/local_tools/ollama/models` or `~/.ollama` (also off-repo)
+- Listen: `OLLAMA_HOST=127.0.0.1:11434`
+- Cursor Models base URL: `http://127.0.0.1:11434/v1`
+
+Never vendor weights, GGUF files, or the Ollama binary here. The control plane only probes loopback.
+
+If Ollama is offline, report that honestly. Do not install it from this repo.

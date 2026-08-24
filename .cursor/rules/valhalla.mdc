@@ -1,0 +1,27 @@
+---
+description: IX Valhalla — core architecture and isolation
+alwaysApply: true
+---
+
+# IX — Valhalla
+
+You are working in **ix**, the planetary meeting place for Cursor, a local Ollama oracle, Unreal Engine 5, DCC, DAW, and DJ tools.
+
+## Identity
+- Public git: https://github.com/ixamal/ix
+- Mac clone path: `~/github/ixamal/ix`
+- Control plane: this repo (Next.js + Python OSC runtime)
+- Execution plane: **off-repo**. Ollama, MCP adapters, and hardware sockets live under `~/local_tools` and `~/.cursor/mcp.json`.
+
+## Security (non-negotiable)
+- Bind OSC, HTTP, WebSocket, and Ollama to `127.0.0.1` only. Never `0.0.0.0`.
+- Do not put MCP configs, Ollama weights, or adapter secrets in git.
+- Hardware adapters stay in `~/local_tools/mcp_adapters/`.
+- Circuit-break destructive DAW/DCC/UE calls. Cap volume at 0 dB.
+- Prefer stdio MCP over network MCP.
+
+## What to build toward
+Live DJ telemetry (Rekordbox / Traktor) → OSC on `127.0.0.1:9000` → UE5 Niagara sim cache scrub (`/rekordbox/bpm`, `/rekordbox/fader`, `/rekordbox/beat_phase`). Cursor is the orchestrator. Ollama is local.
+
+## Context files
+Read `.cursor/context.md`, `docs/architecture.md`, and `docs/security.md` before changing the pipeline.

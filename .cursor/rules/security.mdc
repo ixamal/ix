@@ -1,0 +1,15 @@
+---
+description: Keep secrets and sockets out of git
+alwaysApply: true
+---
+
+# Commit hygiene
+
+Refuse to add:
+- `.cursor/mcp.json` (global file belongs at `~/.cursor/mcp.json`)
+- `.env`, tokens, API keys, absolute `/Users/<name>/` adapter paths
+- `local_adapters/`, Ollama models, `.gguf`, `.nvdb` caches, Niagara sim caches
+
+Public MCP examples must use `${HOME}/local_tools/...` and `127.0.0.1`.
+
+When asked to "just put the MCP in the repo," point at `schemas/mcp.example.json` and `docs/security.md` instead.
