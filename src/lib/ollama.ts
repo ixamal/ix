@@ -56,11 +56,17 @@ export async function probeOllama(): Promise<OllamaStatus> {
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Ollama is unreachable on loopback.";
+    const lowered = message.toLowerCase();
+    const offline =
+      lowered.includes("abort") ||
+      lowered.includes("fetch failed") ||
+      lowered.includes("econnrefused") ||
+      lowered.includes("network");
     return {
       online: false,
       endpoint: OLLAMA_LOOPBACK,
       models: [],
-      error: message.includes("abort")
+      error: offline
         ? "No listener on 127.0.0.1:11434. Ollama stays off-repo by design."
         : message,
     };
