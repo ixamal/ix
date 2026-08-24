@@ -10,7 +10,7 @@ npm install
 ./scripts/install-local-tools.sh
 ```
 
-The installer creates off-repo directories only:
+The installer creates off-repo directories only. It does **not** install Ollama:
 
 - `~/local_tools/mcp_adapters`
 - `~/local_tools/ollama`
@@ -18,12 +18,46 @@ The installer creates off-repo directories only:
 
 ## Ollama (never inside this repo)
 
+The control plane only probes `http://127.0.0.1:11434`. The binary, weights, LaunchAgent, and shell env stay off-repo.
+
+On this Mac (2026-08-24): Homebrew formula `ollama` (CLI). Not the `ollama-app` cask. Not copied into git.
+
 ```bash
-# vendor installer, then:
+brew install ollama
+mkdir -p ~/local_tools/ollama/models ~/local_tools/ollama/bin
+ln -sfn "$(brew --prefix ollama)/bin/ollama" ~/local_tools/ollama/bin/ollama
+```
+
+Do **not** run `brew services start ollama`. That unit does not pin loopback or the models directory. Use a user LaunchAgent instead.
+
+### Bind and model path
+
+```bash
 export OLLAMA_HOST=127.0.0.1:11434
 export OLLAMA_MODELS=~/local_tools/ollama/models
-ollama serve
-ollama pull qwen2.5-coder:7b   # pick a model that fits the machine
+```
+
+On this machine those exports live in `~/local_tools/ollama/env.sh` and are sourced from `~/.zshlocal/.zshrc` (both off-repo).
+
+LaunchAgent label: `ai.ixamal.ollama` → `~/Library/LaunchAgents/ai.ixamal.ollama.plist` (off-repo). It must set:
+
+| Key | Value |
+| --- | --- |
+| `OLLAMA_HOST` | `127.0.0.1:11434` |
+| `OLLAMA_MODELS` | `$HOME/local_tools/ollama/models` (expand `$HOME` in the plist; do not commit the plist) |
+| Program | `$(brew --prefix ollama)/bin/ollama serve` |
+
+Confirm the listen address before pulling models:
+
+```bash
+lsof -nP -iTCP:11434 -sTCP:LISTEN
+# NAME must be 127.0.0.1:11434 — never *:11434
+```
+
+First model on this Mac: `qwen2.5-coder:7b`. Pull something that fits RAM:
+
+```bash
+ollama pull qwen2.5-coder:7b
 ```
 
 In Cursor: Settings → Models → OpenAI-compatible endpoint `http://127.0.0.1:11434/v1`.

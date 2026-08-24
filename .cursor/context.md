@@ -13,7 +13,7 @@ ix is Valhalla: Cursor is the control plane. Ollama, MCP hardware bridges, and l
 3. Rekordbox / Traktor / Pro DJ Link → OSC on `127.0.0.1:9000`.
 4. Optional later: Houdini HDA / OpenVDB / NanoVDB (ASWF, Metal-capable).
 5. Global MCP: `~/.cursor/mcp.json`. Adapters: `~/local_tools/mcp_adapters/`.
-6. Ollama: `~/local_tools/ollama`, `OLLAMA_HOST=127.0.0.1:11434`.
+6. Ollama (installed on the Mac 2026-08-24): Homebrew CLI, LaunchAgent `ai.ixamal.ollama`, `OLLAMA_HOST=127.0.0.1:11434`, models in `~/local_tools/ollama/models`, first pull `qwen2.5-coder:7b`. Not in git. See `docs/local-setup.md`.
 
 ## Immediate UE work (on the Mac, not in this cloud VM)
 1. Enable OSC plugin, listen `127.0.0.1:9000`.

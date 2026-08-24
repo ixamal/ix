@@ -32,14 +32,14 @@ npm run dev          # http://127.0.0.1:47241
 npm run runtime      # OSC 127.0.0.1:9000
 ```
 
-Ollama is installed separately. Then:
+Ollama is installed off-repo (Homebrew CLI + LaunchAgent). Bind loopback only:
 
 ```bash
 export OLLAMA_HOST=127.0.0.1:11434
 export OLLAMA_MODELS=~/local_tools/ollama/models
 ```
 
-Point Cursor Models at `http://127.0.0.1:11434/v1`.
+Point Cursor Models at `http://127.0.0.1:11434/v1`. Full steps: `docs/local-setup.md`.
 
 ## Halls
 

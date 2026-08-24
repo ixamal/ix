@@ -33,12 +33,14 @@ if [[ ! -f "${OLLAMA}/README.md" ]]; then
   cat > "${OLLAMA}/README.md" <<'EOF'
 # Ollama lives here — outside git
 
-Install the official Ollama binary with their installer, then point it at loopback:
+Install with Homebrew (CLI formula, not the app cask), then point it at loopback.
+Do not use `brew services start ollama`. Use LaunchAgent ai.ixamal.ollama.
 
     export OLLAMA_HOST=127.0.0.1:11434
     export OLLAMA_MODELS="${HOME}/local_tools/ollama/models"
 
 Do not copy weights or the binary into ~/github/ixamal/ix.
+Steps: docs/local-setup.md in the ix repo.
 In Cursor: Settings → Models → OpenAI-compatible base URL http://127.0.0.1:11434/v1
 EOF
   echo "Wrote ${OLLAMA}/README.md"
@@ -62,4 +64,4 @@ echo "  ${OLLAMA}"
 echo "  ${CLONE}"
 echo "  ${MCP_TARGET}"
 echo
-echo "Ollama is NOT installed by this script. Install it yourself, then bind 127.0.0.1."
+echo "Ollama is NOT installed by this script. See docs/local-setup.md (Homebrew + LaunchAgent, bind 127.0.0.1)."
