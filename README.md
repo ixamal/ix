@@ -55,6 +55,7 @@ Point Cursor Models at `http://127.0.0.1:11434/v1`. Full steps: `docs/local-setu
 - `docs/architecture.md`
 - `docs/security.md`
 - `docs/local-setup.md`
+- `docs/TODO.md` — ordered checklist (crate, tagging, Floor, NI)
 - `docs/notes.md` — crate / tagging / hardware parking lot (do not execute from it)
 
 Apache-2.0. See `LICENSE`.

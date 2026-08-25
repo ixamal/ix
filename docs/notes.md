@@ -1,6 +1,6 @@
 # Working notes (do not execute from this file)
 
-Parking lot for crate, tagging, and hardware ideas. Agents: read this, then stop unless David asks to act. Off-repo tools and library paths stay off git.
+Parking lot for crate, tagging, and hardware ideas. Ordered checklist: `docs/TODO.md`. Agents: read both, then stop unless David asks to act. Off-repo tools and library paths stay off git.
 
 Last update: 2026-08-24 (David to gym; catalog only).
 
