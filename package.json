@@ -9,7 +9,8 @@
     "start": "next start --hostname 127.0.0.1 --port 47241",
     "lint": "eslint",
     "runtime": "PYTHONPATH=runtime python3 -m ix_runtime --host 127.0.0.1 --osc-port 9000 --http-port 9100 --control-url http://127.0.0.1:47241",
-    "test": "PYTHONPATH=runtime python3 -m pytest runtime/tests -q",
+    "crate": "PYTHONPATH=crate python3 -m ix_crate unknown-album",
+    "test": "PYTHONPATH=runtime python3 -m pytest runtime/tests -q && cd crate && PYTHONPATH=. python3 -m unittest tests.test_identify -q",
     "setup:local": "bash scripts/install-local-tools.sh"
   },
   "dependencies": {

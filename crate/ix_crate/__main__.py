@@ -1,0 +1,78 @@
+"""ix crate — identify and rehome untagged stems_audio files.
+
+Cascade: filename → tags → iTunes/Deezer → MusicBrainz → Ollama → Compilations/Mashups/Miscellaneous.
+Dry-run is the default. Reports land in ~/local_tools/crate/reports (off git).
+"""
+
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+
+from ix_crate.plan import (
+    execute_moves,
+    plan_mashups,
+    plan_outliers,
+    plan_unknown_album,
+    write_report,
+)
+from ix_crate.safety import CrateSafetyError
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "command",
+        choices=("unknown-album", "outliers", "mashups"),
+        help="Scan Unknown Album, re-ID Inbox, or sort mashups into Compilations.",
+    )
+    parser.add_argument(
+        "--execute",
+        action="store_true",
+        help="Perform moves. Default is dry-run.",
+    )
+    parser.add_argument(
+        "--offline",
+        action="store_true",
+        help="Filename + tags only. No catalogs or Ollama.",
+    )
+    parser.add_argument(
+        "--root",
+        type=Path,
+        default=None,
+        help="Override stems_audio root (must stay under ~/Music/stems_audio).",
+    )
+    args = parser.parse_args(argv)
+    planners = {
+        "unknown-album": plan_unknown_album,
+        "outliers": plan_outliers,
+        "mashups": plan_mashups,
+    }
+    planner = planners[args.command]
+
+    try:
+        payload = planner(args.root, lookup=not args.offline)
+    except CrateSafetyError as exc:
+        print(exc, file=sys.stderr)
+        return 2
+
+    report = write_report(payload)
+    print(
+        f"{payload['families']} families, {payload['files']} files, "
+        f"sources={payload['sources']}, outliers={payload['outliers']}"
+    )
+    if payload.get("unknown_in_dest"):
+        print(f"WARNING: Unknown still in dest paths: {len(payload['unknown_in_dest'])}")
+    print(f"report: {report}")
+    if not args.execute:
+        print("dry-run. pass --execute to move families together.")
+        return 0
+
+    moved = execute_moves(payload)
+    print(f"moved {moved} files")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

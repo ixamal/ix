@@ -54,10 +54,11 @@ lsof -nP -iTCP:11434 -sTCP:LISTEN
 # NAME must be 127.0.0.1:11434 — never *:11434
 ```
 
-First model on this Mac: `qwen2.5-coder:7b`. Pull something that fits RAM:
+Coder model (Cursor): `qwen2.5-coder:7b`. Crate music ID: `qwen2.5:7b` (pulled 2026-08-30). Both stay under `~/local_tools/ollama/models`.
 
 ```bash
 ollama pull qwen2.5-coder:7b
+ollama pull qwen2.5:7b
 ```
 
 In Cursor: Settings → Models → OpenAI-compatible endpoint `http://127.0.0.1:11434/v1`.

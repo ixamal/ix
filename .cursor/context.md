@@ -13,10 +13,10 @@ ix is Valhalla: Cursor is the control plane. Ollama, MCP hardware bridges, and l
 3. Rekordbox / Traktor / Pro DJ Link → OSC on `127.0.0.1:9000`.
 4. Optional later: Houdini HDA / OpenVDB / NanoVDB (ASWF, Metal-capable).
 5. Global MCP: `~/.cursor/mcp.json`. Adapters: `~/local_tools/mcp_adapters/`.
-6. Ollama (installed on the Mac 2026-08-24): Homebrew CLI, LaunchAgent `ai.ixamal.ollama`, `OLLAMA_HOST=127.0.0.1:11434`, models in `~/local_tools/ollama/models`, first pull `qwen2.5-coder:7b`. Not in git. See `docs/local-setup.md`.
+6. Ollama (installed on the Mac 2026-08-24): Homebrew CLI, LaunchAgent `ai.ixamal.ollama`, `OLLAMA_HOST=127.0.0.1:11434`, models in `~/local_tools/ollama/models`. Coder: `qwen2.5-coder:7b`. Crate music ID: `qwen2.5:7b`. Not in git. See `docs/local-setup.md`.
 
-## Crate + hardware (2026-08-24, parked)
-ATGR is installed. Traktor was migrated into Rekordbox. Expected Traktor folders are **not** visible in RB — inspect later, do not reconvert. Next tagging pass is OneTagger + Ollama reviewer, only after that folder question is settled. Idea: NI/Traktor → WAV/AIFF for Maschine + S88; try S8 pads driving S88 sample slots. Checklist: `docs/TODO.md`. Parking lot: `docs/notes.md`. Do not execute from this file.
+## Crate + hardware
+Unknown Album dump **executed**. Inbox catalog + Ollama (`qwen2.5:7b`) **executed**. Unidentified leftovers are in `Compilations/Mashups/Miscellaneous/`. `_outliers/Inbox` should be empty. Do not DJCU2 yet.
 
 ## Immediate UE work (on the Mac, not in this cloud VM)
 1. Enable OSC plugin, listen `127.0.0.1:9000`.

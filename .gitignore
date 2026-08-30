@@ -49,3 +49,7 @@ mcp_scripts/private/
 
 # Agent scratch
 agent-tools/
+
+# Crate reports stay off-repo (~/local_tools/crate/reports)
+crate/reports/
+

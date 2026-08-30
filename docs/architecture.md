@@ -40,3 +40,6 @@ The Next.js app is the rehearsal hall: OSC inject, Niagara cache playhead, Ollam
 
 ## Oracle
 Ollama is not in this repo. On the Mac it is the Homebrew `ollama` CLI, kept alive by LaunchAgent `ai.ixamal.ollama`, listening on `127.0.0.1:11434`, with weights in `~/local_tools/ollama/models`. The rehearsal UI only probes that URL. Install notes: `docs/local-setup.md`.
+
+## Crate
+DJ files live in `~/Music/stems_audio`. STEM factory is [ixamal/stems](https://github.com/ixamal/stems). NML remaps are [ixamal/music_migration](https://github.com/ixamal/music_migration). Identity repair for untagged dumps is `crate/` in this repo (`docs/crate.md`): filename → catalogs → Ollama `qwen2.5:7b` → `Compilations/Mashups/Miscellaneous/`. Reports stay in `~/local_tools/crate/reports`.

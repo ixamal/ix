@@ -1,0 +1,303 @@
+"""Local identity: filename, then tags. Lookups live in lookup.py."""
+
+from __future__ import annotations
+
+import re
+from dataclasses import dataclass
+from pathlib import Path
+
+from ix_crate.families import ROLE_PAREN, Family, is_role_file, strip_role_markup
+from ix_crate.paths import MISC_ALBUM, MISC_ARTIST
+
+PLACEHOLDER_ARTISTS = {
+    "",
+    "unknown",
+    "unknown artist",
+    "various",
+    "various artists",
+    "va",
+}
+PLACEHOLDER_ALBUMS = {
+    "",
+    "unknown",
+    "unknown album",
+    "album title goes here",
+    "untitled album",
+    "untitled",
+}
+PLACEHOLDER_TITLES = {
+    "",
+    "unknown",
+    "unknown title",
+    "track",
+    "instrumental",
+    "vocals",
+    "drums",
+    "bass",
+    "other",
+    "acapella",
+    "a cappella",
+}
+JUNK_TITLE = re.compile(
+    r"\s*\[(?:tuberipper\.cc|getmp3\.pro|official (?:video|audio|visualiser)[^\]]*|wubaholics premiere|nest hq premiere|this song is sick premiere|your edm premiere|headbang society premiere|clip)\]\s*",
+    re.IGNORECASE,
+)
+JUNK_PARENS = re.compile(
+    r"\s*\((?:official(?: music)? video(?: remastered)?|official montage video|official visualiser|lyric video|\d+\s*kbps)\)\s*",
+    re.IGNORECASE,
+)
+RADIO_SUFFIX = re.compile(r"\s*__\s+.+$")
+INVALID_FS = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
+TRACK_NUM = re.compile(r"^\d{1,2}(?:[.)\-]|)\s+")
+MASHUP_MARK = re.compile(
+    r"\b(?:mashup|megamashup|vs\.?|versus)\b| \+ | but every | but it is "
+    r"|pomplamoose|wax audio|#mashup|dj schmolli|dj cummerbund| but ",
+    re.IGNORECASE,
+)
+CLIP_MARK = re.compile(
+    r"screenrecording|asdfmovie|bwav_test|birthday|tuberipper|mwclip",
+    re.IGNORECASE,
+)
+PUNCT = re.compile(r"[^\w\s]+", re.UNICODE)
+
+
+def clean_text(part: str) -> str:
+    text = strip_role_markup(part or "")
+    text = JUNK_TITLE.sub(" ", text)
+    text = JUNK_PARENS.sub(" ", text)
+    text = RADIO_SUFFIX.sub("", text)
+    text = re.sub(r"\s+", " ", text).strip(" ._-")
+    return text
+
+
+def sanitize(part: str, fallback: str) -> str:
+    text = INVALID_FS.sub("_", clean_text(part))
+    return text or fallback
+
+
+def strip_track_number(title: str) -> str:
+    return TRACK_NUM.sub("", (title or "").strip()).strip(" ._")
+
+
+def normalize_title(title: str) -> str:
+    text = strip_track_number(clean_text(title)).lower()
+    text = PUNCT.sub(" ", text)
+    text = re.sub(r"\s+", " ", text).strip()
+    if text.startswith("the "):
+        text = text[4:]
+    return text
+
+
+def titles_match(left: str, right: str) -> bool:
+    a, b = normalize_title(left), normalize_title(right)
+    if not a or not b:
+        return False
+    return a == b or a in b or b in a
+
+
+def is_mashup_name(text: str) -> bool:
+    return bool(MASHUP_MARK.search(text or ""))
+
+
+def is_clip_name(text: str) -> bool:
+    return bool(CLIP_MARK.search(text or ""))
+
+
+def duration_close(local: float | None, remote: float | None, *, slack: float = 8.0) -> bool:
+    if local is None or remote is None:
+        return False
+    return abs(local - remote) <= max(slack, 0.08 * max(local, remote))
+
+
+def is_placeholder_album_folder(name: str) -> bool:
+    compact = re.sub(r"[_\s]+", " ", name or "").strip().lower()
+    return compact in PLACEHOLDER_ALBUMS and compact != ""
+
+
+def is_placeholder_artist(value: str) -> bool:
+    return value.strip().lower() in PLACEHOLDER_ARTISTS
+
+
+def is_placeholder_title(value: str) -> bool:
+    text = strip_role_markup(value).strip().lower()
+    if text in PLACEHOLDER_TITLES or text.startswith("undefined"):
+        return True
+    raw = value.strip().lower()
+    if raw in PLACEHOLDER_TITLES or raw.startswith("undefined"):
+        return True
+    if ROLE_PAREN.fullmatch(raw.strip()):
+        return True
+    return False
+
+
+def _read_tags(path: Path) -> tuple[str, str, str]:
+    try:
+        from mutagen import File as MutagenFile
+    except ImportError:
+        return "", "", ""
+    try:
+        audio = MutagenFile(path, easy=True)
+    except Exception:
+        return "", "", ""
+    if audio is None or audio.tags is None:
+        return "", "", ""
+    tags = audio.tags
+
+    def first(*keys: str) -> str:
+        for key in keys:
+            values = tags.get(key)
+            if values:
+                return str(values[0]).strip()
+        return ""
+
+    return first("albumartist", "artist"), first("album"), first("title")
+
+
+def tags_from_family(family: Family) -> tuple[str, str, str]:
+    """Prefer the mix file. Never trust a role-file title."""
+    candidates: list[Path] = []
+    mix = family.mix_file()
+    if mix is not None:
+        candidates.append(mix)
+    for path in family.files:
+        if path not in candidates:
+            candidates.append(path)
+    artist = album = title = ""
+    for path in candidates:
+        if is_role_file(path):
+            continue
+        a, al, t = _read_tags(path)
+        if is_placeholder_title(t):
+            t = ""
+        if is_placeholder_artist(a):
+            a = ""
+        artist = artist or a
+        album = album or al
+        title = title or t
+        if artist and title:
+            break
+    return artist, album, title
+
+
+def split_sep(text: str, sep: str) -> list[str]:
+    """Split on sep only outside parentheses."""
+    parts: list[str] = []
+    buf: list[str] = []
+    depth = 0
+    i = 0
+    while i < len(text):
+        if text[i] == "(":
+            depth += 1
+            buf.append(text[i])
+            i += 1
+            continue
+        if text[i] == ")" and depth:
+            depth -= 1
+            buf.append(text[i])
+            i += 1
+            continue
+        if depth == 0 and text.startswith(sep, i):
+            parts.append("".join(buf).strip())
+            buf = []
+            i += len(sep)
+            continue
+        buf.append(text[i])
+        i += 1
+    tail = "".join(buf).strip()
+    if tail:
+        parts.append(tail)
+    return [part for part in parts if part]
+
+
+def split_dashes(text: str) -> list[str]:
+    """Split on ' - ' only outside parentheses."""
+    return split_sep(text, " - ")
+
+
+MIX_ARTIST = re.compile(r"\b(?:mix|vol\.?|compilation|playlist|bootlegs?)\b", re.I)
+
+
+def _short_artist(part: str) -> bool:
+    """`_` / `|` only when the left side looks like a name, not a sentence."""
+    return 0 < len(part.split()) <= 4
+
+
+def _usable_filename_artist(part: str) -> bool:
+    return bool(part) and _short_artist(part) and not MIX_ARTIST.search(part)
+
+
+def parse_filename(key: str) -> tuple[str, str, str]:
+    """Return (artist, album, title) from a family key."""
+    cleaned = clean_text(key)
+    for sep in (" - ", " _ ", " | "):
+        parts = [clean_text(part) for part in split_sep(cleaned, sep)]
+        if len(parts) < 2 or not _usable_filename_artist(parts[0]):
+            continue
+        if len(parts) >= 3:
+            return parts[0], parts[1], " - ".join(parts[2:])
+        if len(parts) == 2:
+            return parts[0], "", parts[1]
+    return "", "", cleaned
+
+
+@dataclass
+class Identity:
+    artist: str
+    album: str
+    title: str
+    source: str
+    movable: bool = True
+
+    @property
+    def dest_artist(self) -> str:
+        if self.source == "mashup":
+            return "Compilations"
+        if self.source == "outlier" or is_placeholder_artist(self.artist):
+            return MISC_ARTIST
+        return sanitize(self.artist, MISC_ARTIST)
+
+    @property
+    def dest_album(self) -> str:
+        if self.source == "mashup":
+            return f"Mashups/{sanitize(self.artist, 'Various Artists')}"
+        if self.source == "outlier" or is_placeholder_artist(self.artist):
+            return MISC_ALBUM
+        if self.album.strip().lower() in PLACEHOLDER_ALBUMS:
+            return "Singles"
+        return sanitize(self.album, "Singles")
+
+
+def identify(family: Family) -> Identity:
+    """Filename first, then tags. No network."""
+    tag_artist, tag_album, tag_title = tags_from_family(family)
+    file_artist, file_album, file_title = parse_filename(family.key)
+
+    artist = file_artist or tag_artist
+    album = file_album or tag_album
+    title = file_title or tag_title
+    if tag_artist and not is_placeholder_artist(tag_artist) and is_placeholder_artist(file_artist):
+        artist = tag_artist
+    if tag_album and tag_album.strip().lower() not in PLACEHOLDER_ALBUMS and not file_album:
+        album = tag_album
+    if tag_title and not is_placeholder_title(tag_title) and (
+        is_placeholder_title(file_title) or ".stem" in tag_title.lower()
+    ):
+        title = tag_title
+    if is_placeholder_title(title) or ".stem" in (title or "").lower():
+        title = file_title or tag_title
+
+    artist, album, title = clean_text(artist), clean_text(album), clean_text(title)
+    if is_placeholder_artist(artist):
+        source = "local-gap"
+    elif file_artist and artist == file_artist:
+        source = "filename"
+    else:
+        source = "tags"
+
+    return Identity(
+        artist=artist,
+        album=album,
+        title=title,
+        source=source,
+        movable=True,
+    )
