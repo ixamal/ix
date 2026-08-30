@@ -2,15 +2,15 @@
 
 Hit these in order. Stop on the first open item. Detail and constraints live in `docs/notes.md`. Off-repo tools and library paths stay off git.
 
-Last update: 2026-08-30 (Inbox emptied via catalog/Ollama; leftovers in Compilations/Mashups/Miscellaneous).
+Last update: 2026-08-30 (DJCU2 Traktor → Rekordbox confirmed).
 
 ## Crate
 
 - [x] 1. ATGR in (ReCK, DJCU2, Mixed in Key). Traktor collection migrated into Rekordbox.
 - [x] 1a. Unknown Album, mashups, and Inbox emptied. Unidentified leftovers: `Compilations/Mashups/Miscellaneous/`.
-- [ ] 1b. Repair remaining `Unknown Artist/` then the rest of `stems_audio`.
-- [ ] 1c. Rebuild Traktor collection from the clean tree (music_migration NML remap).
-- [ ] 2. Inspect why Traktor folders/playlists did not appear in Rekordbox. DJCU2 folder mapping. Do not reconvert until the tree is clean (after 1c).
+- [x] 1b. `stems_audio/Unknown Artist/` gone. 6 stale NML rows rematched (unicode + Queen mix). 5 ScreenRecording role WAVs no longer on disk. Apple Music `Unknown Artist` untouched.
+- [x] 1c. Traktor `collection.nml` remapped (27,564 live / 1,302 unmatched). Playlist keys repaired (100). Backup: `collection.nml.bak`.
+- [x] 2. DJCU2 Traktor → Rekordbox (2026-08-30). Playlists/folders landed. Process: `docs/djcu2.md`. Site: [atgr.nl](https://atgr.nl/).
 - [ ] 3. Confirm a small crate is path-stable across Music.app, Rekordbox, and Traktor (same files). Gate for everything below.
 
 ## Tagging
