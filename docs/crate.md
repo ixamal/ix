@@ -36,8 +36,7 @@ PYTHONPATH=crate python3 -m ix_crate mashups --execute
 
 Unknown Album, mashups, and Inbox are executed. `_outliers` is gone. Unidentified leftovers: `Compilations/Mashups/Miscellaneous/`.
 
-1. Rest of `Unknown Artist/`, then the rest of `stems_audio`.
-2. Rebuild Traktor via music_migration.
-3. DJCU2 → Rekordbox.
+1. Traktor remapped. DJCU2 Traktor → Rekordbox confirmed (`docs/djcu2.md`, [atgr.nl](https://atgr.nl/)).
+2. Confirm path-stable crate across Music.app / Rekordbox / Traktor.
 
 Never write Apple Music `Media.localized`. Never commit `/Users/<name>/` paths.

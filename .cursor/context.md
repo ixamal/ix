@@ -16,7 +16,7 @@ ix is Valhalla: Cursor is the control plane. Ollama, MCP hardware bridges, and l
 6. Ollama (installed on the Mac 2026-08-24): Homebrew CLI, LaunchAgent `ai.ixamal.ollama`, `OLLAMA_HOST=127.0.0.1:11434`, models in `~/local_tools/ollama/models`. Coder: `qwen2.5-coder:7b`. Crate music ID: `qwen2.5:7b`. Not in git. See `docs/local-setup.md`.
 
 ## Crate + hardware
-Unknown Album dump **executed**. Inbox catalog + Ollama (`qwen2.5:7b`) **executed**. Unidentified leftovers are in `Compilations/Mashups/Miscellaneous/`. `_outliers/Inbox` should be empty. Do not DJCU2 yet.
+Unknown Album dump **executed**. Inbox catalog + Ollama (`qwen2.5:7b`) **executed**. Traktor NML remapped. DJCU2 Traktor → Rekordbox **worked** (2026-08-30). Bridge is [ATGR DJCU2](https://atgr.nl/), not ix. Local DB snapshots: `databases/` (gitignored). Process: `docs/djcu2.md`.
 
 ## Immediate UE work (on the Mac, not in this cloud VM)
 1. Enable OSC plugin, listen `127.0.0.1:9000`.

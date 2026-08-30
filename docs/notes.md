@@ -2,7 +2,7 @@
 
 Parking lot for crate, tagging, and hardware ideas. Ordered checklist: `docs/TODO.md`. Agents: read both, then stop unless David asks to act. Off-repo tools and library paths stay off git.
 
-Last update: 2026-08-30. Unknown Album, mashups, and Inbox **executed**. `_outliers` is gone.
+Last update: 2026-08-30. Dump executed. Traktor remapped. **DJCU2 Traktor → Rekordbox confirmed.**
 
 ## Crate status
 
@@ -15,11 +15,12 @@ Last update: 2026-08-30. Unknown Album, mashups, and Inbox **executed**. `_outli
 
 Reports (off git): `~/local_tools/crate/reports/`. Cache: `~/local_tools/crate/lookup-cache.json`.
 
+Traktor (2026-08-30): NML remapped, then [ATGR DJCU2](https://atgr.nl/) converted the collection to Rekordbox. It works. ix does not reimplement that bridge. Snapshots: `databases/` (off git). Steps: `docs/djcu2.md`.
+
 ### Resume next
 
-1. Remaining `Unknown Artist/`, then the rest of `stems_audio`.
-2. Rebuild Traktor via music_migration.
-3. DJCU2 → Rekordbox. Do not reconvert until the tree is clean.
+1. Confirm a small crate is path-stable across Music.app, Rekordbox, and Traktor (`docs/TODO.md` item 3).
+2. Then OneTagger on a tiny owned-file sample. Never overwrite ReCK/MiK key, BPM, comments, cues.
 
 ```bash
 PYTHONPATH=crate python3 -m ix_crate unknown-album
@@ -48,7 +49,7 @@ ix Floor stays live OSC (`/rekordbox/bpm`, `/fader`, `/beat_phase`). It does not
 
 ## Do not do until asked
 
-- Debug missing Rekordbox folders from the Traktor migrate.
+- Re-run DJCU2 on the whole library unless David asks.
 - Install or run OneTagger / Beets against the live crate.
 - Convert NI/Traktor audio to WAV/AIFF.
 - MIDI-map S8 pads to S88 samples.

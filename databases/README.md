@@ -1,21 +1,21 @@
 # databases
 
-Local snapshots of DJ collections. The files stay on this Mac.
+Local snapshots of DJ collections. Files stay on this Mac. Gitignores `*.nml`, `*.xml`, `*.db`, and backups — they embed `/Users/<name>/` paths.
 
-Do **not** commit `collection.nml`, Rekordbox `master.db`, or `rekordbox.xml`. They embed `/Users/<name>/` paths and the crate layout. Gitignores those extensions.
+After a DJCU2 run, copy the live files here (dated names). Do not commit them.
 
-## Traktor
+## Sources
 
-Live file (do not point DJCU2 at this if it can see it is the original):
+| App | Live file |
+| --- | --- |
+| Traktor 4.5.1 | `~/Documents/Native Instruments/Traktor 4.5.1/collection.nml` |
+| Rekordbox 7 Collection | `~/Library/Pioneer/rekordbox/master.db` |
+| Rekordbox XML | `~/Music/PioneerDJ/rekordbox.xml` |
 
-`~/Documents/Native Instruments/Traktor 4.5.1/collection.nml`
+Example snapshot names: `20260830-traktor-collection.nml`, `20260830-rekordbox-master.db`, `20260830-rekordbox.xml`.
 
-DJCU2 wants a **Traktor export**, not a copy of that file:
+## DJCU2
 
-1. Open Traktor.
-2. File → Export Collection (or Export → Collection).
-3. Destination: `~/Documents` (or this folder).
-4. **Uncheck** export audio files.
-5. In DJCU2, choose that exported NML.
+The convert is [ATGR DJCU2](https://atgr.nl/). Process: `docs/djcu2.md`.
 
-A Finder copy of `collection.nml` still counts as the original NML and trips the same warning.
+Export from Traktor (audio **unchecked**). Do not point DJCU2 at the live `collection.nml` if it offers that warning — use the export.
