@@ -53,3 +53,10 @@ agent-tools/
 # Crate reports stay off-repo (~/local_tools/crate/reports)
 crate/reports/
 
+# Live DJ collections — absolute /Users/<name>/ paths, never public git
+databases/*.nml
+databases/*.nml.*
+databases/*.xml
+databases/*.db
+databases/*.bak
+
