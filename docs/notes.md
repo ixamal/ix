@@ -2,7 +2,7 @@
 
 Parking lot for crate, tagging, and hardware ideas. Ordered checklist: `docs/TODO.md`. Agents: read both, then stop unless David asks to act. Off-repo tools and library paths stay off git.
 
-Last update: 2026-08-30. Dump executed. Traktor remapped. DJCU2 confirmed. Path-stable. Accapella + `EDM, …` genre closed (files + Music.app).
+Last update: 2026-08-31. Dump executed. Traktor remapped. DJCU2 confirmed. Path-stable. Accapella + `EDM, …` genre closed. NI/Maschine idea unblocked (crate stable); still do not wire until David asks.
 
 ## Crate status
 
@@ -19,8 +19,9 @@ Traktor (2026-08-30): NML remapped, then [ATGR DJCU2](https://atgr.nl/) converte
 
 ### Resume next
 
-1. Empty / missing genre from Beatport / Traxsource / Discogs when Beatport v4 works (`docs/TODO.md` item 5). Never overwrite ReCK/MiK key, BPM, comments, cues.
-2. Do not re-run Discogs on the old `EDM, …` set — it flattened House to Electronic and mis-matched one compilation to Hip Hop.
+1. On the Mac: review open PRs listed in `docs/TODO.md` — [#1](https://github.com/ixamal/ix/pull/1) (NI/Maschine) and [#2](https://github.com/ixamal/ix/pull/2) (set-genre specimen). Merge or close. Do not execute from them.
+2. Empty / missing genre from Beatport / Traxsource / Discogs when Beatport v4 works (`docs/TODO.md` item 5). Never overwrite ReCK/MiK key, BPM, comments, cues.
+3. Do not re-run Discogs on the old `EDM, …` set — it flattened House to Electronic and mis-matched one compilation to Hip Hop.
 
 ```bash
 PYTHONPATH=crate python3 -m ix_crate unknown-album
@@ -42,11 +43,26 @@ Path-stable crate done 2026-08-30. Accapella + `EDM, …` genre pass done 2026-0
 
 ix Floor stays live OSC (`/rekordbox/bpm`, `/fader`, `/beat_phase`). It does not convert libraries or write ID3.
 
-## NI / Maschine (idea, not started)
+## NI / Maschine (idea, crate stable, not started)
 
-- Look at Python automation or libraries to convert Traktor / Native Instruments material to WAV or AIFF for **Maschine** with the **S88**.
-- **Idea to try:** can **Traktor Kontrol S8** pads drive **S88** sample slots (collected samples on Maschine / Komplete Kontrol S88)? Hardware MIDI/bridge experiment. Do not wire this until the crate is stable.
-- Keep any converters and MIDI maps in `~/local_tools`, not in this public repo.
+Crate is path-stable (TODO 3) and the genre pass is closed (TODO 4). The old “wait until the crate is stable” gate is lifted. Still do not wire this until David asks. Execution lives in [ixamal/blackhole](https://github.com/ixamal/blackhole), not this repo.
+
+Working rig (2026-08-22): S88 keys (Light Guide) into Komplete Kontrol or Maschine, down **BlackHole 2ch**, into Traktor Channel D, out the S8 fader. KK and Maschine share one D fader. Leave Maschine Input off BlackHole (loop). Leave S8 unchecked in Maschine MIDI. Close KK when Maschine needs the S88.
+
+**Next session (blackhole, in this order):**
+
+1. Port the working 2ch Channel D graph onto **BlackHole 16ch**. Prove tone, Traktor A, and S88-only-on-D still behave. Commit there only after this works.
+2. Then tap Traktor **A/B/C into the Maschine sampler**, play pads on the **S88**. KK out — KK does not sample live decks. Ableton Link is clock, not audio. Open question: Internal Traktor may not offer three independent deck outs; 16ch alone does not invent them. Do not record the master into BlackHole while Channel D is up (feedback).
+3. Convert Traktor / NI material to WAV or AIFF for Maschine + S88 only if file samples are needed. Off-repo under `~/local_tools`.
+4. **Idea to try:** can **Traktor Kontrol S8** pads drive **S88** sample slots (Maschine / Komplete Kontrol S88)? MIDI/bridge after 1–2.
+
+Keep converters and MIDI maps in `~/local_tools`, not in this public repo. Rekordbox / FLX10 stays later — keep RB shut during this work.
+
+## Parked in siblings (not this repo)
+
+- [ixamal/blackhole](https://github.com/ixamal/blackhole) — 2ch Channel D works. Next: 16ch, then A/B/C → Maschine → S88.
+- [ixamal/ix_bangers](https://github.com/ixamal/ix_bangers) — Bangers MCP catalog (stems, Music, Rekordbox, Traktor). Dry mode until David says commit. Not native Traktor.
+- [ixamal/stems](https://github.com/ixamal/stems) — factory idle after the first `stems_audio` pass. Parked there: dump the crate to JSON + a spreadsheet webpage. Not now.
 
 ## Do not do until asked
 
@@ -55,5 +71,7 @@ ix Floor stays live OSC (`/rekordbox/bpm`, `/fader`, `/beat_phase`). It does not
 - Run OneTagger against Apple Music streams (`.m4p`).
 - Turn on Music.app **Sync Library** on this DJ crate (still matches/replaces local files; not a hybrid keep-local mode).
 - Convert NI/Traktor audio to WAV/AIFF.
+- Port BlackHole 2ch → 16ch, or tap Traktor A/B/C into Maschine.
 - MIDI-map S8 pads to S88 samples.
+- Run Bangers writes (dry catalog only; [ixamal/ix_bangers](https://github.com/ixamal/ix_bangers)).
 - Re-run crate `--execute` on a live tree unless David asks.
