@@ -16,7 +16,7 @@ ix is Valhalla: Cursor is the control plane. Ollama, MCP hardware bridges, and l
 6. Ollama (installed on the Mac 2026-08-24): Homebrew CLI, LaunchAgent `ai.ixamal.ollama`, `OLLAMA_HOST=127.0.0.1:11434`, models in `~/local_tools/ollama/models`. Coder: `qwen2.5-coder:7b`. Crate music ID: `qwen2.5:7b`. Not in git. See `docs/local-setup.md`.
 
 ## Crate + hardware
-Unknown Album dump **executed**. Inbox catalog + Ollama (`qwen2.5:7b`) **executed**. Traktor NML remapped. DJCU2 Traktor → Rekordbox **worked**. Path-stable crate **confirmed** (TODO 3). Accapella + `EDM, …` genre **closed** (TODO 4: file tags + Music.app AppleScript; leftover `EDM*` 0). Sync Library Off. Next: empty-genre fill when Beatport v4 works (TODO 5). Bridge: [ATGR DJCU2](https://atgr.nl/). Snapshots: `databases/`. Process: `docs/djcu2.md`. Step log: `docs/onetagger.md`.
+Unknown Album dump **executed**. Inbox catalog + Ollama (`qwen2.5:7b`) **executed**. Traktor NML remapped. DJCU2 Traktor → Rekordbox **worked**. Path-stable crate **confirmed** (TODO 3). Accapella + `EDM, …` genre **closed** (TODO 4: file tags + Music.app AppleScript; leftover `EDM*` 0). Sync Library Off. Next: empty-genre fill when Beatport v4 works (TODO 5). NI/Maschine idea **unblocked** (crate stable) but still parked — 16ch then A/B/C → Maschine → S88; do not wire until asked. Detail: `docs/notes.md`. Rig: [ixamal/blackhole](https://github.com/ixamal/blackhole). Bridge: [ATGR DJCU2](https://atgr.nl/). Snapshots: `databases/`. Process: `docs/djcu2.md`. Step log: `docs/onetagger.md`.
 
 ## Immediate UE work (on the Mac, not in this cloud VM)
 1. Enable OSC plugin, listen `127.0.0.1:9000`.
