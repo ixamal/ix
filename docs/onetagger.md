@@ -15,7 +15,7 @@ Replace Apple Music’s **genre** (and Beatport **style**/subgenre) with store-d
 Music.app does **not** re-read file tags. Genre in Songs / the column browser comes from the library database. Cloud-download icons are library rows; some never had a local file. **Sync Library is Off** on this Mac — keep it off (DJ crate stays local).
 
 1. **Files** — in-place on owned `Media.localized` (`.mp3` / `.m4a` only, never `.m4p`). Music.app quit. Hardlinks under `~/local_tools/onetagger/work/`.
-2. **Library** — AppleScript `set genre` on Music.app tracks. File writes alone left the UI looking unchanged.
+2. **Library** — AppleScript `set genre` on Music.app tracks. File writes alone left the UI looking unchanged. Generic specimen (no live paths, do not run): `docs/examples/music-set-genre.applescript`.
 
 ## Steps we ran
 
@@ -28,6 +28,10 @@ Music.app does **not** re-read file tags. Genre in Songs / the column browser co
 7. **Library promote.** AppleScript one-track `set genre` (bulk list-set fails). 12 `EDM, Accapella` → `Acapella`; **11,719** other `EDM, …` promoted. Music.app leftover `EDM*`: **0**. **14** tracks `Acapella`. Click off a stale genre selection to refresh the column browser.
 
 Never move files. Never run this on Apple Music streams.
+
+## Specimen (not the live driver)
+
+The script that ran lives under `~/local_tools/onetagger/`, not in git. `docs/examples/music-set-genre.applescript` is a path-free reconstruction of that pass so others can review **4a**: library `set genre`, one track at a time, skip `.m4p`. It is not a tool. Do not execute it against a live crate.
 
 ## CLI (when Beatport v4 works)
 
