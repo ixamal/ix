@@ -6,6 +6,38 @@ Public git: [github.com/ixamal/ix](https://github.com/ixamal/ix)
 
 Mac clone path: `~/github/ixamal/ix`
 
+## Where we are
+
+Written 2026-08-31 for a non-technical read. Detail and next steps: `docs/TODO.md`.
+
+### Tonight (phone)
+
+- Confirmed the library genre cleanup is finished (files *and* the Music app).
+- Wrote down the next hardware idea so it is not lost: after the crate is stable, try a bigger audio path, then sample Traktor decks into Maschine and play those samples on the S88.
+- Saved a generic copy of the Music-app genre fixer so other people can see how we did it, without touching your live library.
+- Put all of that on the main project page. On the Mac: pull, then read `docs/TODO.md`.
+
+### From the start
+
+- Stood up **ix** as the home base: Cursor directs, a local AI stays on this Mac, Unreal is for live visuals, DJ tools stay DJ tools.
+- Kept the dangerous stuff off the public site (real library, models, hardware wiring).
+- Installed a local AI on the Mac and used it to identify mystery tracks.
+- Built a stem factory and ran the first big pass on the crate.
+- Got the piano (S88) into Traktor on one fader (Channel D). That fight is won.
+- Cleaned Unknown Album, mashups, and the inbox. Leftovers have a real home.
+- Relinked Traktor so it still finds the files after the move.
+- Converted Traktor → Rekordbox. Playlists and folders landed. It works.
+- Confirmed the same songs live at the same place in Traktor, Rekordbox, and Music.
+- Fixed genres: “Accapella” and thousands of “EDM, …” labels are now real names (House, Techno, and so on). Music.app matches the files. iCloud sync stayed off on purpose.
+- Learned: Music.app does not pick up tag changes from files. We had to tell Music itself.
+- Agreed not to let Beets become the library.
+
+### Still ahead (not done)
+
+- Fill *empty* genres when Beatport works again. Do not blast the old EDM set.
+- Wire the DJ decks into Unreal so the visuals follow the music.
+- Bigger audio path, then sampling decks into Maschine / S88 — written down, not wired.
+
 ## What this repo is
 
 A **control plane**. It holds architecture, OSC contracts, abstract MCP schemas, a rehearsal hall for Niagara cache scrubbing, and a loopback OSC runtime.
