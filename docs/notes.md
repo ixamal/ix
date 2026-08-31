@@ -19,8 +19,9 @@ Traktor (2026-08-30): NML remapped, then [ATGR DJCU2](https://atgr.nl/) converte
 
 ### Resume next
 
-1. Empty / missing genre from Beatport / Traxsource / Discogs when Beatport v4 works (`docs/TODO.md` item 5). Never overwrite ReCK/MiK key, BPM, comments, cues.
-2. Do not re-run Discogs on the old `EDM, …` set — it flattened House to Electronic and mis-matched one compilation to Hip Hop.
+1. On the Mac: review open PRs listed in `docs/TODO.md` — [#1](https://github.com/ixamal/ix/pull/1) (NI/Maschine) and [#2](https://github.com/ixamal/ix/pull/2) (set-genre specimen). Merge or close. Do not execute from them.
+2. Empty / missing genre from Beatport / Traxsource / Discogs when Beatport v4 works (`docs/TODO.md` item 5). Never overwrite ReCK/MiK key, BPM, comments, cues.
+3. Do not re-run Discogs on the old `EDM, …` set — it flattened House to Electronic and mis-matched one compilation to Hip Hop.
 
 ```bash
 PYTHONPATH=crate python3 -m ix_crate unknown-album
