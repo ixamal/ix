@@ -35,7 +35,7 @@ Path-stable crate done 2026-08-30. Accapella + `EDM, …` genre pass done 2026-0
 
 1. **OneTagger** 1.7.0 Beatport is dead (API v4). Discogs is unsafe for the old Apple `EDM, …` compounds (flattened to Electronic; one compilation → Hip Hop).
 2. Fill **empty** genre/subgenre from stores when Beatport works again.
-2a. Music.app genre is the library DB, not the file. After file writes, AppleScript `set genre` (one track at a time). Sync Library is Off — keep it off for the DJ crate.
+2a. Music.app genre is the library DB, not the file. After file writes, AppleScript `set genre` (one track at a time). Specimen: `docs/examples/music-set-genre.applescript` (do not run). Sync Library is Off — keep it off for the DJ crate.
 3. Never overwrite ReCK/MiK fields: Camelot/key, BPM, comments, cues.
 4. **Ollama** second pass as reviewer only: `127.0.0.1:11434`, JSON/CSV proposals for untagged tracks, human approve, then allowlisted write.
 5. Do not use `qwen2.5-coder:7b` as the musicologist. Crate ID uses `qwen2.5:7b`. Tag reviewer is still a later allowlisted write.
