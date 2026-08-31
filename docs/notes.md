@@ -2,7 +2,7 @@
 
 Parking lot for crate, tagging, and hardware ideas. Ordered checklist: `docs/TODO.md`. Agents: read both, then stop unless David asks to act. Off-repo tools and library paths stay off git.
 
-Last update: 2026-08-31. Dump executed. Traktor remapped. DJCU2 confirmed. Path-stable. Accapella + `EDM, …` genre closed. NI/Maschine idea unblocked (crate stable); still do not wire until David asks.
+Last update: 2026-08-31. Dump executed. Traktor remapped. DJCU2 confirmed. Path-stable. Accapella + `EDM, …` genre closed. NI/Maschine idea unblocked (crate stable); still do not wire until David asks. TODO **5b**: embed available metadata while processing — parked, not started.
 
 ## Crate status
 
@@ -21,7 +21,8 @@ Traktor (2026-08-30): NML remapped, then [ATGR DJCU2](https://atgr.nl/) converte
 
 1. On the Mac: `git pull` then review `docs/TODO.md` (NI/Maschine park, set-genre specimen). Do not execute from them.
 2. Empty / missing genre from Beatport / Traxsource / Discogs when Beatport v4 works (`docs/TODO.md` item 5). Never overwrite ReCK/MiK key, BPM, comments, cues.
-3. Do not re-run Discogs on the old `EDM, …` set — it flattened House to Electronic and mis-matched one compilation to Hip Hop.
+3. Embed available metadata into owned `.mp3` / `.wav` / `.m4a` while processing (`docs/TODO.md` item 5b). Python module; store lookups like OneTagger. Not started. Do not run until David asks.
+4. Do not re-run Discogs on the old `EDM, …` set — it flattened House to Electronic and mis-matched one compilation to Hip Hop.
 
 ```bash
 PYTHONPATH=crate python3 -m ix_crate unknown-album
@@ -36,6 +37,11 @@ Path-stable crate done 2026-08-30. Accapella + `EDM, …` genre pass done 2026-0
 1. **OneTagger** 1.7.0 Beatport is dead (API v4). Discogs is unsafe for the old Apple `EDM, …` compounds (flattened to Electronic; one compilation → Hip Hop).
 2. Fill **empty** genre/subgenre from stores when Beatport works again.
 2a. Music.app genre is the library DB, not the file. After file writes, AppleScript `set genre` (one track at a time). Specimen: `docs/examples/music-set-genre.applescript` (do not run). Sync Library is Off — keep it off for the DJ crate.
+2b. **Embed-while-processing (TODO 5b, idea, not started).** Python module in the processing pipeline (`crate/` or `~/local_tools`, not a live OneTagger blast). While a track is already being handled, stamp the file with **any available** field: artist, album, title, genre, duration, BPM, key, comments, cue points. Lookups from the same class of web databases OneTagger uses (Beatport / Traxsource / Discogs — Beatport v4 still dead on 1.7.0). Fill empties only for ReCK/MiK key, BPM, comments, cues. Do not Discogs-blast the old `EDM, …` set.
+    - Owned `.mp3` / `.wav` / `.m4a` only. Never `.m4p`. Never Apple Music streams.
+    - **Never mutagen `save()` on `.stem.m4a`.** That strips the NI `udta` stem atom and Traktor loses four decks. Stamp the mix / vocals / instrumental siblings; leave the STEM container to the stems factory (MP4Box).
+    - Cue points: only write a format Traktor or Rekordbox actually reads. Do not invent a cue atom those apps ignore. Collection cues stay in NML / `master.db` unless David asks otherwise.
+    - After file writes, Music.app still needs AppleScript (4a). Dry-run + report first. `--execute` only when David asks.
 3. Never overwrite ReCK/MiK fields: Camelot/key, BPM, comments, cues.
 4. **Ollama** second pass as reviewer only: `127.0.0.1:11434`, JSON/CSV proposals for untagged tracks, human approve, then allowlisted write.
 5. Do not use `qwen2.5-coder:7b` as the musicologist. Crate ID uses `qwen2.5:7b`. Tag reviewer is still a later allowlisted write.
@@ -75,3 +81,4 @@ Keep converters and MIDI maps in `~/local_tools`, not in this public repo. Rekor
 - MIDI-map S8 pads to S88 samples.
 - Run Bangers writes (dry catalog only; [ixamal/ix_bangers](https://github.com/ixamal/ix_bangers)).
 - Re-run crate `--execute` on a live tree unless David asks.
+- Run the embed-while-processing stamp (TODO 5b) on a live crate unless David asks.
