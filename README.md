@@ -35,6 +35,7 @@ Written 2026-08-31 for a non-technical read. Detail and next steps: `docs/TODO.m
 ### Still ahead (not done)
 
 - Fill *empty* genres when Beatport works again. Do not blast the old EDM set.
+- While processing, stamp owned songs with whatever we already know or can look up (artist, album, title, genre, length, BPM, key, comments, cues). Python module; same kind of store databases OneTagger uses. Do not smash STEM files or overwrite Mixed in Key / ReCK when those are already set.
 - Wire the DJ decks into Unreal so the visuals follow the music.
 - Bigger audio path, then sampling decks into Maschine / S88 — written down, not wired.
 
