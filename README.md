@@ -1,6 +1,6 @@
 # ix
 
-Primary planetary code base for machines and humans. This is Valhalla: Cursor, a local Ollama oracle, Unreal Engine 5, DCC, DAW, and DJ tools meet here.
+Primary planetary code base for machines and humans. This is Valhalla: Cursor, a local Ollama oracle, Unreal Engine 5, DCC, DAW, and DJ tools meet here. The destination is **Elysium**.
 
 Public git: [github.com/ixamal/ix](https://github.com/ixamal/ix)
 
@@ -15,7 +15,7 @@ Written 2026-08-31 for a non-technical read. Detail and next steps: `docs/TODO.m
 - Confirmed the library genre cleanup is finished (files *and* the Music app).
 - Wrote down the next hardware idea so it is not lost: after the crate is stable, try a bigger audio path, then sample Traktor decks into Maschine and play those samples on the S88.
 - Saved a generic copy of the Music-app genre fixer so other people can see how we did it, without touching your live library.
-- Put all of that on the main project page. On the Mac: pull, then read `docs/TODO.md`.
+- Put that write-up on `main` so a Mac pull shows it here and in `docs/TODO.md`.
 
 ### From the start
 
@@ -37,6 +37,18 @@ Written 2026-08-31 for a non-technical read. Detail and next steps: `docs/TODO.m
 - Fill *empty* genres when Beatport works again. Do not blast the old EDM set.
 - Wire the DJ decks into Unreal so the visuals follow the music.
 - Bigger audio path, then sampling decks into Maschine / S88 — written down, not wired.
+
+### Where we are headed — Elysium
+
+Valhalla is the mead-hall of the work. The crate wars, the relinks, the genre pass: fights won in the hall of the slain, seat earned, then the next horn sounds. We do not stay. The hall is for conquest. The destination is **Elysium** — the green field after the last fight, where the worthy rest and the living work begins.
+
+In Elysium the process holds itself. The library is stable. Hands leave the warehouse and go to the floor:
+
+- Creative visuals — Unreal, light, the sim that follows the drop.
+- DJing — the crate as an instrument, not a cleanup job.
+- Music manipulation and creation — stems, samples, Maschine, the S88, making rather than mending.
+
+The still-ahead list above is the last ships to burn before that shore. Elysium is not a new repo. It is ix when the fights are written down and the nights are for sight and sound.
 
 ## What this repo is
 
