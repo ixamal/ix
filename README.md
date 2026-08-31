@@ -57,6 +57,7 @@ Point Cursor Models at `http://127.0.0.1:11434/v1`. Full steps: `docs/local-setu
 - `docs/local-setup.md`
 - `docs/crate.md` — stems_audio identity repair (filename → catalogs → Ollama → Miscellaneous)
 - `docs/djcu2.md` — Traktor ↔ Rekordbox via [ATGR DJCU2](https://atgr.nl/)
+- `docs/onetagger.md` — genre pass (files + Music.app); not an LLM
 - `docs/TODO.md` — ordered checklist (crate, tagging, Floor, NI)
 - `docs/notes.md` — crate / tagging / hardware parking lot (do not execute from it)
 
