@@ -2,7 +2,7 @@
 
 Hit these in order. Stop on the first open item. Detail and constraints live in `docs/notes.md`. Off-repo tools and library paths stay off git.
 
-Last update: 2026-08-30 (TODO 4 closed: files + Music.app library).
+Last update: 2026-08-31 (NI idea unblocked; crate is stable. Floor still first).
 
 ## Crate
 
@@ -28,7 +28,10 @@ Last update: 2026-08-30 (TODO 4 closed: files + Music.app library).
 - [ ] 8b. Niagara Grid 3D Gas/Smoke. Record 15s sim cache.
 - [ ] 8c. Bind `/rekordbox/bpm` and `/rekordbox/fader` to cache Explicit Time / density.
 
-## NI / Maschine (after crate is stable)
+## NI / Maschine (after Floor; crate is stable)
 
-- [ ] 9. Python conversion of Traktor / Native Instruments material to WAV or AIFF for Maschine + S88. Off-repo under `~/local_tools`.
-- [ ] 10. Try Traktor Kontrol S8 pads driving S88 sample slots (Maschine / Komplete Kontrol S88). MIDI/bridge experiment after 9.
+Do not start these while Floor (8) is open. Detail: `docs/notes.md`. Execution: [ixamal/blackhole](https://github.com/ixamal/blackhole).
+
+- [ ] 9. Port the working BlackHole **2ch Channel D** graph onto **16ch**. Prove tone, Traktor A, and S88-only-on-D. Then Traktor A/B/C → Maschine sampler → S88 keys. KK out. Link is clock only.
+- [ ] 10. Python conversion of Traktor / Native Instruments material to WAV or AIFF for Maschine + S88 if file samples are needed. Off-repo under `~/local_tools`.
+- [ ] 11. Try Traktor Kontrol S8 pads driving S88 sample slots (Maschine / Komplete Kontrol S88). MIDI/bridge experiment after 9.
