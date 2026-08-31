@@ -60,5 +60,7 @@ Point Cursor Models at `http://127.0.0.1:11434/v1`. Full steps: `docs/local-setu
 - `docs/onetagger.md` — genre pass (files + Music.app); not an LLM
 - `docs/TODO.md` — ordered checklist (crate, tagging, Floor, NI)
 - `docs/notes.md` — crate / tagging / hardware parking lot (do not execute from it)
+- [ixamal/blackhole](https://github.com/ixamal/blackhole) — S8 / S88 / BlackHole routing (off this repo)
+- [ixamal/ix_bangers](https://github.com/ixamal/ix_bangers) — Bangers MCP catalog, dry mode (off this repo)
 
 Apache-2.0. See `LICENSE`.

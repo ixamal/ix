@@ -25,4 +25,4 @@ Too far out. Stay on UE 5.x Blueprints + C++. Verse will be text-native and MCP-
 2. 15s Niagara smoke cache.
 3. Wire `/rekordbox/bpm` and `/rekordbox/fader`.
 
-Crate, OneTagger, Beets-rejection, and NI S8/S88 ideas live in `docs/TODO.md` and `docs/notes.md`. Do not treat this Gemini distill as the crate log.
+Crate, OneTagger, Beets-rejection, and NI S8/S88 / BlackHole 16ch ideas live in `docs/TODO.md` and `docs/notes.md`. Do not treat this Gemini distill as the crate log.
