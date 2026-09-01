@@ -2,7 +2,7 @@
 
 Parking lot for crate, tagging, and hardware ideas. Ordered checklist: `docs/TODO.md`. Agents: read both, then stop unless David asks to act. Off-repo tools and library paths stay off git.
 
-Last update: 2026-08-31. Dump executed. Traktor remapped. DJCU2 confirmed. Path-stable. Accapella + `EDM, …` genre closed. NI/Maschine idea unblocked (crate stable); still do not wire until David asks. TODO **5b**: embed available metadata while processing — parked, not started.
+Last update: 2026-09-01. This Mac pulled phone PRs 1–4 (`1f420de`). Crate + genre closed. Next doable: Floor 8. Item 5 blocked (Beatport). 5b parked.
 
 ## Crate status
 
@@ -19,10 +19,9 @@ Traktor (2026-08-30): NML remapped, then [ATGR DJCU2](https://atgr.nl/) converte
 
 ### Resume next
 
-1. On the Mac: `git pull` then review `docs/TODO.md` (NI/Maschine park, set-genre specimen). Do not execute from them.
-2. Empty / missing genre from Beatport / Traxsource / Discogs when Beatport v4 works (`docs/TODO.md` item 5). Never overwrite ReCK/MiK key, BPM, comments, cues.
-3. Embed available metadata while processing (`docs/TODO.md` item 5b). Python module; store lookups like OneTagger. STEMs: JSON sidecar next to the `.stem.m4a`, same tree — do not mutagen-save the STEM. Not started. Do not run until David asks.
-4. Do not re-run Discogs on the old `EDM, …` set — it flattened House to Electronic and mis-matched one compilation to Hip Hop.
+1. Floor / Elysium (`docs/TODO.md` item 8). UE OSC `127.0.0.1:9000` → Niagara 15s cache.
+2. Item 5 stays blocked until Beatport v4. Do not Discogs-blast the old `EDM, …` set.
+3. Item 5b stays parked. Do not run until David asks.
 
 ```bash
 PYTHONPATH=crate python3 -m ix_crate unknown-album
