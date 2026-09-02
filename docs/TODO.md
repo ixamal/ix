@@ -2,15 +2,15 @@
 
 Hit these in order. Stop on the first **doable** open item. Detail: `docs/notes.md`. Off-repo tools and library paths stay off git.
 
-Last update: 2026-09-01. This Mac is on `1f420de` (phone PRs [#1](https://github.com/ixamal/ix/pull/1)–[#4](https://github.com/ixamal/ix/pull/4) pulled). Item **5** is blocked. Next doable work is **8** (Floor / Elysium).
+Last update: 2026-09-01. Items **5 / 5b / 6** omitted. **8** and **9** done (House comma + Hip Hop). Next doable: Floor **10**.
 
 ## Now
 
-Crate is path-stable. Accapella + `EDM, …` genre closed (files + Music.app). Sync Library Off. Phone ideas from 2026-08-31 are on `main`.
+Crate is path-stable. `EDM, …` and Accapella are done (files + Music.app). Sync Library Off.
 
-**Next session:** Floor — Rekordbox/Traktor OSC on `127.0.0.1:9000` into UE Niagara (8 → 8a → 8b → 8c).
+**Next session:** Floor **10** — Rekordbox/Traktor OSC on `127.0.0.1:9000` into UE Niagara.
 
-Do not start 5, 5b, 6, or 9 unless David asks. Beatport 1.7.0 is still dead.
+Do not start 11 unless David asks. Do not Discogs-blast. Do not wait for Beatport.
 
 ## Crate (done)
 
@@ -23,24 +23,26 @@ Do not start 5, 5b, 6, or 9 unless David asks. Beatport 1.7.0 is still dead.
 
 ## Tagging
 
-- [x] 4. Genre pass. 9 Accapella + 11,031 `EDM, …` on disk; then 11,731 Music.app library rows. Leftover `EDM*`: 0. 14 `Acapella`. Sync Library Off. `docs/onetagger.md`.
-- [x] 4a. Music.app does not re-read file tags. Specimen (do not run): `docs/examples/music-set-genre.applescript`.
-- [ ] 5. **Blocked.** Empty genre from Beatport / Traxsource / Discogs when Beatport v4 exists. Do not Discogs-blast the old `EDM, …` set. Do not overwrite ReCK/MiK key, BPM, comments, cues.
-- [ ] 5b. **Parked.** Embed available metadata while processing. Never mutagen-write `.stem.m4a` — STEM JSON sidecar beside the file. Dry-run first. `docs/notes.md`.
-- [ ] 6. **Later.** Ollama tag reviewer only (`qwen2.5:7b` on `127.0.0.1:11434`). Human approve, then allowlisted write. Not the coder.
+- [x] 4. `EDM, …` prefix + Accapella. 11,031 files + 11,731 Music.app rows. Leftover `EDM*`: 0. 14 `Acapella`. Incomplete for comma leftovers — see **8** and **9**. `docs/onetagger.md`.
+- [x] 4a. Music.app does not re-read file tags. Same two-layer write applies to 8 and 9. Specimen (do not run): `docs/examples/music-set-genre.applescript`.
+- [x] 5. **Omitted (not viable).** Beatport via OneTagger 1.7.0. [PR #526](https://github.com/Marekkon5/onetagger/pull/526) unmerged. Links: `docs/notes.md`.
+- [x] 5b. **Omitted (not viable).** Embed-while-processing needed the same stores as 5. STEM rule if reopened: never mutagen-write `.stem.m4a`.
+- [x] 6. **Omitted.** Ollama was reviewer-after-stores. Not a catalog.
 - [x] 7. Beets is not the library of record.
+- [x] 8. **`House, …` comma compounds.** 1,135 owned files + 1,301 Music.app rows. `House, Deep` → Deep House (699), Tech → Tech House (268), Progressive → Progressive House (136), plus Funk/Soul/Disco, Minimal/Deep Tech, Melodic, Indie/Nu Disco, Electro, Latin, Garage, STEMS, doubled labels. Music.app leftover `House,`: **0**. Disk leftover: **0**.
+- [x] 9. **Merge Hip Hop spellings.** `Hip-Hop` → `Hip Hop` on files. Music.app: one leftover — Freddie Joachim *Rain Drops* (file permission / likely stream). Left `Hip Hop / House` (1). Did not fold `Hip-Hop/Rap` or `Hip Hop / R&B`.
 
-## Floor / Elysium (do this)
+## Floor / Elysium (after 8–9)
 
-- [ ] 8. Rekordbox/Traktor OSC on `127.0.0.1:9000` (`/rekordbox/bpm`, `/fader`, `/beat_phase`) into UE. No ID3, no library convert.
-- [ ] 8a. Enable UE OSC plugin. Listen `127.0.0.1:9000`.
-- [ ] 8b. Niagara Grid 3D Gas/Smoke. Record 15s sim cache.
-- [ ] 8c. Bind `/rekordbox/bpm` and `/rekordbox/fader` to cache Explicit Time / density.
+- [ ] 10. Rekordbox/Traktor OSC on `127.0.0.1:9000` (`/rekordbox/bpm`, `/fader`, `/beat_phase`) into UE. No ID3, no library convert.
+- [ ] 10a. Enable UE OSC plugin. Listen `127.0.0.1:9000`.
+- [ ] 10b. Niagara Grid 3D Gas/Smoke. Record 15s sim cache.
+- [ ] 10c. Bind `/rekordbox/bpm` and `/rekordbox/fader` to cache Explicit Time / density.
 
 ## NI / Maschine (after Floor)
 
 Parked in [ixamal/blackhole](https://github.com/ixamal/blackhole). Do not start while Floor is open.
 
-- [ ] 9. Port BlackHole **2ch Channel D** onto **16ch**. Then Traktor A/B/C → Maschine sampler → S88.
-- [ ] 10. Convert NI/Traktor material to WAV or AIFF only if file samples are needed. `~/local_tools`.
-- [ ] 11. S8 pads → S88 sample slots. After 9.
+- [ ] 11. Port BlackHole **2ch Channel D** onto **16ch**. Then Traktor A/B/C → Maschine sampler → S88.
+- [ ] 12. Convert NI/Traktor material to WAV or AIFF only if file samples are needed. `~/local_tools`.
+- [ ] 13. S8 pads → S88 sample slots. After 11.

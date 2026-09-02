@@ -2,7 +2,7 @@
 
 Parking lot for crate, tagging, and hardware ideas. Ordered checklist: `docs/TODO.md`. Agents: read both, then stop unless David asks to act. Off-repo tools and library paths stay off git.
 
-Last update: 2026-09-01. This Mac pulled phone PRs 1–4 (`1f420de`). Crate + genre closed. Next doable: Floor 8. Item 5 blocked (Beatport). 5b parked.
+Last update: 2026-09-01. `EDM, …` closed. **5 / 5b / 6 omitted**. **8** (`House, …`) and **9** (Hip Hop) done. Next doable: Floor **10**.
 
 ## Crate status
 
@@ -19,9 +19,8 @@ Traktor (2026-08-30): NML remapped, then [ATGR DJCU2](https://atgr.nl/) converte
 
 ### Resume next
 
-1. Floor / Elysium (`docs/TODO.md` item 8). UE OSC `127.0.0.1:9000` → Niagara 15s cache.
-2. Item 5 stays blocked until Beatport v4. Do not Discogs-blast the old `EDM, …` set.
-3. Item 5b stays parked. Do not run until David asks.
+1. Floor / Elysium (`docs/TODO.md` item **10**). UE OSC `127.0.0.1:9000` → Niagara 15s cache.
+2. Items 5 / 5b / 6 stay omitted. 8 and 9 are done. Do not Discogs-blast.
 
 ```bash
 PYTHONPATH=crate python3 -m ix_crate unknown-album
@@ -34,17 +33,18 @@ PYTHONPATH=crate python3 -m ix_crate mashups
 Path-stable crate done 2026-08-30. Accapella + `EDM, …` genre pass done 2026-08-30 (files + Music.app AppleScript). Step log: `docs/onetagger.md`.
 
 1. **OneTagger** 1.7.0 Beatport is dead (API v4). Discogs is unsafe for the old Apple `EDM, …` compounds (flattened to Electronic; one compilation → Hip Hop).
-2. Fill **empty** genre/subgenre from stores when Beatport works again.
+2. **TODO 5 omitted (2026-09-01).** Not viable on this Mac. David is happy enough with the TODO 4 catalog to play in Rekordbox. Do not compile community PRs unless he asks.
+    - [OneTagger 1.7.0](https://github.com/Marekkon5/onetagger/releases/tag/1.7.0) — last official Mac release, 2023-08-03. Beatport scrape in that build is dead.
+    - [Beatport API v4](https://api.beatport.com/v4/docs/) — current catalog API (OAuth). 1.7.0 does not speak it.
+    - [Issue #486](https://github.com/Marekkon5/onetagger/issues/486) — Beatport/Traxsource/Juno break after the v3→v4 cut.
+    - [Issue #518](https://github.com/Marekkon5/onetagger/issues/518) / [#520](https://github.com/Marekkon5/onetagger/issues/520) — `__NEXT_DATA__` scrape gone.
+    - [PR #526](https://github.com/Marekkon5/onetagger/pull/526) (rosgr100) — v4 OAuth + catalog search. Open since 2026-05, last activity 2026-06, **not merged**. Linux CLI testers say it works. No official Mac asset.
+    - [PR #523](https://github.com/Marekkon5/onetagger/pull/523) — earlier Beatport v4 search attempt after `__NEXT_DATA__` removal.
 2a. Music.app genre is the library DB, not the file. After file writes, AppleScript `set genre` (one track at a time). Specimen: `docs/examples/music-set-genre.applescript` (do not run). Sync Library is Off — keep it off for the DJ crate.
-2b. **Embed-while-processing (TODO 5b, idea, not started).** Python module in the processing pipeline (`crate/` or `~/local_tools`, not a live OneTagger blast). While a track is already being handled, stamp the file with **any available** field: artist, album, title, genre, duration, BPM, key, comments, cue points. Lookups from the same class of web databases OneTagger uses (Beatport / Traxsource / Discogs — Beatport v4 still dead on 1.7.0). Fill empties only for ReCK/MiK key, BPM, comments, cues. Do not Discogs-blast the old `EDM, …` set.
-    - Owned `.mp3` / `.wav` / `.m4a` only. Never `.m4p`. Never Apple Music streams.
-    - **Never mutagen `save()` on `.stem.m4a`.** That strips the NI `udta` stem atom and Traktor loses four decks. Stamp the mix / vocals / instrumental siblings in the file tags.
-    - **STEM sidecar:** because the `.stem.m4a` cannot take a safe tag write, store the same metadata as JSON **in parallel with the audio tree** — sibling `{name}.stem.json` next to `{name}.stem.m4a`, same `Artist/Album/` folders. Sidecars stay on disk next to the music, never in public git. Move/rename with the family so the JSON does not orphan.
-    - Cue points: only write a format Traktor or Rekordbox actually reads on mix/role files. For STEMs, put cues in the JSON sidecar. Do not invent a cue atom Traktor ignores. Collection cues stay in NML / `master.db` unless David asks otherwise.
-    - After file writes, Music.app still needs AppleScript (4a). Dry-run + report first. `--execute` only when David asks.
+2b. **TODO 5b omitted (2026-09-01).** Same blocker as 5: embed-while-processing was store lookups (Beatport / Traxsource / Discogs). Those stores are not viable here. If this ever reopens: owned `.mp3` / `.wav` / `.m4a` only; never `.m4p`; never mutagen `save()` on `.stem.m4a` (strips NI stem atom); sidecar `{name}.stem.json` beside the file, not in git.
 3. Never overwrite ReCK/MiK fields: Camelot/key, BPM, comments, cues.
-4. **Ollama** second pass as reviewer only: `127.0.0.1:11434`, JSON/CSV proposals for untagged tracks, human approve, then allowlisted write.
-5. Do not use `qwen2.5-coder:7b` as the musicologist. Crate ID uses `qwen2.5:7b`. Tag reviewer is still a later allowlisted write.
+4. **TODO 6 omitted (2026-09-01).** Ollama (`qwen2.5:7b` on `127.0.0.1:11434`) was reviewer-after-stores, not a catalog. 5 never runs, so 6 would invent genres. Reopen only if Rekordbox leftovers bother David: JSON/CSV proposals, human approve, allowlisted write. Never the coder.
+5. Do not use `qwen2.5-coder:7b` as the musicologist. Crate ID already uses `qwen2.5:7b`.
 6. **Beets** is not the library of record. If used at all: `copy: no`, `move: no`, `write: no`, DB under `~/local_tools/beets`. Default `beet import` copies files and would break DJCU2/ReCK/Music.app paths. Gemini’s `item.write()` plugin is rejected.
 
 ix Floor stays live OSC (`/rekordbox/bpm`, `/fader`, `/beat_phase`). It does not convert libraries or write ID3.

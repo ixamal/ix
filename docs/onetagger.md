@@ -1,6 +1,6 @@
 # OneTagger
 
-[OneTagger](https://onetagger.github.io/) is a **desktop + CLI tagger** (Rust), not a Python module and not an LLM. It looks up **Beatport, Traxsource, Discogs** (and others) and writes tags on the files you point it at. Ollama (`docs/TODO.md` item 6) is a later reviewer, not this step.
+[OneTagger](https://onetagger.github.io/) is a **desktop + CLI tagger** (Rust), not a Python module and not an LLM. It looks up **Beatport, Traxsource, Discogs** (and others) and writes tags on the files you point it at. TODO **5 / 5b / 6** are omitted — Ollama is not a substitute store pass.
 
 Install lives off-repo: `~/local_tools/onetagger/` (app, CLI 1.7.0, sample, work). Not in git.
 
@@ -12,7 +12,7 @@ Replace Apple Music’s **genre** (and Beatport **style**/subgenre) with store-d
 
 ## Two layers (2026-08-30)
 
-Music.app does **not** re-read file tags. Genre in Songs / the column browser comes from the library database. Cloud-download icons are library rows; some never had a local file. **Sync Library is Off** on this Mac — keep it off (DJ crate stays local).
+Music.app does **not** re-read file tags. Genre in Songs / the column browser comes from the library database. Cloud-download icons are library rows; some never had a local file. **Sync Library is Off** on this Mac — keep it off (DJ crate stays local). Same two-layer write applies to leftover TODO **8** (`House, …`) and **9** (Hip Hop / Hip-Hop).
 
 1. **Files** — in-place on owned `Media.localized` (`.mp3` / `.m4a` only, never `.m4p`). Music.app quit. Hardlinks under `~/local_tools/onetagger/work/`.
 2. **Library** — AppleScript `set genre` on Music.app tracks. File writes alone left the UI looking unchanged. Generic specimen (no live paths, do not run): `docs/examples/music-set-genre.applescript`.
@@ -33,7 +33,9 @@ Never move files. Never run this on Apple Music streams.
 
 The script that ran lives under `~/local_tools/onetagger/`, not in git. `docs/examples/music-set-genre.applescript` is a path-free reconstruction of that pass so others can review **4a**: library `set genre`, one track at a time, skip `.m4p`. It is not a tool. Do not execute it against a live crate.
 
-## CLI (when Beatport v4 works)
+## Beatport (TODO 5 omitted)
+
+OneTagger **1.7.0 will not grow Beatport**. Last [Mac release](https://github.com/Marekkon5/onetagger/releases/tag/1.7.0) is 2023-08-03. Beatport is [API v4](https://api.beatport.com/v4/docs/) now ([#486](https://github.com/Marekkon5/onetagger/issues/486), [#518](https://github.com/Marekkon5/onetagger/issues/518)). Community [PR #526](https://github.com/Marekkon5/onetagger/pull/526) speaks v4 on Linux; unmerged since 2026-05; no official Mac build. [PR #523](https://github.com/Marekkon5/onetagger/pull/523) was an earlier scrape fix. Do not compile those unless David asks. Catalog as of the genre pass stands.
 
 ```bash
 ~/local_tools/onetagger/cli/onetagger-cli autotagger \
