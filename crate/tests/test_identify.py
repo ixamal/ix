@@ -123,6 +123,8 @@ class ParseFilenameTests(unittest.TestCase):
     def test_undefined_tag_is_placeholder(self) -> None:
         self.assertTrue(is_placeholder_title("undefined (instrumental)"))
         self.assertTrue(is_placeholder_title("instrumental"))
+        self.assertTrue(is_placeholder_title("Track 01"))
+        self.assertTrue(is_placeholder_title("track 9"))
         self.assertFalse(is_placeholder_title("01 Spontaneously Combust"))
 
 

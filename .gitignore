@@ -33,6 +33,9 @@ yarn-error.log*
 .env
 .env.*
 !.env.example
+*.enc
+box.key
+secrets/
 
 # vercel / typescript
 .vercel

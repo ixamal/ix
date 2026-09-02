@@ -16,7 +16,7 @@ ix is Valhalla: Cursor is the control plane. Ollama, MCP hardware bridges, and l
 6. Ollama (installed on the Mac 2026-08-24): Homebrew CLI, LaunchAgent `ai.ixamal.ollama`, `OLLAMA_HOST=127.0.0.1:11434`, models in `~/local_tools/ollama/models`. Coder: `qwen2.5-coder:7b`. Crate music ID: `qwen2.5:7b`. Not in git. See `docs/local-setup.md`.
 
 ## Crate + hardware
-Unknown Album dump **executed**. Inbox catalog + Ollama (`qwen2.5:7b`) **executed**. Traktor NML remapped. DJCU2 **worked**. Path-stable (TODO 3). Accapella + `EDM, …` **closed** (TODO 4 / 4a). `House, …` + Hip Hop spelling **closed** (TODO 8 / 9). Items **5 / 5b / 6 omitted**. Next doable: Floor **10** (Elysium). NI/Maschine is **11+**, parked in [ixamal/blackhole](https://github.com/ixamal/blackhole). Bridge: [ATGR DJCU2](https://atgr.nl/). Step log: `docs/onetagger.md`. Links: `docs/notes.md`.
+Unknown Album dump **executed**. Inbox catalog + Ollama (`qwen2.5:7b`) **executed**. Traktor NML remapped. DJCU2 **worked**. Path-stable (TODO 3). Accapella + `EDM, …` **closed** (TODO 4 / 4a). `House, …` + Hip Hop spelling **closed** (TODO 8 / 9). Music.app same-file rows **closed** (TODO 16). Locate/! rows **relinked** (TODO 18). Items **5 / 5b / 6 omitted**. Floor **10** parked. Stems: Acapella do not stem; Afro House done. **Next: Alternative tracks 1–3.** NI/Maschine is **11+**, parked in [ixamal/blackhole](https://github.com/ixamal/blackhole). Bridge: [ATGR DJCU2](https://atgr.nl/). Step log: `docs/onetagger.md`. Links: `docs/notes.md`.
 
 ## Immediate UE work (on the Mac, not in this cloud VM)
 1. Enable OSC plugin, listen `127.0.0.1:9000`.

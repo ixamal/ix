@@ -38,6 +38,7 @@ Keep off git:
 - Adapter code that talks to CDJ Ethernet, LAN IPs, or Pioneer sockets
 - Absolute `/Users/<name>/` paths
 - Tokens, `.env`, GGUF weights, `~/.ollama` identity keys
+- Mail notify address (`~/local_tools/secrets/notify.enc`, AES via `box.py`)
 - Any listen address that is not `127.0.0.1` (`0.0.0.0`, LAN IP, public DNS, ngrok, Tailscale serve)
 
 The residual risk is **local**: a poisoned prompt or a malicious PR that already has MCP can use those names to press DAW/UE buttons. Allowlists exist for that. Hiding port numbers in markdown would not stop it.

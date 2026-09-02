@@ -107,7 +107,7 @@ def pick_catalog_hit(
 def itunes_search(query: str, cache: dict) -> list[dict]:
     if not query:
         return []
-    key = f"itunes::{query.lower()}"
+    key = f"itunes::v2::{query.lower()}"
     url = ITUNES_URL + "?" + urllib.parse.urlencode(
         {"term": query, "entity": "song", "limit": "8"}
     )
@@ -123,6 +123,7 @@ def itunes_search(query: str, cache: dict) -> list[dict]:
                 "album": clean_text(str(item.get("collectionName") or "")),
                 "title": clean_text(str(item.get("trackName") or "")),
                 "duration": (millis / 1000.0) if millis else None,
+                "genre": clean_text(str(item.get("primaryGenreName") or "")),
                 "source": "itunes",
             }
         )

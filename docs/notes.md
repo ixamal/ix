@@ -2,7 +2,7 @@
 
 Parking lot for crate, tagging, and hardware ideas. Ordered checklist: `docs/TODO.md`. Agents: read both, then stop unless David asks to act. Off-repo tools and library paths stay off git.
 
-Last update: 2026-09-01. `EDM, …` closed. **5 / 5b / 6 omitted**. **8** (`House, …`) and **9** (Hip Hop) done. Next doable: Floor **10**.
+Last update: 2026-09-01. Music.app same-file dupes closed (16). **Next: Alternative stems, tracks 1–3.** Floor **10** parked.
 
 ## Crate status
 
@@ -19,13 +19,18 @@ Traktor (2026-08-30): NML remapped, then [ATGR DJCU2](https://atgr.nl/) converte
 
 ### Resume next
 
-1. Floor / Elysium (`docs/TODO.md` item **10**). UE OSC `127.0.0.1:9000` → Niagara 15s cache.
-2. Items 5 / 5b / 6 stay omitted. 8 and 9 are done. Do not Discogs-blast.
+1. **Alternative stems, tracks 1–3 only** (TODO 17). HUD on. Skip existing `stems_audio` Artist/Album/Title. Never stem Acapella. Never write Media.localized. Local factory only.
+2. Floor **10** parked until David asks.
+3. Items 5 / 5b / 6 stay omitted. Do not Discogs-blast.
 
 ```bash
 PYTHONPATH=crate python3 -m ix_crate unknown-album
 PYTHONPATH=crate python3 -m ix_crate outliers
 PYTHONPATH=crate python3 -m ix_crate mashups
+PYTHONPATH=crate python3 -m ix_crate music-dupes
+PYTHONPATH=crate python3 -m ix_crate music-dupes --execute
+PYTHONPATH=crate python3 -m ix_crate music-repair
+PYTHONPATH=crate python3 -m ix_crate music-repair --execute
 ```
 
 ## Tagging

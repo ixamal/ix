@@ -21,11 +21,21 @@ from ix_crate.safety import CrateSafetyError
 
 
 def main(argv: list[str] | None = None) -> int:
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if argv and argv[0] == "music-dupes":
+        from ix_crate.music_dupes import main as music_dupes_main
+
+        return music_dupes_main(argv[1:])
+    if argv and argv[0] == "music-repair":
+        from ix_crate.music_repair import main as music_repair_main
+
+        return music_repair_main(argv[1:])
+
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "command",
-        choices=("unknown-album", "outliers", "mashups"),
-        help="Scan Unknown Album, re-ID Inbox, or sort mashups into Compilations.",
+        choices=("unknown-album", "outliers", "mashups", "music-dupes", "music-repair"),
+        help="Scan Unknown Album, re-ID Inbox, sort mashups, drop Music.app same-file rows, or locate missing files.",
     )
     parser.add_argument(
         "--execute",

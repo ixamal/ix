@@ -30,6 +30,10 @@ PYTHONPATH=crate python3 -m ix_crate outliers                 # re-ID _outliers/
 PYTHONPATH=crate python3 -m ix_crate outliers --execute       # after you read the outliers report
 PYTHONPATH=crate python3 -m ix_crate mashups                  # Compilations/Mashups dry-run
 PYTHONPATH=crate python3 -m ix_crate mashups --execute
+PYTHONPATH=crate python3 -m ix_crate music-dupes              # Music.app same-file rows (dry-run + HUD)
+PYTHONPATH=crate python3 -m ix_crate music-dupes --execute    # drop extra library rows; file stays
+PYTHONPATH=crate python3 -m ix_crate music-repair             # Locate ! rows (dry-run + HUD)
+PYTHONPATH=crate python3 -m ix_crate music-repair --execute   # set location + fill empty identity/genre
 ```
 
 ## After this dump
@@ -40,3 +44,7 @@ Unknown Album, mashups, and Inbox are executed. `_outliers` is gone. Unidentifie
 2. Genre pass done (TODO 4): owned `Media.localized` tags + Music.app library. See `docs/onetagger.md`.
 
 Never *move* Apple Music `Media.localized`. In-place genre on owned `.mp3`/`.m4a` was TODO 4 only. Never commit `/Users/<name>/` paths.
+
+`music-dupes` only deletes extra Music.app *rows* that share one existing file. It does not unlink audio. If a delete would trash the file, it restores from Trash and stops.
+
+`music-repair` relinks Songs rows with no file (the Locate / ! mark) to a unique match under Media.localized. It does not move Apple Music files. Empty artist/album/title uses the crate cascade. Empty genre uses iTunes only.

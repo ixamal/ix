@@ -127,6 +127,8 @@ def is_placeholder_title(value: str) -> bool:
         return True
     if ROLE_PAREN.fullmatch(raw.strip()):
         return True
+    if re.fullmatch(r"track\s*\d{1,3}", text):
+        return True
     return False
 
 
