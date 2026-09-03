@@ -247,3 +247,37 @@ class BarTest(unittest.TestCase):
         from ix_crate.consolidate import Bar
 
         self.assertIn("100.0%", Bar(0, "x").render(1))
+
+
+class SourceLostTest(unittest.TestCase):
+    def test_aborts_when_the_source_volume_disappears(self) -> None:
+        from ix_crate.consolidate import Candidate, SourceLost, execute
+        from ix_crate.consolidate import ConsolidatePlan
+
+        with TemporaryDirectory() as tmp:
+            plan = ConsolidatePlan()
+            plan.copy = [
+                Candidate(
+                    source=Path("/Volumes/GoneDrive/x/a.mp3"),
+                    dest=Path(tmp) / "a.mp3",
+                    artist="", album="", title="", size=1,
+                )
+            ]
+            with self.assertRaises(SourceLost):
+                execute(plan)
+
+    def test_one_unreadable_file_does_not_abort_the_run(self) -> None:
+        from ix_crate.consolidate import Candidate, ConsolidatePlan, execute
+
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            good = _mp3(root / "src" / "good.mp3", b"ok")
+            plan = ConsolidatePlan()
+            plan.copy = [
+                Candidate(source=root / "src" / "nope.mp3", dest=root / "o" / "n.mp3",
+                          artist="", album="", title="", size=2),
+                Candidate(source=good, dest=root / "o" / "good.mp3",
+                          artist="", album="", title="", size=2),
+            ]
+            copied, failed, _ = execute(plan)
+            self.assertEqual((copied, failed), (1, 1))

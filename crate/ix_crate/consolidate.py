@@ -89,6 +89,7 @@ class Candidate:
 @dataclass
 class ConsolidatePlan:
     copy: list[Candidate] = field(default_factory=list)
+    failures: list[Candidate] = field(default_factory=list)
     duplicate: int = 0
     skipped: int = 0
     scanned: int = 0
@@ -331,6 +332,19 @@ def copy_one(item: Candidate) -> bool:
     return True
 
 
+class SourceLost(ConsolidateError):
+    """The source volume went away mid-run."""
+
+
+def _source_root_alive(item: Candidate) -> bool:
+    """A removable volume that unmounts turns every remaining copy into a
+    failure. Tell that apart from one unreadable file."""
+    parts = Path(item.source).parts
+    if len(parts) >= 3 and parts[1] == "Volumes":
+        return Path(parts[0], parts[1], parts[2]).is_dir()
+    return True
+
+
 def execute(plan: ConsolidatePlan, *, on_progress=None) -> tuple[int, int, int]:
     copied = failed = 0
     moved_bytes = 0
@@ -340,6 +354,12 @@ def execute(plan: ConsolidatePlan, *, on_progress=None) -> tuple[int, int, int]:
             moved_bytes += item.size
         else:
             failed += 1
+            plan.failures.append(item)
+            if not _source_root_alive(item):
+                raise SourceLost(
+                    f"source volume for {item.source} is gone after {copied} copies. "
+                    "Reconnect it and re-run; copies already made are kept."
+                )
         if on_progress and (i % 25 == 0 or i == len(plan.copy)):
             on_progress(i, len(plan.copy), moved_bytes)
     return copied, failed, moved_bytes
@@ -523,9 +543,27 @@ def run(args: argparse.Namespace, panel=None) -> int:
         name = plan.copy[min(done, len(plan.copy)) - 1].dest.name if plan.copy else ""
         hud(done, total, name, f"copy {_gb(moved)} GB")
 
-    copied, failed, moved = execute(plan, on_progress=progress)
+    try:
+        copied, failed, moved = execute(plan, on_progress=progress)
+    except SourceLost as exc:
+        print(f"\n{exc}", flush=True)
+        _write_failures(plan)
+        return 2
     print(f"copied {copied}  failed {failed}  {_gb(moved)} GB", flush=True)
+    if plan.failures:
+        print(f"failures {_write_failures(plan)}", flush=True)
     return 0
+
+
+def _write_failures(plan: ConsolidatePlan) -> Path:
+    return write_report(
+        {
+            "failed": len(plan.failures),
+            "items": [
+                {"source": str(i.source), "dest": str(i.dest)} for i in plan.failures
+            ],
+        }
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
