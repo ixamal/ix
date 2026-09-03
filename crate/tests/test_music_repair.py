@@ -131,3 +131,17 @@ class PickMatchTests(unittest.TestCase):
             path, reason = pick_match(_row("Missing Song", artist="Ghost"), index)
             self.assertIsNone(path)
             self.assertEqual(reason, "")
+
+
+class AppleDoubleTest(unittest.TestCase):
+    def test_appledouble_stub_is_not_indexed(self) -> None:
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            album = root / "Moby" / "Play"
+            album.mkdir(parents=True)
+            real = album / "01 Honey.mp3"
+            real.write_bytes(b"x")
+            (album / "._01 Honey.mp3").write_bytes(b"x")
+            index = index_tree(root)
+            hits = [h.path for hits in index["by_title"].values() for h in hits]
+            self.assertEqual(hits, [real])

@@ -34,6 +34,8 @@ PYTHONPATH=crate python3 -m ix_crate music-dupes              # Music.app same-f
 PYTHONPATH=crate python3 -m ix_crate music-dupes --execute    # drop extra library rows; file stays
 PYTHONPATH=crate python3 -m ix_crate music-repair             # Locate ! rows (dry-run + HUD)
 PYTHONPATH=crate python3 -m ix_crate music-repair --execute   # set location + fill empty identity/genre
+PYTHONPATH=crate python3 -m ix_crate music-reconcile          # relink ! rows from the iTunes XML (dry-run)
+PYTHONPATH=crate python3 -m ix_crate music-reconcile --execute
 PYTHONPATH=crate python3 -m ix_crate music-fix                # playlist Fix identity (dry-run + HUD)
 PYTHONPATH=crate python3 -m ix_crate music-fix --execute      # write file tags + Music.app artist/album/genre
 PYTHONPATH=crate python3 -m ix_crate music-fix --library-va   # library Various Artists (dry-run)
@@ -61,7 +63,39 @@ The library media folder is `~/Music/Music/Media.localized`. The DJ crate alread
 
 Do **not** turn `Media.localized/Music` into a symlink to `.`. That leftover iTunes loop made drag-and-drop fail with **Attempting to copy to the disk “Data” failed. A duplicate file name was specified.** (“Data” is the APFS user volume, not a second disk.) Replaced with a real `Music/` folder 2026-09-03; Traxsource drag-and-drop confirmed.
 
+Removing the loop had a cost that was not caught the same day. 7,110 rows had been written while it existed, so they record `Media.localized/Music/Artist/...` for a file that actually sits at `Media.localized/Artist/...`. The loop made both spellings resolve; a real folder does not. 5,368 rows went to **!** immediately. `music-reconcile` repaired them by pointing each row at the real path, so the library no longer depends on the loop existing.
+
 Leave **Sync Library** Off. Do not hoist new `Music/` files up onto the artist-root crate. Do not delete `Music/` to “flatten” the library. `music-repair` indexes both trees and skips `Music/` as an artist name.
+
+## music-reconcile
+
+`music-repair` matches a dead row by artist/title against what is on disk, which only lands when the title is unique. `music-reconcile` starts from `Media.localized/iTunes Music Library.xml` instead: it records **persistent ID → path**, and the live library still uses those same IDs. That turns a guess into an exact per-row lookup.
+
+For each row Music.app reports as `missing value`, in order:
+
+1. the path the XML recorded, if that file is still there
+2. the same path with the `Music/` container removed (the symlink fallout above)
+3. the same path rebased onto a backup `Media.localized` root (`--external`)
+4. artist/title match over a wider external tree (`--external-scan`)
+
+A candidate is only used when no live row already holds it, so a relink can never mint a duplicate. Rows whose file is already claimed are reported as `duplicate_rows` and left for `music-dupes`.
+
+Two things about reading the library that cost a day:
+
+- Read `location` in **bulk** (`location of file tracks i thru j`). The per-track form inside a repeat fails to coerce on this library and reports every row as dead — that is where the bogus "14,127 missing" first came from.
+- Relinking **reorders** `library playlist 1`, so a position captured during the scan goes stale mid-run. Each write re-checks the persistent ID at that index and skips on mismatch, and `--passes` re-scans until it converges. The first single-pass run relinked 7,580 and skipped 5,536 purely from drift.
+
+```bash
+PYTHONPATH=crate python3 -m ix_crate music-reconcile            # dry-run
+PYTHONPATH=crate python3 -m ix_crate music-reconcile --execute  # relink, re-scanning until stable
+PYTHONPATH=crate python3 -m ix_crate music-reconcile \
+  --external     "/Volumes/<drive>/MIGRATION_MASTER/Music/Music/Media.localized" \
+  --external-scan "/Volumes/<drive>/MIGRATION_MASTER/Music"
+```
+
+2026-09-03: **8,748 → 21,850** rows holding a file (13,102 relinked, 7,748 at their recorded path, 5,368 hoisted out of `Music/`). 991 left: 103 duplicate rows, 888 with no file anywhere local.
+
+Relinking to a removable volume is left as a dry-run on purpose — those rows go **!** again the moment the drive unmounts. Copy in first, then relink.
 
 ## STEMIT
 

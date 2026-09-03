@@ -30,6 +30,10 @@ def main(argv: list[str] | None = None) -> int:
         from ix_crate.music_repair import main as music_repair_main
 
         return music_repair_main(argv[1:])
+    if argv and argv[0] == "music-reconcile":
+        from ix_crate.music_reconcile import main as music_reconcile_main
+
+        return music_reconcile_main(argv[1:])
     if argv and argv[0] == "music-fix":
         from ix_crate.music_fix import main as music_fix_main
 
@@ -48,10 +52,11 @@ def main(argv: list[str] | None = None) -> int:
             "mashups",
             "music-dupes",
             "music-repair",
+            "music-reconcile",
             "music-fix",
             "stemit",
         ),
-        help="Scan Unknown Album, re-ID Inbox, sort mashups, drop Music.app same-file rows, locate missing files, fill a playlist's identity, or STEMIT a playlist into stems_audio.",
+        help="Scan Unknown Album, re-ID Inbox, sort mashups, drop Music.app same-file rows, locate missing files, relink dead rows from the iTunes XML, fill a playlist's identity, or STEMIT a playlist into stems_audio.",
     )
     parser.add_argument(
         "--execute",

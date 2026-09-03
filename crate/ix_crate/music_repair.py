@@ -187,6 +187,10 @@ def scan_missing(on_scan=None) -> tuple[list[RepairRow], int]:
 def _indexable(path: Path) -> bool:
     if not is_audio(path):
         return False
+    # AppleDouble stubs on exFAT/SMB copies carry the audio extension but are
+    # 4KB resource forks, not playable files.
+    if path.name.startswith("._"):
+        return False
     low = path.name.lower()
     return not any(low.endswith(suffix) for suffix in SKIP_SUFFIX)
 
