@@ -9,6 +9,7 @@ from ix_crate.music_dupes import (
     group_file_rows,
     keep_key,
     pick_keeper,
+    _parse_int,
 )
 
 
@@ -61,6 +62,13 @@ class KeeperTests(unittest.TestCase):
         b = _row("B", "/x", database_id=2, played_count=1, rating=80)
         self.assertEqual(pick_keeper([a, b]).persistent_id, "B")
         self.assertGreater(keep_key(a), keep_key(_row("C", "/x", database_id=10)))
+
+
+class ParseIntTests(unittest.TestCase):
+    def test_music_duration_float(self) -> None:
+        self.assertEqual(_parse_int("470.132995605469"), 470)
+        self.assertEqual(_parse_int("12"), 12)
+        self.assertEqual(_parse_int("nope"), 0)
 
 
 class GroupTests(unittest.TestCase):

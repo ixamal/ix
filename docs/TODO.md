@@ -2,15 +2,15 @@
 
 Hit these in order. Stop on the first **doable** open item. Detail: `docs/notes.md`. Off-repo tools and library paths stay off git.
 
-Last update: 2026-09-01. Music Locate/! rows (18) relinked. **Next: Alternative stems, tracks 1–3 only** (validate). Never stem Acapella. Floor **10** parked.
+Last update: 2026-09-03. Playlist **Fix** identity closed (19 + 20). Various Artists fingerprint pass done (21). Screenshot compilations closed (22). **Next: Alternative stems, tracks 1–3 only.** Floor **10** parked.
 
 ## Now
 
-Crate is path-stable. `EDM, …` and Accapella are done (files + Music.app). Sync Library Off.
+Crate is path-stable. Music.app library identity is clean enough to play. Sync Library Off. Night stop 2026-09-03.
 
 **Next:** Alternative stems, tracks **1–3 only**, so David can validate the HUD + siblings. Skip if that Artist/Album/Title already has `{name}.stem.m4a` in `~/Music/stems_audio`. Never write Apple Music. Never stem **Acapella**. Floor 10 when David asks.
 
-Do not start 11 unless David asks. Do not farm 35k to the cloud.
+Do not start 11 unless David asks. Do not farm 35k to the cloud. Do not Discogs-blast.
 
 ## Crate (done)
 
@@ -22,6 +22,10 @@ Do not start 11 unless David asks. Do not farm 35k to the cloud.
 - [x] 3. Path-stable. 4,908 shared live owned files; Traktor and Rekordbox same path on 4,901.
 - [x] 16. **Music.app same-file rows.** 625 files had two Songs entries on the same path (Show in Finder → same file). Dropped 625 extra library rows. Files stayed (23,632 → 23,007 file tracks). `PYTHONPATH=crate python3 -m ix_crate music-dupes`. Aqua HUD via stems `py.utils.progress`.
 - [x] 18. **Music.app Locate / ! rows.** Relinked 375 unique disk matches (`music-repair`). 16 Bit Lolitas from the screenshot included. 260 unmatched (duplicate copies, truncated mix-CD names, or no file). Identity/genre fill only on gaps (crate cascade + iTunes genre). Did not move Media.localized. Did not Discogs.
+- [x] 19. **Music.app playlist Fix.** 685 file tracks. Tagged **188** (filename 125, iTunes+Deezer 58, Ollama 5). **497** left unidentified (`Track 01`, Cream Live, mix-CD names with no unique catalog match). Dump albums → `Singles` when artist known. Cream Live kept. WAV mutagen abort replayed. `PYTHONPATH=crate python3 -m ix_crate music-fix --playlist Fix --execute`. No Discogs. Did not move Media.localized.
+- [x] 20. **Fix leftovers — heavy pass.** 497 remaining gaps tagged. iTunes 126, Deezer 20, MusicBrainz 21, dual catalog 3, Various Artists salvage 327. Playlist Fix now has **0** empty artists. AcoustID ran on every gap (mix-CD rips mostly unlinked in the fingerprint DB). Cream Live kept. No Discogs. Did not move Media.localized.
+- [x] 21. **Various Artists cleanup.** AcoustID + Shazam (`shazamio` in `~/local_tools/crate/shazam-venv`, Python 3.12). No Beets import. 263 tagged (237 Shazam, 18 MusicBrainz, 6 iTunes/Deezer, 2 tags). 75 unidentified left as VA. Hits write artist, album artist, clear compilation. `music-fix --library-va --execute`. Report `~/local_tools/crate/reports/music-fix-20260903T040145Z.json`.
+- [x] 22. **Screenshot compilations (one album at a time).** David sends a Music.app shot; agent looks up **that** Discogs/iTunes release only (not a library blast). Write per-track artists, DJ/compiler as album artist, compilation **off**, genre House unless the shot says otherwise. Strip `01 Title` prefixes. Unify duplicate album-name variants; drop extra Music.app **rows** only. Keep the file-backed row (or re-add the rip if the keeper was a `!`). How/why: `docs/crate.md` (Screenshot compilations). Done this night: mix-CD numbered **artist** prefixes (keep 16 Bit Lolitas / 28 East Boyz / 51 Days / 68 Beats / 95 North); Mix This Pussy; GU **010 Athens** discs 1–2 (album artist Danny Tenaglia); Mushroom Jazz 7 order + two duration mislabels; Lazy Dog + Volume 2 (Ben Watt & Jay Hannan, 53 extra rows dropped, 3 `!` relinked). Music.app may need a quit/reopen after a big write; Shuffle is independent of tag order.
 
 ## Tagging
 

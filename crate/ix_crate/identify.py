@@ -49,6 +49,11 @@ JUNK_PARENS = re.compile(
 RADIO_SUFFIX = re.compile(r"\s*__\s+.+$")
 INVALID_FS = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
 TRACK_NUM = re.compile(r"^\d{1,2}(?:[.)\-]|)\s+")
+LEADING_ARTIST_NUM = re.compile(r"^(\d{2})\s+([A-Za-z].+)$")
+NUMBERED_ARTIST_KEEP = re.compile(
+    r"^(?:16 bit lolitas|28 east boyz|51 days|68 beats|95 north)\b",
+    re.I,
+)
 MASHUP_MARK = re.compile(
     r"\b(?:mashup|megamashup|vs\.?|versus)\b| \+ | but every | but it is "
     r"|pomplamoose|wax audio|#mashup|dj schmolli|dj cummerbund| but ",
@@ -79,6 +84,19 @@ def strip_track_number(title: str) -> str:
     return TRACK_NUM.sub("", (title or "").strip()).strip(" ._")
 
 
+def strip_leading_track_artist(artist: str) -> str:
+    """Remove mix-CD ``01 Artist`` prefixes. Keep 16 Bit Lolitas and similar."""
+    text = (artist or "").strip()
+    if NUMBERED_ARTIST_KEEP.match(text):
+        return text
+    match = LEADING_ARTIST_NUM.match(text)
+    if not match:
+        return text
+    if int(match.group(1)) < 1 or int(match.group(1)) > 20:
+        return text
+    return clean_text(match.group(2))
+
+
 def normalize_title(title: str) -> str:
     text = strip_track_number(clean_text(title)).lower()
     text = PUNCT.sub(" ", text)
@@ -92,7 +110,36 @@ def titles_match(left: str, right: str) -> bool:
     a, b = normalize_title(left), normalize_title(right)
     if not a or not b:
         return False
-    return a == b or a in b or b in a
+    if a == b:
+        return True
+    longer, shorter = (a, b) if len(a) >= len(b) else (b, a)
+    if not longer.startswith(shorter):
+        return False
+    rest = longer[len(shorter) :].strip(" -_")
+    if not rest:
+        return True
+    if rest[:1] in {"(", "["}:
+        return True
+    first = rest.split()[0]
+    return first in {
+        "mix",
+        "remix",
+        "extended",
+        "radio",
+        "club",
+        "original",
+        "feat",
+        "featuring",
+        "ft",
+        "pt",
+        "part",
+        "live",
+        "edit",
+        "version",
+        "dub",
+        "instrumental",
+        "vocal",
+    }
 
 
 def is_mashup_name(text: str) -> bool:
@@ -127,7 +174,9 @@ def is_placeholder_title(value: str) -> bool:
         return True
     if ROLE_PAREN.fullmatch(raw.strip()):
         return True
-    if re.fullmatch(r"track\s*\d{1,3}", text):
+    if re.search(r"(?:^|[-._\s])track[-._\s]*\d{1,3}(?:[-._\s]+\d{1,3})?$", text):
+        return True
+    if re.match(r"rain[\s._-]+or[\s._-]+shine[\s._-]+summer", text):
         return True
     return False
 
@@ -230,7 +279,7 @@ def _usable_filename_artist(part: str) -> bool:
 
 def parse_filename(key: str) -> tuple[str, str, str]:
     """Return (artist, album, title) from a family key."""
-    cleaned = clean_text(key)
+    cleaned = clean_text(strip_track_number(key))
     for sep in (" - ", " _ ", " | "):
         parts = [clean_text(part) for part in split_sep(cleaned, sep)]
         if len(parts) < 2 or not _usable_filename_artist(parts[0]):
@@ -242,6 +291,15 @@ def parse_filename(key: str) -> tuple[str, str, str]:
     return "", "", cleaned
 
 
+def filename_hints_artist(key: str) -> bool:
+    """True when the filename looks like it already names an artist."""
+    artist, _, _ = parse_filename(key)
+    if artist:
+        return True
+    cleaned = clean_text(strip_track_number(key))
+    return any(sep in cleaned for sep in (" - ", " _ ", " | "))
+
+
 @dataclass
 class Identity:
     artist: str
@@ -249,6 +307,7 @@ class Identity:
     title: str
     source: str
     movable: bool = True
+    genre: str = ""
 
     @property
     def dest_artist(self) -> str:

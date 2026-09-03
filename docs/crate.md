@@ -34,6 +34,10 @@ PYTHONPATH=crate python3 -m ix_crate music-dupes              # Music.app same-f
 PYTHONPATH=crate python3 -m ix_crate music-dupes --execute    # drop extra library rows; file stays
 PYTHONPATH=crate python3 -m ix_crate music-repair             # Locate ! rows (dry-run + HUD)
 PYTHONPATH=crate python3 -m ix_crate music-repair --execute   # set location + fill empty identity/genre
+PYTHONPATH=crate python3 -m ix_crate music-fix                # playlist Fix identity (dry-run + HUD)
+PYTHONPATH=crate python3 -m ix_crate music-fix --execute      # write file tags + Music.app artist/album/genre
+PYTHONPATH=crate python3 -m ix_crate music-fix --library-va   # library Various Artists (dry-run)
+PYTHONPATH=crate python3 -m ix_crate music-fix --library-va --execute
 ```
 
 ## After this dump
@@ -48,3 +52,18 @@ Never *move* Apple Music `Media.localized`. In-place genre on owned `.mp3`/`.m4a
 `music-dupes` only deletes extra Music.app *rows* that share one existing file. It does not unlink audio. If a delete would trash the file, it restores from Trash and stops.
 
 `music-repair` relinks Songs rows with no file (the Locate / ! mark) to a unique match under Media.localized. It does not move Apple Music files. Empty artist/album/title uses the crate cascade. Empty genre uses iTunes only.
+
+`music-fix` fills identity on a playlist (default `Fix`). Default is **aggressive**: Chromaprint/AcoustID, duration-matched iTunes or Deezer, MusicBrainz length match, then **Shazam** (`shazamio` in `~/local_tools/crate/shazam-venv`; optional `songrec`) for cuts catalogs missed. Unidentified leftovers stay as they are — crate does **not** salvage them as Various Artists. `--library-va` scans the library artist instead of a playlist. `--strict` is dual-catalog only. Gaps only unless `--all`. Cream Live album stays. Dump folders become `Singles` when a real artist is found. Hits write album artist and clear the compilation flag so Apple Music files them under the artist, not Various Artists. In-place tags on owned audio; no Media.localized moves. The crate CLI never Discogs-blasts. Beets is not used (`docs/notes.md`).
+
+## Screenshot compilations
+
+Batch fingerprinting (TODO 21) cannot fix a mix CD that already has *wrong* artists (every cut tagged as the DJ). When David sends a screenshot of one album:
+
+1. Identify **that** release on Discogs / iTunes / Wikipedia. One compilation at a time. Do not walk the library.
+2. Strip leading `01 ` / `02 ` from **titles**. Mix-CD `01 Artist` in the **artist** field is the same junk — keep real numbered names (16 Bit Lolitas, 28 East Boyz, 51 Days, 68 Beats, 95 North).
+3. Write the liner/Discogs track artist. Album artist is the DJ or series brand (Tenaglia, Farina, Lazy Dog), not Various Artists and not a guess from another screenshot. Compilation **off** so the album stays under that album artist.
+4. Unify name variants (`Vol. 2` vs `Volume 2`, `[Disc 1]` vs `(Disc 1)`) onto one album + disc numbers. Drop extra Music.app **rows** only — never unlink audio, never move `Media.localized`.
+5. Prefer the row that still has a file. If the keeper is a Locate `!`, re-add the rip (`Music add POSIX file`) and delete the empty row. AppleScript `POSIX path of location` often lies on these files; `location as text` (HFS) is the check.
+6. After a large write, Music.app may need a quit/reopen before Next follows disc/track order. Shuffle in the transport is independent of tags.
+
+Reports and lookup cache stay in `~/local_tools/crate/` (off git).

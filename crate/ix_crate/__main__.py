@@ -30,12 +30,16 @@ def main(argv: list[str] | None = None) -> int:
         from ix_crate.music_repair import main as music_repair_main
 
         return music_repair_main(argv[1:])
+    if argv and argv[0] == "music-fix":
+        from ix_crate.music_fix import main as music_fix_main
+
+        return music_fix_main(argv[1:])
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "command",
-        choices=("unknown-album", "outliers", "mashups", "music-dupes", "music-repair"),
-        help="Scan Unknown Album, re-ID Inbox, sort mashups, drop Music.app same-file rows, or locate missing files.",
+        choices=("unknown-album", "outliers", "mashups", "music-dupes", "music-repair", "music-fix"),
+        help="Scan Unknown Album, re-ID Inbox, sort mashups, drop Music.app same-file rows, locate missing files, or fill a playlist's identity.",
     )
     parser.add_argument(
         "--execute",

@@ -96,6 +96,8 @@ class TagPlan:
     title: str = ""
     genre: str = ""
     source: str = ""
+    album_artist: str = ""
+    compilation: bool | None = None
     write_file: bool = False
     write_library: bool = False
 
@@ -363,6 +365,8 @@ def set_track_fields(
     album: str = "",
     name: str = "",
     genre: str = "",
+    album_artist: str | None = None,
+    compilation: bool | None = None,
 ) -> None:
     if not persistent_id.isalnum() or len(persistent_id) > 32:
         raise MusicDupesError(f"refusing persistent id {persistent_id!r}")
@@ -375,6 +379,10 @@ def set_track_fields(
         assigns.append(f'set name of t to "{_quote_as(name)}"')
     if genre:
         assigns.append(f'set genre of t to "{_quote_as(genre)}"')
+    if album_artist is not None:
+        assigns.append(f'set album artist of t to "{_quote_as(album_artist)}"')
+    if compilation is not None:
+        assigns.append(f"set compilation of t to {('true' if compilation else 'false')}")
     if not assigns:
         return
     body = "\n  ".join(assigns)
@@ -389,7 +397,15 @@ end tell
     _run_osascript(script, timeout=45)
 
 
-def write_file_tags(path: Path, *, artist: str, album: str, title: str, genre: str) -> None:
+def write_file_tags(
+    path: Path,
+    *,
+    artist: str,
+    album: str,
+    title: str,
+    genre: str,
+    album_artist: str = "",
+) -> None:
     low = path.name.lower()
     if any(low.endswith(suffix) for suffix in SKIP_SUFFIX):
         raise MusicDupesError(f"refusing to tag {path.name}")
@@ -404,16 +420,66 @@ def write_file_tags(path: Path, *, artist: str, album: str, title: str, genre: s
         try:
             audio.add_tags()
         except Exception:
+            _write_id3_frames(
+                path,
+                artist=artist,
+                album=album,
+                title=title,
+                genre=genre,
+                album_artist=album_artist,
+            )
             return
+    try:
+        if artist:
+            audio.tags["artist"] = [artist]
+        if album:
+            audio.tags["album"] = [album]
+        if title:
+            audio.tags["title"] = [title]
+        if genre:
+            audio.tags["genre"] = [genre]
+        if album_artist:
+            audio.tags["albumartist"] = [album_artist]
+        audio.save()
+    except Exception:
+        _write_id3_frames(
+            path,
+            artist=artist,
+            album=album,
+            title=title,
+            genre=genre,
+            album_artist=album_artist,
+        )
+
+
+def _write_id3_frames(
+    path: Path,
+    *,
+    artist: str,
+    album: str,
+    title: str,
+    genre: str,
+    album_artist: str = "",
+) -> None:
+    from mutagen.id3 import ID3, TALB, TCON, TIT2, TPE1, TPE2, ID3NoHeaderError
+
+    try:
+        tags = ID3(path)
+    except ID3NoHeaderError:
+        tags = ID3()
+    except Exception:
+        return
     if artist:
-        audio.tags["artist"] = [artist]
+        tags["TPE1"] = TPE1(encoding=3, text=[artist])
     if album:
-        audio.tags["album"] = [album]
+        tags["TALB"] = TALB(encoding=3, text=[album])
     if title:
-        audio.tags["title"] = [title]
+        tags["TIT2"] = TIT2(encoding=3, text=[title])
     if genre:
-        audio.tags["genre"] = [genre]
-    audio.save()
+        tags["TCON"] = TCON(encoding=3, text=[genre])
+    if album_artist:
+        tags["TPE2"] = TPE2(encoding=3, text=[album_artist])
+    tags.save(path, v2_version=3)
 
 
 def plan_identity(row: RepairRow, path: Path) -> TagPlan | None:
@@ -691,16 +757,22 @@ class MusicRepair:
         return jobs
 
 
-def run_with_hud(args: argparse.Namespace, tool: MusicRepair) -> int:
+def run_with_hud(
+    args: argparse.Namespace,
+    tool,
+    *,
+    title: str = HUD_TITLE,
+    tool_id: str = TOOL_ID,
+) -> int:
     ensure_stems_path()
     from py.utils.notify import notify_complete, resolve_charts, summary_from_payload
     from py.utils.progress import ProgressPanel
     from py.utils.runlog import RunLogger, is_verbose, want_notify
 
     want_panel = True if getattr(args, "gui", None) is None else bool(args.gui)
-    panel = ProgressPanel.try_open(HUD_TITLE) if want_panel else None
+    panel = ProgressPanel.try_open(title) if want_panel else None
     logger = RunLogger(
-        TOOL_ID,
+        tool_id,
         verbose=is_verbose(args),
         dry_run=tool.dry_run,
         panel=panel,
@@ -723,7 +795,7 @@ def run_with_hud(args: argparse.Namespace, tool: MusicRepair) -> int:
                 summary = f"{summary}  report {tool.report_path.name}"
             charts = resolve_charts(payload)
             if want_notify(args, tool.dry_run):
-                notify_complete(title=HUD_TITLE, body=summary, payload=payload)
+                notify_complete(title=title, body=summary, payload=payload)
             if panel is not None:
                 try:
                     panel.finish(summary, charts=charts)
@@ -733,7 +805,7 @@ def run_with_hud(args: argparse.Namespace, tool: MusicRepair) -> int:
     if panel is None:
         work()
         return 0
-    worker = threading.Thread(target=work, name="music-repair", daemon=False)
+    worker = threading.Thread(target=work, name=tool_id, daemon=False)
     worker.start()
     panel.mainloop()
     worker.join()

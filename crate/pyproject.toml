@@ -5,6 +5,9 @@ description = "Identify and rehome untagged files under ~/Music/stems_audio. Dry
 requires-python = ">=3.11"
 dependencies = ["mutagen>=1.47", "certifi>=2024.0.0"]
 
+[project.optional-dependencies]
+shazam = ["shazamio>=0.8"]
+
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]

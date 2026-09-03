@@ -14,6 +14,7 @@ from ix_crate.identify import (
     Identity,
     clean_text,
     duration_close,
+    filename_hints_artist,
     identify,
     is_clip_name,
     is_mashup_name,
@@ -161,7 +162,9 @@ def artists_match(left: str, right: str) -> bool:
     return a == b or a in b or b in a
 
 
-def catalog_identify(title: str, artist: str, duration: float | None, cache: dict) -> dict | None:
+def catalog_identify(
+    title: str, artist: str, duration: float | None, cache: dict, *, aggressive: bool = False
+) -> dict | None:
     query = search_query(title, artist)
     if len(query) < 4:
         return None
@@ -173,10 +176,11 @@ def catalog_identify(title: str, artist: str, duration: float | None, cache: dic
         hit = dict(itunes_best)
         hit["source"] = "itunes+deezer"
         return hit
-    if itunes_best and itunes_best.get("duration_match"):
-        return itunes_best
-    if deezer_best and deezer_best.get("duration_match"):
-        return deezer_best
+    if aggressive or not is_placeholder_artist(artist):
+        if itunes_best and itunes_best.get("duration_match"):
+            return itunes_best
+        if deezer_best and deezer_best.get("duration_match"):
+            return deezer_best
     return None
 
 
@@ -217,6 +221,48 @@ def musicbrainz_search(artist: str, title: str, cache: dict) -> dict | None:
     cache[key] = hit
     _save_cache(cache)
     return hit
+
+
+def musicbrainz_duration_search(title: str, duration: float | None, cache: dict) -> dict | None:
+    title = clean_text(title)
+    if not title or is_placeholder_title(title) or duration is None:
+        return None
+    key = f"mb-dur::{title.lower()}::{int(duration)}"
+    if key in cache:
+        return cache[key]
+    query = f'recording:"{title}"'
+    url = MB_URL + "?" + urllib.parse.urlencode({"query": query, "fmt": "json", "limit": "8"})
+    payload = _http_json(url, cache, key, gap=MB_GAP)
+    if not isinstance(payload, dict):
+        return None
+    for rec in payload.get("recordings") or []:
+        length_ms = rec.get("length")
+        if not length_ms:
+            continue
+        if not duration_close(duration, float(length_ms) / 1000.0, slack=12.0):
+            continue
+        credit = rec.get("artist-credit") or [{}]
+        found_artist = ""
+        if credit:
+            found_artist = str(
+                credit[0].get("name") or credit[0].get("artist", {}).get("name") or ""
+            )
+        releases = rec.get("releases") or []
+        found_album = str(releases[0].get("title") or "") if releases else ""
+        hit = {
+            "artist": clean_text(found_artist),
+            "album": clean_text(found_album),
+            "title": clean_text(str(rec.get("title") or title)),
+            "score": rec.get("score"),
+            "source": "musicbrainz",
+        }
+        if hit["artist"]:
+            cache[key] = hit
+            _save_cache(cache)
+            return hit
+    cache[key] = None
+    _save_cache(cache)
+    return None
 
 
 def listed_models() -> list[str]:
@@ -264,11 +310,18 @@ def artist_named_in_text(artist: str, blob: str) -> bool:
     return bool(tokens) and all(tok in hay for tok in tokens)
 
 
-def catalog_worth_query(title: str, artist: str) -> bool:
-    query = search_query(title, artist)
-    if len(query) < 4:
+def catalog_worth_query(title: str, artist: str, *, aggressive: bool = False) -> bool:
+    if is_placeholder_title(title):
         return False
-    if is_placeholder_artist(artist) and len(query.split()) < 2 and len(query) < SHORT_CATALOG_TITLE:
+    query = search_query(title, artist)
+    if len(query) < (3 if aggressive else 4):
+        return False
+    if (
+        not aggressive
+        and is_placeholder_artist(artist)
+        and len(query.split()) < 2
+        and len(query) < SHORT_CATALOG_TITLE
+    ):
         return False
     return True
 
@@ -336,33 +389,54 @@ def _outlier(title: str) -> Identity:
     )
 
 
-def resolve(family: Family, *, lookup: bool = True) -> Identity:
-    """filename → tags → iTunes/Deezer → MusicBrainz → Ollama → Miscellaneous."""
+def resolve(family: Family, *, lookup: bool = True, aggressive: bool = False) -> Identity:
+    """filename → tags → AcoustID → iTunes/Deezer → MusicBrainz → Shazam → Ollama."""
     local = identify(family)
     artist, album, title = local.artist, local.album, local.title
     source = local.source
+    genre = local.genre
     blob = " ".join([family.key, artist, album, title])
     duration = family.mix_duration()
     clip = is_clip_name(blob)
     mashup = is_mashup_name(blob)
     long_mix = duration is not None and duration >= LONG_MIX_SEC
     skip_catalog = clip or mashup or long_mix
+    mix = family.mix_file() or (family.files[0] if family.files else None)
 
     cache = _load_cache() if lookup else {}
+
+    if (
+        lookup
+        and aggressive
+        and mix is not None
+        and (is_placeholder_artist(artist) or is_placeholder_title(title))
+    ):
+        print(f"  acoustid: {family.key[:80]}", flush=True)
+        from ix_crate.acoustid import acoustid_identify
+
+        hit = acoustid_identify(mix, cache, duration)
+        if hit and hit.get("artist"):
+            artist = hit["artist"]
+            album = hit.get("album") or album
+            title = hit.get("title") or title
+            source = "acoustid"
 
     needs_catalog = (
         lookup
         and not skip_catalog
         and (is_placeholder_artist(artist) or is_placeholder_title(title))
-        and catalog_worth_query(title or family.key, artist)
+        and catalog_worth_query(title or family.key, artist, aggressive=aggressive)
     )
     if needs_catalog:
         print(f"  catalog: {family.key[:80]}", flush=True)
-        hit = catalog_identify(title or family.key, artist, duration, cache)
+        hit = catalog_identify(
+            title or family.key, artist, duration, cache, aggressive=aggressive
+        )
         if hit and hit.get("artist"):
             artist = hit["artist"]
             album = hit.get("album") or album
             title = hit.get("title") or title
+            genre = hit.get("genre") or genre
             source = hit.get("source") or "catalog"
 
     needs_mb = lookup and artist and not is_placeholder_artist(artist) and not album
@@ -375,19 +449,64 @@ def resolve(family: Family, *, lookup: bool = True) -> Identity:
                 if source == "local-gap":
                     source = "musicbrainz"
 
-    if lookup and is_placeholder_artist(artist):
+    if (
+        lookup
+        and aggressive
+        and is_placeholder_artist(artist)
+        and not is_placeholder_title(title)
+        and duration
+    ):
+        print(f"  musicbrainz-dur: {family.key[:80]}", flush=True)
+        hit = musicbrainz_duration_search(title or family.key, duration, cache)
+        if hit and hit.get("artist"):
+            artist = hit["artist"]
+            album = hit.get("album") or album
+            title = hit.get("title") or title
+            source = hit.get("source") or "musicbrainz"
+
+    if (
+        lookup
+        and aggressive
+        and mix is not None
+        and not long_mix
+        and (is_placeholder_artist(artist) or is_placeholder_title(title))
+    ):
+        print(f"  shazam: {family.key[:80]}", flush=True)
+        from ix_crate.shazam import shazam_identify
+
+        hit = shazam_identify(mix, cache)
+        if hit and hit.get("artist"):
+            artist = hit["artist"]
+            album = hit.get("album") or album
+            title = hit.get("title") or title
+            genre = hit.get("genre") or genre
+            source = "shazam"
+
+    ollama_ok = lookup and is_placeholder_artist(artist) and not is_placeholder_title(title)
+    if ollama_ok and not aggressive and filename_hints_artist(family.key):
         hit = ollama_infer(family.key, artist, album, title, cache)
         if hit:
             print(f"  ollama: {family.key[:80]}", flush=True)
             named = artist_named_in_text(str(hit.get("artist") or ""), family.key)
-            if hit.get("outlier") or not named:
-                return _outlier(hit.get("title") or family.key)
-            artist = hit["artist"]
-            album = hit.get("album") or album
-            title = hit.get("title") or title
-            source = "ollama"
+            if hit.get("outlier") or (not aggressive and not named):
+                if not aggressive:
+                    return _outlier(hit.get("title") or family.key)
+            elif hit.get("artist") and (aggressive or named):
+                artist = hit["artist"]
+                album = hit.get("album") or album
+                title = hit.get("title") or title
+                source = "ollama"
 
     if is_placeholder_artist(artist) or not clean_text(title):
+        if aggressive:
+            return Identity(
+                artist="",
+                album=album,
+                title=title or clean_text(family.key),
+                source=source,
+                movable=True,
+                genre=genre,
+            )
         return _outlier(title or family.key)
     return Identity(
         artist=artist,
@@ -395,4 +514,5 @@ def resolve(family: Family, *, lookup: bool = True) -> Identity:
         title=title or clean_text(family.key),
         source=source,
         movable=True,
+        genre=genre,
     )

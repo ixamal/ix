@@ -2,7 +2,7 @@
 
 Parking lot for crate, tagging, and hardware ideas. Ordered checklist: `docs/TODO.md`. Agents: read both, then stop unless David asks to act. Off-repo tools and library paths stay off git.
 
-Last update: 2026-09-01. Music.app same-file dupes closed (16). **Next: Alternative stems, tracks 1–3.** Floor **10** parked.
+Last update: 2026-09-03. Playlist Fix identity closed (19 + 20). VA fingerprint closed (21). Screenshot compilations closed (22). **Next: Alternative stems, tracks 1–3.** Floor **10** parked.
 
 ## Crate status
 
@@ -19,9 +19,9 @@ Traktor (2026-08-30): NML remapped, then [ATGR DJCU2](https://atgr.nl/) converte
 
 ### Resume next
 
-1. **Alternative stems, tracks 1–3 only** (TODO 17). HUD on. Skip existing `stems_audio` Artist/Album/Title. Never stem Acapella. Never write Media.localized. Local factory only.
+1. **Alternative stems, tracks 1–3 only** (TODO 17). HUD on. Skip existing `stems_audio` Artist/Album/Title. Never stem Acapella. Never write Apple Music. Local factory only.
 2. Floor **10** parked until David asks.
-3. Items 5 / 5b / 6 stay omitted. Do not Discogs-blast.
+3. Items 5 / 5b / 6 stay omitted. Do not Discogs-blast. Targeted one-album Discogs from a screenshot is OK (TODO 22 / `docs/crate.md`).
 
 ```bash
 PYTHONPATH=crate python3 -m ix_crate unknown-album
@@ -31,6 +31,8 @@ PYTHONPATH=crate python3 -m ix_crate music-dupes
 PYTHONPATH=crate python3 -m ix_crate music-dupes --execute
 PYTHONPATH=crate python3 -m ix_crate music-repair
 PYTHONPATH=crate python3 -m ix_crate music-repair --execute
+PYTHONPATH=crate python3 -m ix_crate music-fix --playlist Fix
+PYTHONPATH=crate python3 -m ix_crate music-fix --playlist Fix --execute
 ```
 
 ## Tagging
@@ -50,7 +52,7 @@ Path-stable crate done 2026-08-30. Accapella + `EDM, …` genre pass done 2026-0
 3. Never overwrite ReCK/MiK fields: Camelot/key, BPM, comments, cues.
 4. **TODO 6 omitted (2026-09-01).** Ollama (`qwen2.5:7b` on `127.0.0.1:11434`) was reviewer-after-stores, not a catalog. 5 never runs, so 6 would invent genres. Reopen only if Rekordbox leftovers bother David: JSON/CSV proposals, human approve, allowlisted write. Never the coder.
 5. Do not use `qwen2.5-coder:7b` as the musicologist. Crate ID already uses `qwen2.5:7b`.
-6. **Beets** is not the library of record. If used at all: `copy: no`, `move: no`, `write: no`, DB under `~/local_tools/beets`. Default `beet import` copies files and would break DJCU2/ReCK/Music.app paths. Gemini’s `item.write()` plugin is rejected.
+6. **Beets** is not the library of record. If used at all: `copy: no`, `move: no`, `write: no`, DB under `~/local_tools/beets`. Default `beet import` copies files and would break DJCU2/ReCK/Music.app paths. Gemini’s `item.write()` plugin is rejected. Crate fingerprinting is AcoustID (`fpcalc`) plus Shazam (`shazamio`; optional `songrec`). `music-fix --library-va` writes tags in place and does not move Media.localized.
 
 ix Floor stays live OSC (`/rekordbox/bpm`, `/fader`, `/beat_phase`). It does not convert libraries or write ID3.
 

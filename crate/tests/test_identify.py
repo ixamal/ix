@@ -4,6 +4,7 @@ from pathlib import Path
 from ix_crate.families import family_key
 from ix_crate.identify import (
     duration_close,
+    filename_hints_artist,
     is_clip_name,
     is_mashup_name,
     is_placeholder_album_folder,
@@ -58,6 +59,14 @@ class ParseFilenameTests(unittest.TestCase):
         self.assertEqual(artist, "Don Diablo & CID")
         self.assertEqual(album, "")
         self.assertEqual(title, "Fever")
+
+    def test_strips_leading_track_number(self) -> None:
+        artist, album, title = parse_filename("14 Take Me North - Loon Conversation")
+        self.assertEqual(artist, "Take Me North")
+        self.assertEqual(title, "Loon Conversation")
+        artist, album, title = parse_filename("16. Black Spade - My Space")
+        self.assertEqual(artist, "Black Spade")
+        self.assertEqual(title, "My Space")
 
     def test_underscore_and_pipe(self) -> None:
         artist, album, title = parse_filename("Gorgon City _ 5AM At Bagleys")
@@ -124,6 +133,7 @@ class ParseFilenameTests(unittest.TestCase):
         self.assertTrue(is_placeholder_title("undefined (instrumental)"))
         self.assertTrue(is_placeholder_title("instrumental"))
         self.assertTrue(is_placeholder_title("Track 01"))
+        self.assertTrue(is_placeholder_title("Rain or Shine Summer 01"))
         self.assertTrue(is_placeholder_title("track 9"))
         self.assertFalse(is_placeholder_title("01 Spontaneously Combust"))
 
@@ -133,8 +143,24 @@ class CatalogMatchTests(unittest.TestCase):
         self.assertEqual(strip_track_number("03 As Alive As You Need Me To Be"), "As Alive As You Need Me To Be")
         self.assertEqual(strip_track_number("12 Who Wants To Live Forever_"), "Who Wants To Live Forever")
 
+    def test_strips_mix_cd_artist_prefix(self) -> None:
+        from ix_crate.identify import strip_leading_track_artist
+
+        self.assertEqual(strip_leading_track_artist("01 UnderWorld"), "UnderWorld")
+        self.assertEqual(strip_leading_track_artist("12 Kamaya Painters"), "Kamaya Painters")
+        self.assertEqual(strip_leading_track_artist("16 Bit Lolitas"), "16 Bit Lolitas")
+        self.assertEqual(
+            strip_leading_track_artist("95 North Feat. Sabrynaah Pope"),
+            "95 North Feat. Sabrynaah Pope",
+        )
+        self.assertEqual(strip_leading_track_artist("28 East Boyz"), "28 East Boyz")
+
     def test_titles_match_ignores_number(self) -> None:
         self.assertTrue(titles_match("03 As Alive As You Need Me To Be", "As Alive As You Need Me To Be"))
+
+    def test_titles_match_rejects_dump_prefix(self) -> None:
+        self.assertFalse(titles_match("Rain or Shine Summer 13", "Rain or Shine"))
+        self.assertTrue(titles_match("Driftin'", "Driftin' (Original Mix)"))
 
     def test_mashup_and_clip(self) -> None:
         self.assertTrue(is_mashup_name("Stayin' in Black (Bee Gees + AC/DC Mashup) by Wax Audio"))
@@ -173,6 +199,15 @@ class CatalogMatchTests(unittest.TestCase):
     def test_short_untitled_skips_catalog(self) -> None:
         self.assertFalse(catalog_worth_query("FLO", ""))
         self.assertTrue(catalog_worth_query("Midnight City", ""))
+        self.assertFalse(catalog_worth_query("Track 01", ""))
+        self.assertFalse(catalog_worth_query("track 12", "Unknown Artist"))
+        self.assertFalse(catalog_worth_query("05-Track-05", ""))
+        self.assertTrue(is_placeholder_title("05-Track-05"))
+        self.assertTrue(is_placeholder_title("Track 01 2"))
+        self.assertTrue(is_placeholder_title("as--Track-01"))
+        self.assertTrue(is_placeholder_title("am--Track-12"))
+        self.assertFalse(is_placeholder_title("Soundtrack"))
+        self.assertFalse(filename_hints_artist("Midnight City"))
 
 
 class MashupParseTests(unittest.TestCase):

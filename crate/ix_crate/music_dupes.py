@@ -146,7 +146,7 @@ def _clean_field(value: str) -> str:
 
 def _parse_int(value: str, default: int = 0) -> int:
     try:
-        return int(value.strip())
+        return int(float(value.strip()))
     except ValueError:
         return default
 
