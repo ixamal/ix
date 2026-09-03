@@ -281,3 +281,25 @@ class SourceLostTest(unittest.TestCase):
             ]
             copied, failed, _ = execute(plan)
             self.assertEqual((copied, failed), (1, 1))
+
+
+class ResumeTest(unittest.TestCase):
+    def test_resume_keeps_only_what_is_still_absent(self) -> None:
+        import json
+        from ix_crate.consolidate import plan_from_report
+
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            done = _mp3(root / "out" / "done.mp3", b"xx")
+            report = root / "r.json"
+            report.write_text(json.dumps({"plan": [
+                {"source": str(root / "s" / "done.mp3"), "dest": str(done),
+                 "artist": "", "album": "", "title": "", "size": 2},
+                {"source": str(root / "s" / "todo.mp3"), "dest": str(root / "out" / "todo.mp3"),
+                 "artist": "", "album": "", "title": "", "size": 7},
+            ]}))
+            plan = plan_from_report(report)
+            self.assertEqual(len(plan.copy), 1)
+            self.assertEqual(plan.copy[0].dest.name, "todo.mp3")
+            self.assertEqual(plan.duplicate, 1)
+            self.assertEqual(plan.bytes_to_copy, 7)

@@ -430,6 +430,13 @@ def build_parser() -> argparse.ArgumentParser:
         "whole library; written on first use",
     )
     parser.add_argument(
+        "--resume",
+        type=Path,
+        default=None,
+        help="finish an earlier plan report: copies only the items still "
+        "absent at their destination, skipping the index and the source scan",
+    )
+    parser.add_argument(
         "--gui",
         dest="gui",
         action="store_true",
@@ -445,6 +452,35 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def plan_from_report(report: Path) -> ConsolidatePlan:
+    """Rebuild the unfinished half of an earlier plan.
+
+    A destination that exists was already copied, so what is left is exactly
+    the work an interrupted run did not reach. Re-deriving it from the report
+    skips both the local index and the source scan.
+    """
+    payload = json.loads(report.read_text())
+    plan = ConsolidatePlan()
+    for row in payload.get("plan", payload.get("items", [])):
+        dest = Path(row["dest"])
+        if dest.is_file():
+            plan.duplicate += 1
+            continue
+        plan.copy.append(
+            Candidate(
+                source=Path(row["source"]),
+                dest=dest,
+                artist=row.get("artist", ""),
+                album=row.get("album", ""),
+                title=row.get("title", ""),
+                size=int(row.get("size") or 0),
+            )
+        )
+        plan.bytes_to_copy += int(row.get("size") or 0)
+    plan.scanned = len(payload.get("plan", []))
+    return plan
+
+
 def run(args: argparse.Namespace, panel=None) -> int:
     dest_root = assert_under_music((args.dest or APPLE_MUSIC).expanduser())
     stems_root = assert_under_music(STEMS_AUDIO.expanduser())
@@ -457,6 +493,15 @@ def run(args: argparse.Namespace, panel=None) -> int:
             panel.set_job(index, max(total, 1), name, action)
         except Exception:
             pass
+
+    if args.resume:
+        plan = plan_from_report(args.resume.expanduser())
+        print(
+            f"resume {args.resume.name}: {len(plan.copy)} still to copy, "
+            f"{plan.duplicate} already in place, {_gb(plan.bytes_to_copy)} GB",
+            flush=True,
+        )
+        return _finish(args, plan, hud)
 
     cache = args.index_cache
     if cache and cache.is_file():
@@ -501,6 +546,11 @@ def run(args: argparse.Namespace, panel=None) -> int:
     for artist, count in top:
         print(f"  {count:5}  {artist}", flush=True)
 
+    return _finish(args, plan, hud)
+
+
+def _finish(args: argparse.Namespace, plan: ConsolidatePlan, hud) -> int:
+    dest_root = assert_under_music((args.dest or APPLE_MUSIC).expanduser())
     report = write_report(
         {
             "scanned": plan.scanned,
