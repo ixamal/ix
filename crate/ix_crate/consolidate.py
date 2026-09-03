@@ -115,7 +115,12 @@ def is_stem(path: Path) -> bool:
     if any(low.endswith(suffix) for suffix in STEM_SUFFIXES):
         return True
     stem = low.rsplit(".", 1)[0]
-    return any(stem.endswith(f"_{role}") or stem.endswith(f" {role}") for role in ROLE_SUFFIXES)
+    # A bare "vocals.wav" is a stem export too; separator output is named for
+    # the role alone and the track name lives on the parent folder.
+    return any(
+        stem == role or stem.endswith(f"_{role}") or stem.endswith(f" {role}")
+        for role in ROLE_SUFFIXES
+    )
 
 
 def walk_audio(root: Path) -> Iterable[Path]:
@@ -135,6 +140,18 @@ def title_of(path: Path, tag_title: str) -> str:
     return normalize_title(tag_title or strip_track_number(path.stem))
 
 
+def title_keys(path: Path, tag_title: str) -> set[str]:
+    """Tag title and filename title both count.
+
+    The exFAT copy truncated long filenames, so the two disagree often enough
+    that keying on only one of them would call a held track new.
+    """
+    keys = {normalize_title(strip_track_number(path.stem))}
+    if tag_title:
+        keys.add(normalize_title(tag_title))
+    return {key for key in keys if key}
+
+
 def index_local(roots: Iterable[Path], on_progress=None) -> dict[tuple[int, str], list[Path]]:
     """(size, normalized title) -> local paths already holding that audio."""
     index: dict[tuple[int, str], list[Path]] = defaultdict(list)
@@ -149,12 +166,28 @@ def index_local(roots: Iterable[Path], on_progress=None) -> dict[tuple[int, str]
             except OSError:
                 continue
             _, _, tag_title = _read_tags(path)
-            index[(size, title_of(path, tag_title))].append(path)
+            for key in title_keys(path, tag_title):
+                index[(size, key)].append(path)
             count += 1
             if on_progress and count % 2000 == 0:
                 on_progress(count)
     if on_progress:
         on_progress(count)
+    return index
+
+
+def save_index(index: dict[tuple[int, str], list[Path]], path: Path) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {f"{size}\t{title}": [str(p) for p in paths] for (size, title), paths in index.items()}
+    path.write_text(json.dumps(payload))
+    return path
+
+
+def load_index(path: Path) -> dict[tuple[int, str], list[Path]]:
+    index: dict[tuple[int, str], list[Path]] = defaultdict(list)
+    for key, paths in json.loads(path.read_text()).items():
+        size, _, title = key.partition("\t")
+        index[(int(size), title)] = [Path(p) for p in paths]
     return index
 
 
@@ -174,12 +207,47 @@ def same_audio(left: Path, right: Path) -> bool:
     return bool(a) and a == _head_digest(right)
 
 
+# Folders that carry no meaning about who made the audio.
+GENERIC_FOLDERS = {
+    "desktop",
+    "documents",
+    "downloads",
+    "library",
+    "music",
+    "media.localized",
+    "cloudstorage",
+    "mobile documents",
+    "migrated_orphans",
+    "migration_master",
+    "com~apple~clouddocs",
+    "unknown artist",
+    "unknown album",
+    "compilations",
+    "volumes",
+    "users",
+    "",
+}
+
+
+def _folder_hint(name: str) -> str:
+    return "" if name.strip().lower() in GENERIC_FOLDERS else name.strip()
+
+
 def destination(path: Path, dest_root: Path, stems_root: Path) -> tuple[Path, str, str, str]:
+    """Artist/Album from tags, falling back to the folders around the file.
+
+    Stem exports are named for the role alone, so their identity is entirely
+    in the parent folder. Dropping untagged audio into one Unknown bucket
+    also piles thousands of same-named files into a single directory.
+    """
     artist, album, title = _read_tags(path)
     display_title = title or strip_track_number(path.stem)
+    parent = _folder_hint(path.parent.name)
+    grandparent = _folder_hint(path.parent.parent.name)
+    artist_part = sanitize(artist or grandparent, UNKNOWN_ARTIST_NAME)
+    album_part = sanitize(album or parent, UNKNOWN_ALBUM_NAME)
     root = stems_root if is_stem(path) else dest_root
-    folder = root / sanitize(artist, UNKNOWN_ARTIST_NAME) / sanitize(album, UNKNOWN_ALBUM_NAME)
-    return folder / path.name, artist, album, display_title
+    return root / artist_part / album_part / path.name, artist, album, display_title
 
 
 def unique_dest(dest: Path, taken: set[Path]) -> Path:
@@ -187,7 +255,7 @@ def unique_dest(dest: Path, taken: set[Path]) -> Path:
     if dest not in taken and not dest.exists():
         return dest
     stem, suffix = dest.stem, dest.suffix
-    for n in range(2, 100):
+    for n in range(2, 10000):
         candidate = dest.with_name(f"{stem} ({n}){suffix}")
         if candidate not in taken and not candidate.exists():
             return candidate
@@ -218,8 +286,11 @@ def build_plan(
                 plan.skipped += 1
                 continue
             dest, artist, album, title = destination(path, dest_root, stems_root)
-            key = (size, title_of(path, title))
-            matches = local_index.get(key)
+            matches = [
+                other
+                for key in title_keys(path, title)
+                for other in local_index.get((size, key), ())
+            ]
             if matches and any(same_audio(path, other) for other in matches):
                 plan.duplicate += 1
                 continue
@@ -297,6 +368,13 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help=f"library root (default {APPLE_MUSIC})",
     )
+    parser.add_argument(
+        "--index-cache",
+        type=Path,
+        default=None,
+        help="reuse a saved local index instead of re-reading tags on the "
+        "whole library; written on first use",
+    )
     return parser
 
 
@@ -305,11 +383,18 @@ def main(argv: list[str] | None = None) -> int:
     dest_root = assert_under_music((args.dest or APPLE_MUSIC).expanduser())
     stems_root = assert_under_music(STEMS_AUDIO.expanduser())
 
-    print(f"index local {dest_root}", flush=True)
-    local_index = index_local(
-        [dest_root, stems_root],
-        on_progress=lambda n: print(f"  local {n}", flush=True),
-    )
+    cache = args.index_cache
+    if cache and cache.is_file():
+        print(f"reuse index {cache}", flush=True)
+        local_index = load_index(cache)
+    else:
+        print(f"index local {dest_root}", flush=True)
+        local_index = index_local(
+            [dest_root, stems_root],
+            on_progress=lambda n: print(f"  local {n}", flush=True),
+        )
+        if cache:
+            print(f"save index {save_index(local_index, cache)}", flush=True)
     print(f"local audio keys {len(local_index)}", flush=True)
 
     plan = build_plan(

@@ -170,3 +170,56 @@ class ExecuteTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TitleKeyTest(unittest.TestCase):
+    def test_truncated_filename_still_matches_via_tag(self) -> None:
+        from ix_crate.consolidate import title_keys
+
+        keys = title_keys(Path("/x/08 Head Affect _ Afrochrome [Gent.mp3"), "Afrochrome")
+        self.assertIn("afrochrome", keys)
+
+    def test_untagged_file_falls_back_to_filename(self) -> None:
+        from ix_crate.consolidate import title_keys
+
+        self.assertEqual(title_keys(Path("/x/01 Honey.mp3"), ""), {"honey"})
+
+
+class DestinationTest(unittest.TestCase):
+    def test_bare_role_filename_is_a_stem(self) -> None:
+        self.assertTrue(is_stem(Path("/x/vocals.wav")))
+        self.assertTrue(is_stem(Path("/x/drums.wav")))
+
+    def test_untagged_stem_is_grouped_by_its_project_folder(self) -> None:
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            src, dest, stems = root / "src", root / "dest", root / "stems"
+            _mp3(src / "Documents" / "Stems Flash Gordon" / "vocals.wav")
+            _mp3(src / "Documents" / "Stems April Fools" / "vocals.wav")
+            plan = build_plan([src], {}, dest_root=dest, stems_root=stems)
+            albums = sorted(item.dest.parent.name for item in plan.copy)
+            self.assertEqual(albums, ["Stems April Fools", "Stems Flash Gordon"])
+            # generic container must not become the artist
+            self.assertNotIn("Documents", {i.dest.parent.parent.name for i in plan.copy})
+
+    def test_untagged_track_uses_artist_and_album_folders(self) -> None:
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            src, dest, stems = root / "src", root / "dest", root / "stems"
+            _mp3(src / "Moby" / "Play" / "01 Honey.mp3")
+            plan = build_plan([src], {}, dest_root=dest, stems_root=stems)
+            got = plan.copy[0].dest
+            self.assertEqual(got.parent.name, "Play")
+            self.assertEqual(got.parent.parent.name, "Moby")
+
+
+class IndexCacheTest(unittest.TestCase):
+    def test_round_trips(self) -> None:
+        from ix_crate.consolidate import load_index, save_index
+
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _mp3(root / "dest" / "Moby" / "Play" / "01 Honey.mp3", b"abc")
+            index = index_local([root / "dest"])
+            cache = save_index(index, root / "cache.json")
+            self.assertEqual(load_index(cache), index)
