@@ -46,6 +46,30 @@ class PickMatchTests(unittest.TestCase):
             self.assertEqual(path, dest)
             self.assertEqual(reason, "artist+title")
 
+    def test_music_copy_subdir_is_not_artist(self) -> None:
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            dest = (
+                root
+                / "Music"
+                / "CHANEY (UK)"
+                / "Holding Onto You"
+                / "Holding Onto You (Extended Mix).mp3"
+            )
+            dest.parent.mkdir(parents=True)
+            dest.write_bytes(b"x")
+            index = index_tree(root)
+            path, reason = pick_match(
+                _row(
+                    "Holding Onto You (Extended Mix)",
+                    artist="CHANEY (UK)",
+                    album="Holding Onto You",
+                ),
+                index,
+            )
+            self.assertEqual(path, dest)
+            self.assertEqual(reason, "artist+title")
+
     def test_album_breaks_tie(self) -> None:
         with TemporaryDirectory() as tmp:
             root = Path(tmp)

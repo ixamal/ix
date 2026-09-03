@@ -49,6 +49,18 @@ Unknown Album, mashups, and Inbox are executed. `_outliers` is gone. Unidentifie
 
 Never *move* Apple Music `Media.localized`. In-place genre on owned `.mp3`/`.m4a` was TODO 4 only. Never commit `/Users/<name>/` paths.
 
+## Music.app media folder
+
+Copy-on-add is the default and it works. Drag Beatport / Traxsource files onto Music.app.
+
+The library media folder is `~/Music/Music/Media.localized`. The DJ crate already lives as **Artist / Album** folders at that root (Traktor and Rekordbox point there). New copies from Music.app go into a real subdirectory:
+
+`Media.localized/Music/Artist/Album/file`
+
+Do **not** turn `Media.localized/Music` into a symlink to `.`. That leftover iTunes loop made drag-and-drop fail with **Attempting to copy to the disk “Data” failed. A duplicate file name was specified.** (“Data” is the APFS user volume, not a second disk.) Replaced with a real `Music/` folder 2026-09-03; Traxsource drag-and-drop confirmed.
+
+Leave **Sync Library** Off. Do not hoist new `Music/` files up onto the artist-root crate. Do not delete `Music/` to “flatten” the library. `music-repair` indexes both trees and skips `Music/` as an artist name.
+
 `music-dupes` only deletes extra Music.app *rows* that share one existing file. It does not unlink audio. If a delete would trash the file, it restores from Trash and stops.
 
 `music-repair` relinks Songs rows with no file (the Locate / ! mark) to a unique match under Media.localized. It does not move Apple Music files. Empty artist/album/title uses the crate cascade. Empty genre uses iTunes only.

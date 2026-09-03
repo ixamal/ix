@@ -6,7 +6,7 @@ Last update: 2026-09-03. Playlist **Fix** identity closed (19 + 20). Various Art
 
 ## Now
 
-Crate is path-stable. Music.app library identity is clean enough to play. Sync Library Off. Night stop 2026-09-03.
+Crate is path-stable. Music.app library identity is clean enough to play. Sync Library Off. Copy-on-add works (`Media.localized/Music` is a real folder). Night stop 2026-09-03.
 
 **Next:** Alternative stems, tracks **1–3 only**, so David can validate the HUD + siblings. Skip if that Artist/Album/Title already has `{name}.stem.m4a` in `~/Music/stems_audio`. Never write Apple Music. Never stem **Acapella**. Floor 10 when David asks.
 

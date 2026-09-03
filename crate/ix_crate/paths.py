@@ -5,7 +5,15 @@ from __future__ import annotations
 from pathlib import Path
 
 STEMS_AUDIO = Path.home() / "Music" / "stems_audio"
+# Artist folders live at this root. New Music.app copies go in the Music/
+# subdirectory (a real folder). Never replace that with a symlink to ".".
 APPLE_MUSIC = Path.home() / "Music" / "Music" / "Media.localized"
+# Apple copy-on-add containers, not artist names.
+APPLE_MEDIA_SKIP_DIRS = (
+    "Music",
+    "Automatically Add to Music.localized",
+    "Automatically Add to iTunes.localized",
+)
 UNKNOWN_ARTIST = STEMS_AUDIO / "Unknown Artist"
 UNKNOWN_ALBUM = UNKNOWN_ARTIST / "Unknown Album"
 UNKNOWN_MASHUPS = UNKNOWN_ARTIST / "Mashups"

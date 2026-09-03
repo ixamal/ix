@@ -42,7 +42,13 @@ from ix_crate.music_dupes import (
     count_file_tracks,
     music_running,
 )
-from ix_crate.paths import APPLE_MUSIC, REPORTS, STEMS_AUDIO, STEM_SUFFIXES
+from ix_crate.paths import (
+    APPLE_MEDIA_SKIP_DIRS,
+    APPLE_MUSIC,
+    REPORTS,
+    STEMS_AUDIO,
+    STEM_SUFFIXES,
+)
 from ix_crate.stems_path import ensure_stems_path
 
 BATCH = 200
@@ -190,7 +196,9 @@ def _folders(path: Path, root: Path) -> tuple[str, str]:
         rel = path.relative_to(root)
     except ValueError:
         return "", ""
-    parts = rel.parts
+    parts = list(rel.parts)
+    while parts and parts[0] in APPLE_MEDIA_SKIP_DIRS:
+        parts = parts[1:]
     artist = fold_artist(parts[0]) if parts else ""
     album = normalize_title(parts[1]) if len(parts) >= 3 else ""
     return artist, album
