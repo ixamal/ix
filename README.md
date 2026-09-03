@@ -8,14 +8,15 @@ Mac clone path: `~/github/ixamal/ix`
 
 ## Where we are
 
-Written 2026-08-31 for a non-technical read. Detail and next steps: `docs/TODO.md`.
+Written for a non-technical read. Detail and next steps: `docs/TODO.md`.
 
-### Tonight (phone)
+### Latest — 2026-09-03
 
-- Confirmed the library genre cleanup is finished (files *and* the Music app).
-- Wrote down the next hardware idea so it is not lost: after the crate is stable, try a bigger audio path, then sample Traktor decks into Maschine and play those samples on the S88.
-- Saved a generic copy of the Music-app genre fixer so other people can see how we did it, without touching your live library.
-- Put that write-up on `main` so a Mac pull shows it here and in `docs/TODO.md`.
+- **The library names itself now.** A tool listens to each track's own audio (fingerprinting, plus Shazam for the hard ones) and writes the real artist and album. 263 tracks came out of the "Various Artists" junk drawer. Nothing is guessed; anything it cannot prove is left alone.
+- **Mix CDs read correctly.** Send a screenshot of one album and its real per-track artists get written, filed under the DJ who mixed it — Danny Tenaglia's Global Underground, Mark Farina's Mushroom Jazz 7, Lazy Dog. One album at a time, on purpose.
+- **Drag and drop into Music works again.** New Beatport and Traxsource downloads were failing with a "duplicate file name" error. A leftover shortcut inside the media folder was pointing at itself, so every copy landed on a path that already existed. Replaced with a real folder; confirmed working.
+- **STEMIT.** One command takes a playlist out of Music and turns every track into DJ stems: vocals, instrumental, and the four-deck Traktor file. First run was the 50th playlist — 21 tracks, all 21 finished, no failures, 78 minutes. One track had no separable vocal, so it correctly kept the mix and skipped the pair.
+- **Nothing was copied or moved.** The stem factory reads the same bytes as Apple Music through a hardlink, so the library never grows a duplicate and Traktor / Rekordbox never lose a path.
 
 ### From the start
 
@@ -31,9 +32,13 @@ Written 2026-08-31 for a non-technical read. Detail and next steps: `docs/TODO.m
 - Fixed genres: “Accapella” and thousands of “EDM, …” labels are now real names (House, Techno, and so on). Music.app matches the files. iCloud sync stayed off on purpose.
 - Learned: Music.app does not pick up tag changes from files. We had to tell Music itself.
 - Agreed not to let Beets become the library.
+- Cleaned up the Music app itself: 625 duplicate entries pointing at one file removed, 375 broken “!” entries relinked to the real audio. The audio was never touched.
+- Taught the crate to identify tracks by sound, then made mix CDs and compilations read correctly.
+- Named the stem job **STEMIT** and ran a real playlist through it end to end.
 
 ### Still ahead (not done)
 
+- Run the remaining genre batches through STEMIT (Alternative is next, 3 tracks first as a check).
 - Fill *empty* genres when Beatport works again. Do not blast the old EDM set.
 - While processing, stamp owned songs with whatever we already know or can look up (artist, album, title, genre, length, BPM, key, comments, cues). Python module; same kind of store databases OneTagger uses. Do not smash STEM files or overwrite Mixed in Key / ReCK when those are already set. For STEMs, keep that data beside the file as JSON in the same folder tree, so Traktor’s four decks stay intact.
 - Wire the DJ decks into Unreal so the visuals follow the music.
@@ -100,7 +105,7 @@ Point Cursor Models at `http://127.0.0.1:11434/v1`. Full steps: `docs/local-setu
 - `docs/architecture.md`
 - `docs/security.md`
 - `docs/local-setup.md`
-- `docs/crate.md` — stems_audio identity repair (filename → catalogs → Ollama → Miscellaneous)
+- `docs/crate.md` — crate identity repair, Music.app media folder, and **STEMIT**
 - `docs/djcu2.md` — Traktor ↔ Rekordbox via [ATGR DJCU2](https://atgr.nl/)
 - `docs/onetagger.md` — genre pass (files + Music.app); not an LLM
 - `docs/examples/music-set-genre.applescript` — generic Music.app `set genre` specimen (do not run)

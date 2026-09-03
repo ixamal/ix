@@ -34,12 +34,24 @@ def main(argv: list[str] | None = None) -> int:
         from ix_crate.music_fix import main as music_fix_main
 
         return music_fix_main(argv[1:])
+    if argv and argv[0] == "stemit":
+        from ix_crate.stemit import main as stemit_main
+
+        return stemit_main(argv[1:])
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "command",
-        choices=("unknown-album", "outliers", "mashups", "music-dupes", "music-repair", "music-fix"),
-        help="Scan Unknown Album, re-ID Inbox, sort mashups, drop Music.app same-file rows, locate missing files, or fill a playlist's identity.",
+        choices=(
+            "unknown-album",
+            "outliers",
+            "mashups",
+            "music-dupes",
+            "music-repair",
+            "music-fix",
+            "stemit",
+        ),
+        help="Scan Unknown Album, re-ID Inbox, sort mashups, drop Music.app same-file rows, locate missing files, fill a playlist's identity, or STEMIT a playlist into stems_audio.",
     )
     parser.add_argument(
         "--execute",

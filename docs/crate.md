@@ -21,7 +21,7 @@ Mashups: `Compilations/Mashups/{Artist}/`. Also moves `{Artist}/Mashups/` and pl
 
 ```bash
 cd ~/github/ixamal/ix
-cd crate && PYTHONPATH=. python3 -m unittest tests.test_identify -q
+cd crate && PYTHONPATH=. python3 -m unittest tests.test_identify tests.test_stemit -q
 cd ~/github/ixamal/ix
 PYTHONPATH=crate python3 -m ix_crate unknown-album            # dry-run + lookups
 PYTHONPATH=crate python3 -m ix_crate unknown-album --offline  # filename/tags only
@@ -38,6 +38,8 @@ PYTHONPATH=crate python3 -m ix_crate music-fix                # playlist Fix ide
 PYTHONPATH=crate python3 -m ix_crate music-fix --execute      # write file tags + Music.app artist/album/genre
 PYTHONPATH=crate python3 -m ix_crate music-fix --library-va   # library Various Artists (dry-run)
 PYTHONPATH=crate python3 -m ix_crate music-fix --library-va --execute
+PYTHONPATH=crate python3 -m ix_crate stemit --playlist "Never Forget 50th v01"
+PYTHONPATH=crate python3 -m ix_crate stemit --playlist "Never Forget 50th v01" --execute
 ```
 
 ## After this dump
@@ -60,6 +62,18 @@ The library media folder is `~/Music/Music/Media.localized`. The DJ crate alread
 Do **not** turn `Media.localized/Music` into a symlink to `.`. That leftover iTunes loop made drag-and-drop fail with **Attempting to copy to the disk “Data” failed. A duplicate file name was specified.** (“Data” is the APFS user volume, not a second disk.) Replaced with a real `Music/` folder 2026-09-03; Traxsource drag-and-drop confirmed.
 
 Leave **Sync Library** Off. Do not hoist new `Music/` files up onto the artist-root crate. Do not delete `Music/` to “flatten” the library. `music-repair` indexes both trees and skips `Music/` as an artist name.
+
+## STEMIT
+
+Name for the local stem factory job: Music.app playlist → hardlink the mix into `~/Music/stems_audio/Artist/Album/` → [ixamal/stems](https://github.com/ixamal/stems) `py.exec.separate` as the RUNBOOK does (`PATH` = stems `.venv/bin` first, then that venv’s `python -m py.exec.separate`). Mel vocals/instrumental + `{name}.stem.m4a`. Aqua HUD is `py.utils.progress`. Homebrew Python 3.12 `.venv` in the stems repo. ~3.8 min/track. `audio-separator` lives in that venv — do not call the factory with system PATH.
+
+Never write Apple Music. Never mutagen-write `.stem.m4a`. Never stem **Acapella**. Skip if that dest already has `{name}.stem.m4a`. Dry-run unless `--execute`. Queue m3u + reports: `~/local_tools/crate/` (off git). Add the new siblings in Traktor / Rekordbox when David wants — do not hand-edit NML.
+
+The mix is a **hardlink**, not a copy: one set of bytes, two paths (Apple Music + `stems_audio`). Deleting the `stems_audio` name never deletes the Apple Music file.
+
+First run, 2026-09-03 — Music playlist `Never Forget 50th v01`, **21 tracks**: 21 `.stem.m4a`, 20 full Rekordbox pairs, 42/42 factory writes, **0 fail**, 1.50 GB, **78 min** (3.7 min/track, ~38 s per audio minute). Lords Of Acid *Undress and Possess* hit `we found none` — Mel found no separable vocal, so **both** pair files dropped and the container still muxed. That is correct: the mix already is the instrumental.
+
+The shell can look like it ran for hours after the batch ends — the Aqua HUD stays open until **Close**. Read `summary.wall_s_total` in the run JSON for real time, not shell elapsed.
 
 `music-dupes` only deletes extra Music.app *rows* that share one existing file. It does not unlink audio. If a delete would trash the file, it restores from Trash and stops.
 

@@ -1,0 +1,258 @@
+"""STEMIT — Music.app playlist → stems_audio hardlink → local STEM factory.
+
+Hardlink the mix into ``~/Music/stems_audio/Artist/Album/``, then run
+[ixamal/stems](https://github.com/ixamal/stems) ``py.exec.separate``
+(Mel pair + ``.stem.m4a``) with the Aqua HUD (``py.utils.progress``).
+
+Never writes Apple Music ``Media.localized``. Never mutagen-writes
+``.stem.m4a``. Never stems Acapella. Skip if that Artist/Album/Title
+already has a ``.stem.m4a``. Dry-run is the default.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import re
+import subprocess
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+from ix_crate.families import is_role_file
+from ix_crate.identify import sanitize
+from ix_crate.music_dupes import MusicDupesError
+from ix_crate.music_fix import dump_playlist
+from ix_crate.music_repair import RepairRow, SKIP_SUFFIX
+from ix_crate.paths import REPORTS, STEMS_AUDIO
+from ix_crate.safety import CrateSafetyError, assert_under_stems
+from ix_crate.stems_path import STEMS_REPO, ensure_stems_path
+
+HUD_TITLE = "STEMIT"
+TOOL_ID = "ix.crate.stemit"
+QUEUE_DIR = REPORTS.parent / "stemit-queues"
+ACAPELLA = re.compile(r"\b(?:a\s*c+ap+ella|acapella|cappella)\b", re.I)
+OWNED_EXT = {".mp3", ".m4a", ".wav", ".aiff", ".aif", ".flac"}
+
+
+def is_acapella_row(row: RepairRow) -> bool:
+    blob = " ".join(
+        part
+        for part in (row.genre, row.name, row.album, Path(row.location).name)
+        if part
+    )
+    return bool(ACAPELLA.search(blob))
+
+
+def dest_mix(row: RepairRow, *, stems_root: Path | None = None) -> Path:
+    root = (stems_root or STEMS_AUDIO).expanduser()
+    src = Path(row.location)
+    artist = sanitize(row.artist, "Unknown Artist")
+    album = sanitize(row.album, "Singles")
+    return root / artist / album / src.name
+
+
+def stem_sibling(mix: Path) -> Path:
+    return mix.with_name(f"{mix.stem}.stem.m4a")
+
+
+def skip_reason(row: RepairRow, *, stems_root: Path | None = None) -> str:
+    loc = (row.location or "").strip()
+    if not loc:
+        return "no file"
+    src = Path(loc)
+    if any(src.name.lower().endswith(suffix) for suffix in SKIP_SUFFIX):
+        return "skip stem or m4p"
+    if src.suffix.lower() not in OWNED_EXT:
+        return f"skip {src.suffix or 'unknown type'}"
+    if not src.is_file():
+        return "missing on disk"
+    if is_role_file(src):
+        return "role file"
+    if is_acapella_row(row):
+        return "acapella"
+    dest = dest_mix(row, stems_root=stems_root)
+    if stem_sibling(dest).is_file():
+        return "already has .stem.m4a"
+    return ""
+
+
+def plan_playlist(
+    playlist: str,
+    *,
+    stems_root: Path | None = None,
+    rows: list[RepairRow] | None = None,
+) -> dict[str, Any]:
+    rows = list(rows if rows is not None else dump_playlist(playlist))
+    jobs: list[dict[str, Any]] = []
+    for row in rows:
+        reason = skip_reason(row, stems_root=stems_root)
+        dest = dest_mix(row, stems_root=stems_root) if row.location else Path()
+        jobs.append(
+            {
+                "persistent_id": row.persistent_id,
+                "artist": row.artist,
+                "album": row.album,
+                "name": row.name,
+                "genre": row.genre,
+                "source": row.location,
+                "dest": str(dest) if row.location else "",
+                "action": "skip" if reason else "stem",
+                "reason": reason,
+            }
+        )
+    return {
+        "tool": TOOL_ID,
+        "playlist": playlist,
+        "tracks": len(jobs),
+        "stem": sum(1 for job in jobs if job["action"] == "stem"),
+        "skip": sum(1 for job in jobs if job["action"] == "skip"),
+        "jobs": jobs,
+    }
+
+
+def write_stemit_report(payload: dict[str, Any]) -> Path:
+    REPORTS.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    dest = REPORTS / f"stemit-{stamp}.json"
+    dest.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    return dest
+
+
+def _same_inode(left: Path, right: Path) -> bool:
+    try:
+        return left.stat().st_ino == right.stat().st_ino and left.stat().st_dev == right.stat().st_dev
+    except OSError:
+        return False
+
+
+def hardlink_mix(source: Path, dest: Path) -> str:
+    """Link Media.localized (or other) mix into stems_audio. Never copy Apple Music."""
+    src = source.expanduser()
+    dest = dest.expanduser()
+    assert_under_stems(dest)
+    if dest.exists() and _same_inode(src, dest):
+        return "already-linked"
+    if dest.exists():
+        raise CrateSafetyError(f"dest exists and is not this mix: {dest}")
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    os.link(src, dest)
+    return "linked"
+
+
+def write_queue(jobs: list[dict[str, Any]], *, playlist: str) -> Path:
+    QUEUE_DIR.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    slug = re.sub(r"[^\w]+", "-", playlist).strip("-").lower() or "playlist"
+    dest = QUEUE_DIR / f"{stamp}-{slug}.m3u"
+    lines = ["#EXTM3U"]
+    for job in jobs:
+        if job["action"] != "stem":
+            continue
+        lines.append(job["dest"])
+    dest.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return dest
+
+
+def factory_python() -> Path:
+    ensure_stems_path()
+    python = STEMS_REPO / ".venv" / "bin" / "python"
+    if not python.is_file():
+        raise FileNotFoundError(
+            f"stems factory venv missing ({python}). Use Homebrew Python 3.12 .venv in ixamal/stems."
+        )
+    return python
+
+
+def factory_env() -> dict[str, str]:
+    """Same as stems RUNBOOK: ``export PATH="$PWD/.venv/bin:$PATH``."""
+    python = factory_python()
+    env = os.environ.copy()
+    env["PATH"] = f"{python.parent}{os.pathsep}{env.get('PATH', '')}"
+    return env
+
+
+def run_factory(queue: Path, *, execute: bool) -> int:
+    python = factory_python()
+    env = factory_env()
+    cmd = [str(python), "-m", "py.exec.separate", "--path", str(queue)]
+    if execute:
+        cmd.append("--execute")
+    print("factory", " ".join(cmd), flush=True)
+    completed = subprocess.run(cmd, cwd=STEMS_REPO, env=env, check=False)
+    return completed.returncode
+
+
+def execute_links(payload: dict[str, Any]) -> dict[str, Any]:
+    linked = 0
+    for job in payload["jobs"]:
+        if job["action"] != "stem":
+            continue
+        result = hardlink_mix(Path(job["source"]), Path(job["dest"]))
+        job["link"] = result
+        linked += 1
+    payload["linked"] = linked
+    return payload
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--playlist",
+        required=True,
+        help="Music.app playlist name (exact).",
+    )
+    parser.add_argument(
+        "--execute",
+        action="store_true",
+        help="Hardlink mixes into stems_audio and run py.exec.separate with HUD.",
+    )
+    parser.add_argument(
+        "--no-factory",
+        action="store_true",
+        help="Hardlink only. Do not launch the STEM factory.",
+    )
+    args = parser.parse_args(argv)
+
+    try:
+        payload = plan_playlist(args.playlist)
+    except MusicDupesError as exc:
+        print(exc, file=sys.stderr)
+        return 2
+
+    report = write_stemit_report(payload)
+    print(
+        f"STEMIT playlist {payload['playlist']!r}: "
+        f"{payload['stem']} stem / {payload['skip']} skip / {payload['tracks']} tracks"
+    )
+    for job in payload["jobs"]:
+        mark = "skip" if job["action"] == "skip" else "stem"
+        extra = f" ({job['reason']})" if job["reason"] else ""
+        print(f"  {mark}  {job['artist']} — {job['name']}{extra}")
+    print(f"report: {report}")
+    if not args.execute:
+        print("dry-run. pass --execute to hardlink into stems_audio and run the factory HUD.")
+        return 0
+
+    try:
+        execute_links(payload)
+    except CrateSafetyError as exc:
+        print(exc, file=sys.stderr)
+        return 2
+
+    queue = write_queue(payload["jobs"], playlist=args.playlist)
+    payload["queue"] = str(queue)
+    payload["execute"] = True
+    write_stemit_report(payload)
+    print(f"linked {payload.get('linked', 0)}  queue {queue}")
+    if args.no_factory:
+        print("hardlink only (--no-factory).")
+        return 0
+    print(f"{HUD_TITLE}: launching py.exec.separate (Aqua HUD until Close).", flush=True)
+    return run_factory(queue, execute=True)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

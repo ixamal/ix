@@ -2,7 +2,7 @@
 
 Parking lot for crate, tagging, and hardware ideas. Ordered checklist: `docs/TODO.md`. Agents: read both, then stop unless David asks to act. Off-repo tools and library paths stay off git.
 
-Last update: 2026-09-03. Playlist Fix identity closed (19 + 20). VA fingerprint closed (21). Screenshot compilations closed (22). Music.app `Media.localized/Music` is a real folder (drag-and-drop works; never symlink to `.`). **Next: Alternative stems, tracks 1–3.** Floor **10** parked.
+Last update: 2026-09-03. Playlist Fix identity closed (19 + 20). VA fingerprint closed (21). Screenshot compilations closed (22). Music.app `Media.localized/Music` is a real folder (drag-and-drop works; never symlink to `.`). **STEMIT** shipped; `Never Forget 50th v01` done 21/21 (23). **Next:** Alternative stems, tracks 1–3 (TODO 17) unless David names another playlist. Floor **10** parked.
 
 ## Crate status
 
@@ -19,7 +19,7 @@ Traktor (2026-08-30): NML remapped, then [ATGR DJCU2](https://atgr.nl/) converte
 
 ### Resume next
 
-1. **Alternative stems, tracks 1–3 only** (TODO 17). HUD on. Skip existing `stems_audio` Artist/Album/Title. Never stem Acapella. Never write Apple Music. Local factory only.
+1. **STEMIT** is the stem factory job (`ix_crate stemit --playlist …` → hardlink → `py.exec.separate` HUD). `Never Forget 50th v01` is **done** (21/21, 78 min). Next: Alternative stems, tracks 1–3 only (TODO 17) unless David names another playlist. Skip existing `stems_audio` Artist/Album/Title. Never stem Acapella. Never write Apple Music. Local factory only.
 2. Floor **10** parked until David asks.
 3. Items 5 / 5b / 6 stay omitted. Do not Discogs-blast. Targeted one-album Discogs from a screenshot is OK (TODO 22 / `docs/crate.md`).
 
@@ -33,6 +33,8 @@ PYTHONPATH=crate python3 -m ix_crate music-repair
 PYTHONPATH=crate python3 -m ix_crate music-repair --execute
 PYTHONPATH=crate python3 -m ix_crate music-fix --playlist Fix
 PYTHONPATH=crate python3 -m ix_crate music-fix --playlist Fix --execute
+PYTHONPATH=crate python3 -m ix_crate stemit --playlist "Never Forget 50th v01"
+PYTHONPATH=crate python3 -m ix_crate stemit --playlist "Never Forget 50th v01" --execute
 ```
 
 ## Tagging
