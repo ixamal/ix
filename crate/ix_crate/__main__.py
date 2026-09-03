@@ -30,6 +30,10 @@ def main(argv: list[str] | None = None) -> int:
         from ix_crate.music_repair import main as music_repair_main
 
         return music_repair_main(argv[1:])
+    if argv and argv[0] == "consolidate":
+        from ix_crate.consolidate import main as consolidate_main
+
+        return consolidate_main(argv[1:])
     if argv and argv[0] == "music-reconcile":
         from ix_crate.music_reconcile import main as music_reconcile_main
 
