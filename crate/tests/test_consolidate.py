@@ -223,3 +223,27 @@ class IndexCacheTest(unittest.TestCase):
             index = index_local([root / "dest"])
             cache = save_index(index, root / "cache.json")
             self.assertEqual(load_index(cache), index)
+
+
+class BarTest(unittest.TestCase):
+    def test_renders_percent_and_counts(self) -> None:
+        from ix_crate.consolidate import Bar
+
+        bar = Bar(200, "copy  ")
+        line = bar.render(50, "1.5 GB")
+        self.assertIn("25.0%", line)
+        self.assertIn("50/200", line)
+        self.assertIn("1.5 GB", line)
+        self.assertIn("█", line)
+
+    def test_full_bar_at_completion(self) -> None:
+        from ix_crate.consolidate import Bar
+
+        line = Bar(10, "copy  ").render(10)
+        self.assertIn("100.0%", line)
+        self.assertNotIn("░", line)
+
+    def test_zero_total_does_not_divide_by_zero(self) -> None:
+        from ix_crate.consolidate import Bar
+
+        self.assertIn("100.0%", Bar(0, "x").render(1))

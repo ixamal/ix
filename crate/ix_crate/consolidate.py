@@ -24,6 +24,7 @@ import hashlib
 import json
 import os
 import shutil
+import threading
 import time
 from collections import defaultdict
 from dataclasses import dataclass, field
@@ -32,6 +33,7 @@ from typing import Any, Iterable
 
 from .families import is_audio
 from .identify import _read_tags, normalize_title, sanitize, strip_track_number
+from .stems_path import ensure_stems_path
 from .paths import (
     APPLE_MEDIA_SKIP_DIRS,
     APPLE_MUSIC,
@@ -347,6 +349,38 @@ def _gb(value: int) -> float:
     return round(value / (1024**3), 2)
 
 
+def _eta(done: int, total: int, started: float) -> str:
+    if done <= 0:
+        return "--:--"
+    remaining = (time.time() - started) / done * (total - done)
+    return f"{int(remaining // 3600):d}:{int(remaining % 3600 // 60):02d}:{int(remaining % 60):02d}"
+
+
+class Bar:
+    """Terminal progress bar. Used on its own, and under the HUD as the log."""
+
+    WIDTH = 34
+
+    def __init__(self, total: int, label: str) -> None:
+        self.total = max(total, 1)
+        self.label = label
+        self.started = time.time()
+
+    def render(self, done: int, note: str = "") -> str:
+        frac = min(done / self.total, 1.0)
+        filled = int(self.WIDTH * frac)
+        bar = "█" * filled + "░" * (self.WIDTH - filled)
+        return (
+            f"{self.label} |{bar}| {frac * 100:5.1f}%  "
+            f"{done}/{self.total}  eta {_eta(done, self.total, self.started)}"
+            + (f"  {note}" if note else "")
+        )
+
+    def draw(self, done: int, note: str = "") -> None:
+        end = "\n" if done >= self.total else ""
+        print("\r" + self.render(done, note), end=end, flush=True)
+
+
 def write_report(payload: dict[str, Any]) -> Path:
     REPORTS.mkdir(parents=True, exist_ok=True)
     stamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
@@ -375,13 +409,34 @@ def build_parser() -> argparse.ArgumentParser:
         help="reuse a saved local index instead of re-reading tags on the "
         "whole library; written on first use",
     )
+    parser.add_argument(
+        "--gui",
+        dest="gui",
+        action="store_true",
+        default=None,
+        help="force the progress HUD",
+    )
+    parser.add_argument(
+        "--no-gui",
+        dest="gui",
+        action="store_false",
+        help="terminal progress bar only",
+    )
     return parser
 
 
-def main(argv: list[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
+def run(args: argparse.Namespace, panel=None) -> int:
     dest_root = assert_under_music((args.dest or APPLE_MUSIC).expanduser())
     stems_root = assert_under_music(STEMS_AUDIO.expanduser())
+
+    def hud(index: int, total: int, name: str, action: str) -> None:
+        if panel is None:
+            return
+        try:
+            panel.set_totals(max(total, 1), max(total, 1))
+            panel.set_job(index, max(total, 1), name, action)
+        except Exception:
+            pass
 
     cache = args.index_cache
     if cache and cache.is_file():
@@ -389,21 +444,32 @@ def main(argv: list[str] | None = None) -> int:
         local_index = load_index(cache)
     else:
         print(f"index local {dest_root}", flush=True)
-        local_index = index_local(
-            [dest_root, stems_root],
-            on_progress=lambda n: print(f"  local {n}", flush=True),
-        )
+        index_bar = Bar(30000, "index ")
+
+        def on_index(n: int) -> None:
+            index_bar.draw(n, "local files")
+            hud(n, 30000, f"{n} local files", "index")
+
+        local_index = index_local([dest_root, stems_root], on_progress=on_index)
+        print(flush=True)
         if cache:
             print(f"save index {save_index(local_index, cache)}", flush=True)
     print(f"local audio keys {len(local_index)}", flush=True)
+
+    scan_bar = Bar(30000, "scan  ")
+
+    def on_scan(n: int, c: int) -> None:
+        scan_bar.draw(n, f"{c} to copy")
+        hud(n, 30000, f"{n} scanned, {c} to copy", "scan")
 
     plan = build_plan(
         args.sources,
         local_index,
         dest_root=dest_root,
         stems_root=stems_root,
-        on_progress=lambda n, c: print(f"  scan {n} ({c} to copy)", flush=True),
+        on_progress=on_scan,
     )
+    print(flush=True)
 
     print(
         f"scanned {plan.scanned}  copy {len(plan.copy)}  "
@@ -450,12 +516,53 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 2
 
+    copy_bar = Bar(len(plan.copy), "copy  ")
+
     def progress(done: int, total: int, moved: int) -> None:
-        print(f"copy {done}/{total}  {_gb(moved)} GB", flush=True)
+        copy_bar.draw(done, f"{_gb(moved)} GB")
+        name = plan.copy[min(done, len(plan.copy)) - 1].dest.name if plan.copy else ""
+        hud(done, total, name, f"copy {_gb(moved)} GB")
 
     copied, failed, moved = execute(plan, on_progress=progress)
     print(f"copied {copied}  failed {failed}  {_gb(moved)} GB", flush=True)
     return 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    if args.gui is False:
+        return run(args)
+
+    try:
+        ensure_stems_path()
+        from py.utils.progress import ProgressPanel
+    except Exception as exc:
+        print(f"progress GUI unavailable ({exc}); terminal bar only", flush=True)
+        return run(args)
+
+    panel = ProgressPanel.try_open("ix crate — consolidate")
+    if panel is None:
+        return run(args)
+
+    result: dict[str, Any] = {}
+
+    def work() -> None:
+        try:
+            result["code"] = run(args, panel)
+        except Exception as exc:
+            result["code"] = 1
+            print(f"run failed: {exc}", flush=True)
+        finally:
+            try:
+                panel.finish("consolidate finished")
+            except Exception:
+                pass
+
+    worker = threading.Thread(target=work, name="consolidate", daemon=False)
+    worker.start()
+    panel.mainloop()
+    worker.join()
+    return int(result.get("code", 0))
 
 
 if __name__ == "__main__":  # pragma: no cover
