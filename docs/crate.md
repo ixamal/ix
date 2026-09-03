@@ -36,6 +36,8 @@ PYTHONPATH=crate python3 -m ix_crate music-repair             # Locate ! rows (d
 PYTHONPATH=crate python3 -m ix_crate music-repair --execute   # set location + fill empty identity/genre
 PYTHONPATH=crate python3 -m ix_crate music-reconcile          # relink ! rows from the iTunes XML (dry-run)
 PYTHONPATH=crate python3 -m ix_crate music-reconcile --execute
+PYTHONPATH=crate python3 -m ix_crate consolidate SOURCE       # pull audio back into ~/Music (dry-run + HUD)
+PYTHONPATH=crate python3 -m ix_crate consolidate SOURCE --execute
 PYTHONPATH=crate python3 -m ix_crate music-fix                # playlist Fix identity (dry-run + HUD)
 PYTHONPATH=crate python3 -m ix_crate music-fix --execute      # write file tags + Music.app artist/album/genre
 PYTHONPATH=crate python3 -m ix_crate music-fix --library-va   # library Various Artists (dry-run)
@@ -93,9 +95,32 @@ PYTHONPATH=crate python3 -m ix_crate music-reconcile \
   --external-scan "/Volumes/<drive>/MIGRATION_MASTER/Music"
 ```
 
-2026-09-03: **8,748 → 21,850** rows holding a file (13,102 relinked, 7,748 at their recorded path, 5,368 hoisted out of `Music/`). 991 left: 103 duplicate rows, 888 with no file anywhere local.
+2026-09-03: **8,748 → 21,850** rows holding a file (13,102 relinked, 7,748 at their recorded path, 5,368 hoisted out of `Music/`). Then `consolidate` brought the crate back local and a second pass with `--external-scan ~/Music/Music/Media.localized` relinked 291 more.
 
-Relinking to a removable volume is left as a dry-run on purpose — those rows go **!** again the moment the drive unmounts. Copy in first, then relink.
+**22,173 of 22,873 rows now resolve, all under `~/Music`. No row points at `/Volumes`.** 700 left: 103 duplicate rows, 597 with no match yet.
+
+Never relink to a removable volume. Those rows go **!** again the moment it unmounts. Copy in first with `consolidate`, then relink against the local tree.
+
+## consolidate
+
+An earlier migration moved audio out of `~` onto Terrarum. That is the root cause of the library rows with no file, and the reason the crate has to be pulled back rather than merely relinked.
+
+`consolidate` walks a source tree, drops what is already held locally, and files the rest under `~/Music` as **Artist / Album**.
+
+**Tags decide the destination, not source paths.** The exFAT copy truncated long filenames and rewrote `/` as `_` (`08 Head Affect _ Afrochrome [Gent.mp3`), so the source layout cannot be trusted, but the tags survived. Untagged audio falls back to the folders around it, ignoring containers that say nothing about who made it (`Desktop`, `Documents`, `Downloads`, `Library`, `CloudStorage`). Separator output named for the role alone (`vocals.wav`) is routed to `stems_audio` keeping its project folder as the album — otherwise thousands of identically named files pile into one directory.
+
+Duplicate test is exact byte size plus normalized title, confirmed by hashing the leading 4MB only when a pair ties. Size alone collides across encodes of the same length, title alone collides across compilations. Both the tag title and the filename title count, because truncation makes them disagree.
+
+Copy only. Sources are never moved or deleted, existing files are never overwritten, a colliding name gets a numbered suffix, and each file lands via a size-checked `.partial`. A run is repeatable and safe to interrupt.
+
+```bash
+PYTHONPATH=crate python3 -m ix_crate consolidate "/Volumes/<drive>/<path>" --index-cache ~/local_tools/crate/local-audio-index.json
+PYTHONPATH=crate python3 -m ix_crate consolidate "/Volumes/<drive>/<path>" --index-cache ~/local_tools/crate/local-audio-index.json --execute
+```
+
+`--index-cache` is worth passing. Reading tags across the whole local library takes about half an hour, and the cache makes it reusable — but **delete it after copying**, or the next run will still believe the new files are absent.
+
+2026-09-03: 26,640 scanned, 790 already held, **22,457 copied (273 GB)**. The run then stopped: Terrarum unmounted mid-copy and the remaining 3,393 all failed on a vanished source. `consolidate` now tells a lost volume apart from one unreadable file and stops on the first rather than reporting one problem 3,393 times.
 
 ## STEMIT
 
