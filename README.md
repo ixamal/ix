@@ -8,45 +8,86 @@ Mac clone path: `~/github/ixamal/ix`
 
 ## Where we are
 
-Written for a non-technical read. Detail and next steps: `docs/TODO.md`.
+If you DJ, or you have been collecting longer than you have been DJing, you already know this mess. Twenty thousand files. Mix CDs tagged as the DJ who mixed them. iTunes calling everything `EDM, House`. The same record twice because Apple named the second copy `Track 1`. A USB drive that *was* the crate until you unplugged it and half of Songs grew a `!`. You cannot play what you cannot find. You cannot stem what has no name. You cannot migrate playlists if the path is a lie.
 
-### Latest — 2026-09-04 (whew)
+This week we stopped hunting. The crate is playable again: **21,824** tracks, all under `~/Music`, no leftover `!`, no leftover `EDM,`. The missing Aphex and Orb cuts can wait — they are not ghosts in the library anymore. Detail: `docs/TODO.md`. How we did the work: `docs/crate.md`.
 
-The migration drive came home. Then the ghosts came with it. Then we sent the ghosts packing. Music.app is a crate again: **21,824** file tracks, all under `~/Music`, **0** leftover `!`, **0** leftover `EDM,`.
+### Why we organize like this
 
-- **Copy first, relink second.** Audio that had been living on Terrarum is back in `~/Music`. Never point Music.app at a USB volume — those rows go `!` the second you unplug.
-- **`EDM, House` is a cockroach.** Cleared it (229). Recovered tracks from the drive. It came back (66). Same command, two layers: write the file *and* tell Music.app, because Music does not re-read tags. Click off the stale genre in the column or the list still looks haunted.
-- **Replicants.** Same recording, two filenames (`Track.m4a` and iTunes' helpful `Track 1.m4a`). Byte compare lies after a retag. Decode the audio, then drop the extra *row*. Playlist copy wins so a crate slot never goes empty. 622 extras gone; real variants stayed.
-- **WAV vs ID3.** A tag write prepended `ID3` where `RIFF` belongs. Music.app said *invalid start code*. The clean original got copied in as `(2)` then `(3)`. Never write ID3 on WAV/AIFF. `riff-repair` put RIFF back and deleted the twins.
-- **Ghosts evicted.** If it was not on Terrarum `MIGRATION_MASTER`, we stopped hunting. 425 Songs rows with no file (and one leftover iTunes LP package) deleted. The missing Aphex / Collide / Orb cuts wait for another day — they are not library ghosts anymore.
+We are both. Collector first — decades of vinyl-brain in folders. DJ second — the crate has to survive a night, two decks, and a laptop that is not a NAS.
 
-The Python for all of that lives in `crate/`. Dry-run is the default. Reports stay off git in `~/local_tools/crate/reports`. How and why: `docs/crate.md`.
+So the rule is one tree: **Artist / Album / track**. Not `Downloads`. Not `Unknown Album`. Not a volume that goes away. Music.app is where identity lives (artist, album, genre, the Songs list you actually browse). Traktor and Rekordbox are the decks — they must see the **same path**, or you own three libraries that disagree. Mix CDs file under the DJ or series who made the mix (Tenaglia, Farina, Lazy Dog), with the real track artists written on each cut. Mashups have a bucket. Leftovers have `Miscellaneous`. `Unknown` is not a home.
+
+iCloud Sync stays **off**. This is a local DJ crate, not a streaming locker. We do not let [Beets](https://beets.io/) become the library of record — it wants to own the files, and we already have an owner. When a store genre is a slash (`Funk / Soul / Disco`), that is a real spelling, not junk. `EDM, House` is junk. We strip the prefix and keep the rest.
+
+### Three repos, one crate
+
+The audio never enters git. Three public repos share the labor so no one tool tries to be the whole shop.
+
+| Repo | Job |
+| --- | --- |
+| **This one** — `crate/` | Name it, file it, talk to Music.app, kick off a stem job. Identity, relink, consolidate, genre, ghosts. **STEMIT** is the handshake: pick a playlist, hardlink the mix into `stems_audio`, call the factory. |
+| [ixamal/stems](https://github.com/ixamal/stems) | The shop. Mel vocals/instrumental + the four-deck `.stem.m4a`. NUO-STEMS is the reference; this is the CLI that will do tens of thousands. It does not rename your Music library. |
+| [ixamal/music_migration](https://github.com/ixamal/music_migration) | After files *move*, Traktor NML and Rekordbox XML still have to find them. Remap paths, repair playlist keys. You do not rebuild 27k rows by hand. |
+
+STEMIT never copies the mix. One set of bytes, two names (Apple Music + `stems_audio`). Delete the stem-side name and the crate file is still there. After a move, `music_migration` is what keeps Traktor and Rekordbox honest. After a naming fight, `crate/` is what keeps Music.app honest. The factory in `stems` only runs when the name is already true.
+
+Traktor → Rekordbox is not our bridge. That is [ATGR DJCU2](https://atgr.nl/). We remapped, then converted, then confirmed the same song lives at the same place in all three.
+
+### The libraries we actually use
+
+**On the decks**
+
+| App | Why it stays |
+| --- | --- |
+| **Apple Music** | The crate of record for *who it is*. Drag Beatport / Traxsource in. Sync Library Off. |
+| **Traktor** | The four-deck STEM player. Collection remapped after every move. |
+| **Rekordbox** | The other deck. Same paths as Traktor. Vocals/instrumental pairs from the factory. |
+| **Mixed in Key / ReCK** | Key, BPM, energy, cues. We never overwrite those. |
+| **Music.app + AppleScript** | Genre and location live in the library database. Writing a file tag alone does nothing to the column browser. We learned that the hard way. |
+
+**To name a mystery, in this order**
+
+Filename → tags already on the mix → iTunes + Deezer (title and duration, or both catalogs agree) → MusicBrainz (album only if we already know the artist) → [AcoustID](https://acoustid.org/) (listen to the file) → [Shazam](https://github.com/shazamio/ShazamIO) for the ones catalogs miss → a local [Ollama](https://ollama.com/) model on this Mac (`qwen2.5:7b`, `127.0.0.1` only) when the artist is already in the filename. Then `Compilations/Mashups/Miscellaneous/`. We do not guess. We do not Discogs-blast the crate. One mix CD from a screenshot is a human job.
+
+**To write and compare audio**
+
+- [mutagen](https://mutagen.readthedocs.io/) — tags on `.mp3` / `.m4a`. Never `.m4p` (DRM). Never `.wav` / `.aiff` (ID3 prepends and the file will not play). Never `.stem.m4a`.
+- [ffmpeg](https://ffmpeg.org/) — “is this the same record?” Compare *decoded* audio, not tag bytes. A retag changes the file and a byte compare will swear twins are strangers.
+- `fpcalc` / AcoustID, Shazam (`shazamio` in a venv), optional `songrec`.
+- [OneTagger](https://onetagger.github.io/) — we used it once for the big `EDM,` strip. Beatport on the last Mac build is dead. Do not re-run Discogs on that set; it flattened House into Electronic and misfiled a compilation as Hip Hop.
+
+**We refused**
+
+Beets as the library. iCloud Sync. Relinking Songs to `/Volumes` (unplug = `!`). Moving Apple Music files to “clean up.” Guessing a title match (“24 Hours” is not unique). Stemming an acapella (it already *is* the vocal).
+
+### What we just did, and why
+
+Years of audio had been living on a migration drive (Terrarum). Music.app still thought those rows were the crate. Point a library at a USB volume and you do not have a crate — you have a promise that breaks when the cable comes out. So we **copied home first**, then relinked. Tags decided Artist / Album, not the mangled exFAT names.
+
+The copies brought the old sins back with them. `EDM, House` is a cockroach — we killed it, recovered more files, it came back. Same command both times: write the file *and* tell Music.app. iTunes’ `Track 1.m4a` is not a new record; it is a second row on the same sound. We listen, then drop the extra *row*, and we keep the copy that is already in a playlist so a crate slot never goes empty. A tagger prepended `ID3` onto WAVs; Music.app said the file was junk; consolidate kindly added `(2)` and `(3)`. We put `RIFF` back and never write ID3 on a WAV again.
+
+Then we stopped. If it was not on that drive, it is a later hunt, not a Songs ghost. 425 empty rows gone. Drag-and-drop into Music works again (a leftover iTunes shortcut had been copying files onto themselves). Mix CDs read as the DJ who mixed them. STEMIT proved on a real playlist — 21 tracks, 78 minutes, no copies, no failures. One track had no separable vocal, so the factory correctly kept the mix and skipped the pair.
+
+The Python for that fight is `crate/`. Dry-run is the default. Reports stay off git in `~/local_tools/crate/reports`.
 
 ### Crate toolkit — steal these
 
-This is not a product. It is a crate that got sick of being a warehouse job, written down so another DJ (or another agent) can steal the ideas and leave the Mac-specific scars.
+Not a product. A crate that got sick of being a warehouse job. If yours looks like ours, take the idea and leave our paths.
 
 | Command | The idea |
 | --- | --- |
 | `music-dupes` | Two Songs rows, **one file**. Delete the extra *row*. If Music.app bins the file, restore from Trash and stop. |
-| `music-replicants` | Two Songs rows, **two files**, same *sound*. Compare decoded audio (ffmpeg MD5), not tag bytes. Alternate takes stay. |
-| `music-genre` | `EDM, House` → `House`. File **and** library. Never mutagen-write `.wav` or `.m4p`. Slash genres (`Funk / Soul / Disco`) are real — leave them. |
-| `music-repair` | Locate `!` by a unique artist/title hit on disk. Fill empty identity only. Do not move Apple Music. |
-| `music-reconcile` | Same `!`, but from the iTunes XML persistent-ID map. Exact, not a guess. Copy into `~/Music` before you relink. Never relink to `/Volumes`. |
-| `consolidate` | Pull a migration tree home as Artist / Album. Tags decide the folder, not the mangled exFAT path. iTunes `Track 1` is a duplicate marker, not a new track. |
-| `riff-repair` | ID3-headed WAV is trash. Restore RIFF from a sibling or the backup drive. Delete `(2)` / `(3)` only when the audio matches. |
-| `music-cull` | When the hunt is over, drop rows with no file or unreadable media. Valid audio stays. DRM `.m4p` stays even if ffmpeg sulks. |
-| `music-fix` / `stemit` | Identify a playlist by sound (AcoustID, then Shazam). STEMIT hardlinks a mix into `stems_audio` and runs the factory — the library never grows a copy. |
+| `music-replicants` | Two Songs rows, **two files**, same *sound*. Decode, then drop. Alternate takes stay. |
+| `music-genre` | `EDM, House` → `House`. File **and** library. Slash genres are real. |
+| `music-repair` | Locate `!` by a unique artist/title hit on disk. Fill empty identity only. |
+| `music-reconcile` | Same `!`, from the iTunes XML persistent-ID map. Exact, not a guess. Copy into `~/Music` before you relink. |
+| `consolidate` | Pull a migration tree home as Artist / Album. Tags decide the folder. `Track 1` is a duplicate marker. |
+| `riff-repair` | ID3-headed WAV is trash. Restore RIFF. Delete `(2)` / `(3)` only when the audio matches. |
+| `music-cull` | Hunt over. Drop rows with no file. Valid audio stays. `.m4p` stays even if ffmpeg sulks. |
+| `music-fix` / `stemit` | Name a playlist by sound. STEMIT hardlinks into `stems_audio` and calls [stems](https://github.com/ixamal/stems). |
 
-Hard-won rules, if you adapt this for your own crate:
-
-1. **Dry-run first.** Every command writes a JSON report. Read it. Then `--execute`.
-2. **Music.app is a database.** Writing tags on the file does nothing to Songs / the column browser. Tell Music itself.
-3. **AppleScript lists lie.** `location of file tracks i thru j` must be coerced `as list`, or one-track batches explode and every row looks dead.
-4. **Editing a row reorders the library.** Capture persistent IDs. Re-check before you write. `--passes` until it converges.
-5. **Title-only match will collide.** “24 Hours” is not unique. Persistent ID or decoded audio. Never attach Bizen to Agent Sumo because the titles rhyme.
-6. **WAV is not MP3.** EasyID3 on a `.wav` prepends `ID3` and the file will not play. Skip RIFF/AIFF. That is how we got `(2)` and `(3)`.
-7. **The DJ crate stays local.** Sync Library Off. Bind nothing to `0.0.0.0`. Audio never enters git.
+If you adapt this: dry-run first. Music.app is a database. Title-only match will collide. WAV is not MP3. The crate stays local.
 
 ```bash
 cd ~/github/ixamal/ix
@@ -54,38 +95,11 @@ PYTHONPATH=crate python3 -m ix_crate music-cull          # dry-run
 PYTHONPATH=crate python3 -m ix_crate music-cull --execute
 ```
 
-### 2026-09-03
-
-- **The library names itself now.** A tool listens to each track's own audio (fingerprinting, plus Shazam for the hard ones) and writes the real artist and album. 263 tracks came out of the "Various Artists" junk drawer. Nothing is guessed; anything it cannot prove is left alone.
-- **Mix CDs read correctly.** Send a screenshot of one album and its real per-track artists get written, filed under the DJ who mixed it — Danny Tenaglia's Global Underground, Mark Farina's Mushroom Jazz 7, Lazy Dog. One album at a time, on purpose.
-- **Drag and drop into Music works again.** New Beatport and Traxsource downloads were failing with a "duplicate file name" error. A leftover shortcut inside the media folder was pointing at itself, so every copy landed on a path that already existed. Replaced with a real folder; confirmed working.
-- **STEMIT.** One command takes a playlist out of Music and turns every track into DJ stems: vocals, instrumental, and the four-deck Traktor file. First run was the 50th playlist — 21 tracks, all 21 finished, no failures, 78 minutes. One track had no separable vocal, so it correctly kept the mix and skipped the pair.
-- **Nothing was copied or moved.** The stem factory reads the same bytes as Apple Music through a hardlink, so the library never grows a duplicate and Traktor / Rekordbox never lose a path.
-
-### From the start
-
-- Stood up **ix** as the home base: Cursor directs, a local AI stays on this Mac, Unreal is for live visuals, DJ tools stay DJ tools.
-- Kept the dangerous stuff off the public site (real library, models, hardware wiring).
-- Installed a local AI on the Mac and used it to identify mystery tracks.
-- Built a stem factory and ran the first big pass on the crate.
-- Got the piano (S88) into Traktor on one fader (Channel D). That fight is won.
-- Cleaned Unknown Album, mashups, and the inbox. Leftovers have a real home.
-- Relinked Traktor so it still finds the files after the move.
-- Converted Traktor → Rekordbox. Playlists and folders landed. It works.
-- Confirmed the same songs live at the same place in Traktor, Rekordbox, and Music.
-- Fixed genres: “Accapella” and thousands of “EDM, …” labels are now real names (House, Techno, and so on). Music.app matches the files. iCloud sync stayed off on purpose.
-- Learned: Music.app does not pick up tag changes from files. We had to tell Music itself.
-- Agreed not to let Beets become the library.
-- Cleaned up the Music app itself: 625 duplicate entries pointing at one file removed, 375 broken “!” entries relinked to the real audio. The audio was never touched.
-- Taught the crate to identify tracks by sound, then made mix CDs and compilations read correctly.
-- Named the stem job **STEMIT** and ran a real playlist through it end to end.
-- Stripped `EDM, …` off the tracks that came back from the migration drive (twice — it is a cockroach), dropped replicant rows, un-ID3'd the WAVs, and evicted the leftover `!` ghosts. The crate is playable. The fights are written down.
-
 ### Still ahead (not done)
 
 - Run the remaining genre batches through STEMIT (Alternative is next, 3 tracks first as a check).
 - Fill *empty* genres when Beatport works again. Do not blast the old EDM set.
-- While processing, stamp owned songs with whatever we already know or can look up (artist, album, title, genre, length, BPM, key, comments, cues). Python module; same kind of store databases OneTagger uses. Do not smash STEM files or overwrite Mixed in Key / ReCK when those are already set. For STEMs, keep that data beside the file as JSON in the same folder tree, so Traktor’s four decks stay intact.
+- While processing, stamp owned songs with whatever we already know or can look up (artist, album, title, genre, length, BPM, key, comments, cues). Same kind of store databases OneTagger uses. Do not smash STEM files or overwrite Mixed in Key / ReCK. For STEMs, keep that data beside the file as JSON so Traktor’s four decks stay intact.
 - Wire the DJ decks into Unreal so the visuals follow the music.
 - Bigger audio path, then sampling decks into Maschine / S88 — written down, not wired.
 
@@ -150,7 +164,9 @@ Point Cursor Models at `http://127.0.0.1:11434/v1`. Full steps: `docs/local-setu
 - `docs/architecture.md`
 - `docs/security.md`
 - `docs/local-setup.md`
-- `docs/crate.md` — crate identity, Music.app toolkit (`music-*`, consolidate, riff-repair, STEMIT), and the scars we do not want to earn twice
+- `docs/crate.md` — how the crate work actually ran (commands, scars, STEMIT)
+- [ixamal/stems](https://github.com/ixamal/stems) — the stem factory STEMIT calls
+- [ixamal/music_migration](https://github.com/ixamal/music_migration) — remap Traktor / Rekordbox after files move
 - `docs/djcu2.md` — Traktor ↔ Rekordbox via [ATGR DJCU2](https://atgr.nl/)
 - `docs/onetagger.md` — genre pass (files + Music.app); not an LLM
 - `docs/examples/music-set-genre.applescript` — generic Music.app `set genre` specimen (do not run)
