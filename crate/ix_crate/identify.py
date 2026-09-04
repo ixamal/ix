@@ -49,6 +49,9 @@ JUNK_PARENS = re.compile(
 RADIO_SUFFIX = re.compile(r"\s*__\s+.+$")
 INVALID_FS = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
 TRACK_NUM = re.compile(r"^\d{1,2}(?:[.)\-]|)\s+")
+# "1-07 Title" / "2.11 Title". Both sides capped at two digits so phone-number
+# titles like "1-800-273-8255" are left alone.
+DISC_TRACK = re.compile(r"^\d{1,2}[-.]\d{1,2}[.)]?\s+")
 LEADING_ARTIST_NUM = re.compile(r"^(\d{2})\s+([A-Za-z].+)$")
 NUMBERED_ARTIST_KEEP = re.compile(
     r"^(?:16 bit lolitas|28 east boyz|51 days|68 beats|95 north)\b",
@@ -81,7 +84,12 @@ def sanitize(part: str, fallback: str) -> str:
 
 
 def strip_track_number(title: str) -> str:
-    return TRACK_NUM.sub("", (title or "").strip()).strip(" ._")
+    text = (title or "").strip()
+    # Multi-disc rips are named "1-07 Title". TRACK_NUM wants whitespace right
+    # after the separator, so it never matched these and every disc-numbered
+    # track failed to match its library row by title.
+    text = DISC_TRACK.sub("", text)
+    return TRACK_NUM.sub("", text).strip(" ._")
 
 
 def strip_leading_track_artist(artist: str) -> str:

@@ -145,3 +145,29 @@ class AppleDoubleTest(unittest.TestCase):
             index = index_tree(root)
             hits = [h.path for hits in index["by_title"].values() for h in hits]
             self.assertEqual(hits, [real])
+
+
+class CopySuffixTest(unittest.TestCase):
+    def test_strips_collision_suffix(self) -> None:
+        from ix_crate.music_repair import strip_copy_suffix
+
+        self.assertEqual(strip_copy_suffix("Bbydhyonchord (2)"), "Bbydhyonchord")
+        self.assertEqual(strip_copy_suffix("Track (12)"), "Track")
+
+    def test_keeps_meaningful_parentheses(self) -> None:
+        from ix_crate.music_repair import strip_copy_suffix
+
+        self.assertEqual(strip_copy_suffix("Sexual (Li Da Di)"), "Sexual (Li Da Di)")
+        self.assertEqual(strip_copy_suffix("Closer (Precursor)"), "Closer (Precursor)")
+
+    def test_copied_file_still_matches_its_library_row(self) -> None:
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            dest = root / "Aphex Twin" / "Drukqs (Disc 1)" / "1-07 Bbydhyonchord (2).m4a"
+            dest.parent.mkdir(parents=True)
+            dest.write_bytes(b"x")
+            path, reason = pick_match(
+                _row("Bbydhyonchord", artist="Aphex Twin", album="Drukqs (Disc 1)"),
+                index_tree(root),
+            )
+            self.assertEqual(path, dest)

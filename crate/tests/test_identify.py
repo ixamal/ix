@@ -301,3 +301,18 @@ class MashupParseTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class DiscTrackTest(unittest.TestCase):
+    def test_strips_disc_track_prefix(self) -> None:
+        self.assertEqual(strip_track_number("1-07 Bbydhyonchord"), "Bbydhyonchord")
+        self.assertEqual(strip_track_number("2-18 Chaotic (Oxidized)"), "Chaotic (Oxidized)")
+        self.assertEqual(strip_track_number("2.11 Take On Me"), "Take On Me")
+
+    def test_still_strips_plain_track_numbers(self) -> None:
+        self.assertEqual(strip_track_number("07 Spacy Bitch"), "Spacy Bitch")
+        self.assertEqual(strip_track_number("13. Closer"), "Closer")
+
+    def test_leaves_numeric_titles_alone(self) -> None:
+        self.assertEqual(strip_track_number("1-800-273-8255"), "1-800-273-8255")
+        self.assertEqual(strip_track_number("99 Luftballons"), "Luftballons")

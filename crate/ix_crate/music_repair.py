@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 import threading
 from collections import defaultdict
@@ -208,6 +209,19 @@ def _folders(path: Path, root: Path) -> tuple[str, str]:
     return artist, album
 
 
+COPY_SUFFIX = re.compile(r"\s*\((\d{1,2})\)$")
+
+
+def strip_copy_suffix(title: str) -> str:
+    """Drop a ``(2)`` collision suffix left by a consolidation copy.
+
+    ``unique_dest`` numbers a name that is already taken, so the file lands as
+    ``1-07 Bbydhyonchord (2).m4a`` and normalizes to ``bbydhyonchord 2``,
+    which never matches the library row's ``Bbydhyonchord``.
+    """
+    return COPY_SUFFIX.sub("", title or "").strip()
+
+
 def index_tree(root: Path) -> dict[str, Any]:
     by_title: dict[str, list[DiskHit]] = defaultdict(list)
     by_artist_title: dict[tuple[str, str], list[DiskHit]] = defaultdict(list)
@@ -221,16 +235,21 @@ def index_tree(root: Path) -> dict[str, Any]:
     for path in root.rglob("*"):
         if not _indexable(path):
             continue
-        title = normalize_title(strip_track_number(path.stem))
-        if not title:
+        bare = strip_track_number(path.stem)
+        keys = {normalize_title(bare), normalize_title(strip_copy_suffix(bare))}
+        keys.discard("")
+        if not keys:
             continue
         artist, album = _folders(path, root)
-        hit = DiskHit(path=path, artist_folder=artist, album_folder=album, title_key=title)
-        by_title[title].append(hit)
-        if artist:
-            by_artist_title[(artist, title)].append(hit)
-        if album:
-            by_album_title[(album, title)].append(hit)
+        for title in keys:
+            hit = DiskHit(
+                path=path, artist_folder=artist, album_folder=album, title_key=title
+            )
+            by_title[title].append(hit)
+            if artist:
+                by_artist_title[(artist, title)].append(hit)
+            if album:
+                by_album_title[(album, title)].append(hit)
     return {
         "by_title": by_title,
         "by_artist_title": by_artist_title,
