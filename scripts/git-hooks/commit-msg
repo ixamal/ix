@@ -1,0 +1,9 @@
+#!/bin/sh
+# Drop Cursor attribution. Commits on ix are David only.
+msg="$1"
+tmp="$(mktemp)"
+awk '
+  BEGIN { skip = 0 }
+  /^Co-authored-by:.*[Cc]ursor/ { next }
+  { print }
+' "$msg" > "$tmp" && mv "$tmp" "$msg"
