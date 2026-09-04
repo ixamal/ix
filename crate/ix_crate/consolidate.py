@@ -126,8 +126,20 @@ def is_stem(path: Path) -> bool:
     )
 
 
+def _is_music(path: Path) -> bool:
+    """``.mp4`` is in AUDIO_EXTS so that ``.stem.mp4`` counts as audio, but a
+    bare ``.mp4`` on a migration drive is video (Maya renders, screen grabs)
+    and has no place in a music library."""
+    if not is_audio(path):
+        return False
+    low = path.name.lower()
+    if low.endswith(".mp4") and not low.endswith(".stem.mp4"):
+        return False
+    return True
+
+
 def walk_audio(root: Path) -> Iterable[Path]:
-    """Audio under ``root``, minus app state and AppleDouble stubs."""
+    """Audio under ``root``, minus app state, video and AppleDouble stubs."""
     for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
         dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]
         base = Path(dirpath)
@@ -135,7 +147,7 @@ def walk_audio(root: Path) -> Iterable[Path]:
             if name.startswith("._"):
                 continue
             path = base / name
-            if is_audio(path):
+            if _is_music(path):
                 yield path
 
 
@@ -323,13 +335,22 @@ def copy_one(item: Candidate) -> bool:
     try:
         shutil.copy2(item.source, temp)
         if temp.stat().st_size != item.size:
-            temp.unlink(missing_ok=True)
+            _discard(temp)
             return False
         temp.replace(item.dest)
     except OSError:
-        temp.unlink(missing_ok=True)
+        _discard(temp)
         return False
     return True
+
+
+def _discard(temp: Path) -> None:
+    """Never let cleanup abort the run. A leftover .partial is recoverable;
+    dying halfway through 26,000 copies is not."""
+    try:
+        temp.unlink(missing_ok=True)
+    except OSError:
+        pass
 
 
 class SourceLost(ConsolidateError):
@@ -414,7 +435,12 @@ def build_parser() -> argparse.ArgumentParser:
         prog="ix_crate consolidate",
         description="Copy audio from a migration drive into ~/Music by artist/album.",
     )
-    parser.add_argument("sources", nargs="+", type=Path, help="source roots to walk")
+    parser.add_argument(
+        "sources",
+        nargs="*",
+        type=Path,
+        help="source roots to walk (not needed with --resume)",
+    )
     parser.add_argument("--execute", action="store_true", help="perform the copies")
     parser.add_argument(
         "--dest",
@@ -466,6 +492,10 @@ def plan_from_report(report: Path) -> ConsolidatePlan:
         if dest.is_file():
             plan.duplicate += 1
             continue
+        low = dest.name.lower()
+        if low.endswith(".mp4") and not low.endswith(".stem.mp4"):
+            plan.skipped += 1
+            continue
         plan.copy.append(
             Candidate(
                 source=Path(row["source"]),
@@ -482,6 +512,8 @@ def plan_from_report(report: Path) -> ConsolidatePlan:
 
 
 def run(args: argparse.Namespace, panel=None) -> int:
+    if not args.sources and not args.resume:
+        raise ConsolidateError("give at least one source root, or --resume a report")
     dest_root = assert_under_music((args.dest or APPLE_MUSIC).expanduser())
     stems_root = assert_under_music(STEMS_AUDIO.expanduser())
 

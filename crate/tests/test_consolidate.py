@@ -303,3 +303,54 @@ class ResumeTest(unittest.TestCase):
             self.assertEqual(plan.copy[0].dest.name, "todo.mp3")
             self.assertEqual(plan.duplicate, 1)
             self.assertEqual(plan.bytes_to_copy, 7)
+
+
+class ArgsTest(unittest.TestCase):
+    def test_resume_does_not_require_sources(self) -> None:
+        from ix_crate.consolidate import build_parser
+
+        args = build_parser().parse_args(["--resume", "/tmp/r.json"])
+        self.assertEqual(args.sources, [])
+
+    def test_no_sources_and_no_resume_is_an_error(self) -> None:
+        from ix_crate.consolidate import build_parser, run
+
+        args = build_parser().parse_args([])
+        with self.assertRaises(ConsolidateError):
+            run(args)
+
+
+class VideoTest(unittest.TestCase):
+    def test_bare_mp4_video_is_not_collected(self) -> None:
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _mp3(root / "maya" / "ring" / "Comp_30fps.mp4")
+            keep = _mp3(root / "Moby" / "Play" / "01 Honey.mp3")
+            self.assertEqual(sorted(walk_audio(root)), [keep])
+
+    def test_stem_mp4_is_still_collected(self) -> None:
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            keep = _mp3(root / "t" / "Track.stem.mp4")
+            self.assertEqual(sorted(walk_audio(root)), [keep])
+
+
+class DiscardTest(unittest.TestCase):
+    def test_undeletable_partial_does_not_abort_the_run(self) -> None:
+        from ix_crate.consolidate import Candidate, ConsolidatePlan, copy_one
+        import ix_crate.consolidate as mod
+
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            item = Candidate(source=root / "missing.mp3", dest=root / "o" / "a.mp3",
+                             artist="", album="", title="", size=5)
+            original = Path.unlink
+
+            def boom(self, missing_ok=False):
+                raise PermissionError(1, "Operation not permitted")
+
+            Path.unlink = boom
+            try:
+                self.assertFalse(copy_one(item))
+            finally:
+                Path.unlink = original
