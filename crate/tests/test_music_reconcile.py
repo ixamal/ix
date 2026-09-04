@@ -160,5 +160,17 @@ class BuildPlanTest(unittest.TestCase):
         self.assertEqual(len(plan.unresolved), 1)
 
 
+class LocalOnlyTest(unittest.TestCase):
+    def test_home_music_is_allowed(self) -> None:
+        from ix_crate.music_reconcile import MUSIC_HOME, is_under_music
+
+        self.assertTrue(is_under_music(MUSIC_HOME / "a.m4a"))
+
+    def test_volumes_are_refused(self) -> None:
+        from ix_crate.music_reconcile import is_under_music
+
+        self.assertFalse(is_under_music(Path("/Volumes/Terrarum/a.m4a")))
+
+
 if __name__ == "__main__":
     unittest.main()

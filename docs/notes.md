@@ -2,7 +2,7 @@
 
 Parking lot for crate, tagging, and hardware ideas. Ordered checklist: `docs/TODO.md`. Agents: read both, then stop unless David asks to act. Off-repo tools and library paths stay off git.
 
-Last update: 2026-09-03. Playlist Fix identity closed (19 + 20). VA fingerprint closed (21). Screenshot compilations closed (22). Music.app `Media.localized/Music` is a real folder (drag-and-drop works; never symlink to `.`). **STEMIT** shipped; `Never Forget 50th v01` done 21/21 (23). **Next:** Alternative stems, tracks 1–3 (TODO 17) unless David names another playlist. Floor **10** parked.
+Last update: 2026-09-04. Playlist Fix identity closed (19 + 20). VA fingerprint closed (21). Screenshot compilations closed (22). Music.app `Media.localized/Music` is a real folder (drag-and-drop works; never symlink to `.`). **STEMIT** shipped; `Never Forget 50th v01` done 21/21 (23). Migration home, genre cockroach, replicants, riff-repair, cull (24 + 25). Library **21,824**, leftover `!` **0**. **Next:** Alternative stems, tracks 1–3 (TODO 17) unless David names another playlist. Floor **10** parked. Toolkit: README. How/why: `docs/crate.md`.
 
 ## Crate status
 
@@ -31,6 +31,10 @@ PYTHONPATH=crate python3 -m ix_crate music-dupes
 PYTHONPATH=crate python3 -m ix_crate music-dupes --execute
 PYTHONPATH=crate python3 -m ix_crate music-repair
 PYTHONPATH=crate python3 -m ix_crate music-repair --execute
+PYTHONPATH=crate python3 -m ix_crate music-genre
+PYTHONPATH=crate python3 -m ix_crate music-replicants
+PYTHONPATH=crate python3 -m ix_crate music-cull
+PYTHONPATH=crate python3 -m ix_crate riff-repair
 PYTHONPATH=crate python3 -m ix_crate music-fix --playlist Fix
 PYTHONPATH=crate python3 -m ix_crate music-fix --playlist Fix --execute
 PYTHONPATH=crate python3 -m ix_crate stemit --playlist "Never Forget 50th v01"

@@ -57,6 +57,10 @@ HUD_TITLE = "Music locate + identity"
 TOOL_ID = "ix.crate.music_repair"
 SKIP_SUFFIX = STEM_SUFFIXES + (".m4p",)
 OWNED_TAG = {".mp3", ".m4a", ".wav", ".aiff", ".aif", ".flac"}
+# ID3().save and EasyID3 prepend an ID3 header. On WAV/AIFF that replaces
+# RIFF/FORM, and ffmpeg / Music.app refuse the file. That is how Unknown
+# Album grew a corrupt unnumbered WAV plus valid ``(2)`` / ``(3)`` copies.
+RIFF_NO_ID3 = {".wav", ".aiff", ".aif"}
 
 
 def write_repair_report(payload: dict[str, Any]) -> Path:
@@ -441,6 +445,8 @@ def write_file_tags(
     if any(low.endswith(suffix) for suffix in SKIP_SUFFIX):
         raise MusicDupesError(f"refusing to tag {path.name}")
     if path.suffix.lower() not in OWNED_TAG:
+        return
+    if path.suffix.lower() in RIFF_NO_ID3:
         return
     from mutagen import File as MutagenFile
 

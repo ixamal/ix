@@ -155,14 +155,14 @@ def dump_file_track_batch(start: int, end: int) -> list[TrackRow]:
     """1-based inclusive file-track range → rows. Location may be empty."""
     script = f'''
 tell application "Music"
-  set pids to persistent ID of file tracks {start} thru {end} of library playlist 1
-  set dbids to database ID of file tracks {start} thru {end} of library playlist 1
-  set nms to name of file tracks {start} thru {end} of library playlist 1
-  set ars to artist of file tracks {start} thru {end} of library playlist 1
-  set als to album of file tracks {start} thru {end} of library playlist 1
-  set pcs to played count of file tracks {start} thru {end} of library playlist 1
-  set rts to rating of file tracks {start} thru {end} of library playlist 1
-  set locs to location of file tracks {start} thru {end} of library playlist 1
+  set pids to (persistent ID of file tracks {start} thru {end} of library playlist 1) as list
+  set dbids to (database ID of file tracks {start} thru {end} of library playlist 1) as list
+  set nms to (name of file tracks {start} thru {end} of library playlist 1) as list
+  set ars to (artist of file tracks {start} thru {end} of library playlist 1) as list
+  set als to (album of file tracks {start} thru {end} of library playlist 1) as list
+  set pcs to (played count of file tracks {start} thru {end} of library playlist 1) as list
+  set rts to (rating of file tracks {start} thru {end} of library playlist 1) as list
+  set locs to (location of file tracks {start} thru {end} of library playlist 1) as list
   set out to ""
   repeat with i from 1 to count of pids
     set locText to ""

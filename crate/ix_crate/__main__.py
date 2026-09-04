@@ -30,6 +30,14 @@ def main(argv: list[str] | None = None) -> int:
         from ix_crate.music_repair import main as music_repair_main
 
         return music_repair_main(argv[1:])
+    if argv and argv[0] == "music-replicants":
+        from ix_crate.music_replicants import main as music_replicants_main
+
+        return music_replicants_main(argv[1:])
+    if argv and argv[0] == "music-genre":
+        from ix_crate.music_genre import main as music_genre_main
+
+        return music_genre_main(argv[1:])
     if argv and argv[0] == "consolidate":
         from ix_crate.consolidate import main as consolidate_main
 
@@ -46,6 +54,14 @@ def main(argv: list[str] | None = None) -> int:
         from ix_crate.stemit import main as stemit_main
 
         return stemit_main(argv[1:])
+    if argv and argv[0] == "riff-repair":
+        from ix_crate.riff_repair import main as riff_repair_main
+
+        return riff_repair_main(argv[1:])
+    if argv and argv[0] == "music-cull":
+        from ix_crate.music_cull import main as music_cull_main
+
+        return music_cull_main(argv[1:])
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -57,10 +73,21 @@ def main(argv: list[str] | None = None) -> int:
             "music-dupes",
             "music-repair",
             "music-reconcile",
+            "music-genre",
+            "music-replicants",
             "music-fix",
             "stemit",
+            "consolidate",
+            "riff-repair",
+            "music-cull",
         ),
-        help="Scan Unknown Album, re-ID Inbox, sort mashups, drop Music.app same-file rows, locate missing files, relink dead rows from the iTunes XML, fill a playlist's identity, or STEMIT a playlist into stems_audio.",
+        help=(
+            "Scan Unknown Album, re-ID Inbox, sort mashups, drop Music.app "
+            "same-file rows, drop same-audio rows under two filenames, "
+            "promote EDM, … genres, locate missing files, relink dead rows "
+            "from the iTunes XML, pull audio into ~/Music, fill a playlist's "
+            "identity, or STEMIT a playlist into stems_audio."
+        ),
     )
     parser.add_argument(
         "--execute",

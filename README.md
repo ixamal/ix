@@ -10,7 +10,51 @@ Mac clone path: `~/github/ixamal/ix`
 
 Written for a non-technical read. Detail and next steps: `docs/TODO.md`.
 
-### Latest — 2026-09-03
+### Latest — 2026-09-04 (whew)
+
+The migration drive came home. Then the ghosts came with it. Then we sent the ghosts packing. Music.app is a crate again: **21,824** file tracks, all under `~/Music`, **0** leftover `!`, **0** leftover `EDM,`.
+
+- **Copy first, relink second.** Audio that had been living on Terrarum is back in `~/Music`. Never point Music.app at a USB volume — those rows go `!` the second you unplug.
+- **`EDM, House` is a cockroach.** Cleared it (229). Recovered tracks from the drive. It came back (66). Same command, two layers: write the file *and* tell Music.app, because Music does not re-read tags. Click off the stale genre in the column or the list still looks haunted.
+- **Replicants.** Same recording, two filenames (`Track.m4a` and iTunes' helpful `Track 1.m4a`). Byte compare lies after a retag. Decode the audio, then drop the extra *row*. Playlist copy wins so a crate slot never goes empty. 622 extras gone; real variants stayed.
+- **WAV vs ID3.** A tag write prepended `ID3` where `RIFF` belongs. Music.app said *invalid start code*. The clean original got copied in as `(2)` then `(3)`. Never write ID3 on WAV/AIFF. `riff-repair` put RIFF back and deleted the twins.
+- **Ghosts evicted.** If it was not on Terrarum `MIGRATION_MASTER`, we stopped hunting. 425 Songs rows with no file (and one leftover iTunes LP package) deleted. The missing Aphex / Collide / Orb cuts wait for another day — they are not library ghosts anymore.
+
+The Python for all of that lives in `crate/`. Dry-run is the default. Reports stay off git in `~/local_tools/crate/reports`. How and why: `docs/crate.md`.
+
+### Crate toolkit — steal these
+
+This is not a product. It is a crate that got sick of being a warehouse job, written down so another DJ (or another agent) can steal the ideas and leave the Mac-specific scars.
+
+| Command | The idea |
+| --- | --- |
+| `music-dupes` | Two Songs rows, **one file**. Delete the extra *row*. If Music.app bins the file, restore from Trash and stop. |
+| `music-replicants` | Two Songs rows, **two files**, same *sound*. Compare decoded audio (ffmpeg MD5), not tag bytes. Alternate takes stay. |
+| `music-genre` | `EDM, House` → `House`. File **and** library. Never mutagen-write `.wav` or `.m4p`. Slash genres (`Funk / Soul / Disco`) are real — leave them. |
+| `music-repair` | Locate `!` by a unique artist/title hit on disk. Fill empty identity only. Do not move Apple Music. |
+| `music-reconcile` | Same `!`, but from the iTunes XML persistent-ID map. Exact, not a guess. Copy into `~/Music` before you relink. Never relink to `/Volumes`. |
+| `consolidate` | Pull a migration tree home as Artist / Album. Tags decide the folder, not the mangled exFAT path. iTunes `Track 1` is a duplicate marker, not a new track. |
+| `riff-repair` | ID3-headed WAV is trash. Restore RIFF from a sibling or the backup drive. Delete `(2)` / `(3)` only when the audio matches. |
+| `music-cull` | When the hunt is over, drop rows with no file or unreadable media. Valid audio stays. DRM `.m4p` stays even if ffmpeg sulks. |
+| `music-fix` / `stemit` | Identify a playlist by sound (AcoustID, then Shazam). STEMIT hardlinks a mix into `stems_audio` and runs the factory — the library never grows a copy. |
+
+Hard-won rules, if you adapt this for your own crate:
+
+1. **Dry-run first.** Every command writes a JSON report. Read it. Then `--execute`.
+2. **Music.app is a database.** Writing tags on the file does nothing to Songs / the column browser. Tell Music itself.
+3. **AppleScript lists lie.** `location of file tracks i thru j` must be coerced `as list`, or one-track batches explode and every row looks dead.
+4. **Editing a row reorders the library.** Capture persistent IDs. Re-check before you write. `--passes` until it converges.
+5. **Title-only match will collide.** “24 Hours” is not unique. Persistent ID or decoded audio. Never attach Bizen to Agent Sumo because the titles rhyme.
+6. **WAV is not MP3.** EasyID3 on a `.wav` prepends `ID3` and the file will not play. Skip RIFF/AIFF. That is how we got `(2)` and `(3)`.
+7. **The DJ crate stays local.** Sync Library Off. Bind nothing to `0.0.0.0`. Audio never enters git.
+
+```bash
+cd ~/github/ixamal/ix
+PYTHONPATH=crate python3 -m ix_crate music-cull          # dry-run
+PYTHONPATH=crate python3 -m ix_crate music-cull --execute
+```
+
+### 2026-09-03
 
 - **The library names itself now.** A tool listens to each track's own audio (fingerprinting, plus Shazam for the hard ones) and writes the real artist and album. 263 tracks came out of the "Various Artists" junk drawer. Nothing is guessed; anything it cannot prove is left alone.
 - **Mix CDs read correctly.** Send a screenshot of one album and its real per-track artists get written, filed under the DJ who mixed it — Danny Tenaglia's Global Underground, Mark Farina's Mushroom Jazz 7, Lazy Dog. One album at a time, on purpose.
@@ -35,6 +79,7 @@ Written for a non-technical read. Detail and next steps: `docs/TODO.md`.
 - Cleaned up the Music app itself: 625 duplicate entries pointing at one file removed, 375 broken “!” entries relinked to the real audio. The audio was never touched.
 - Taught the crate to identify tracks by sound, then made mix CDs and compilations read correctly.
 - Named the stem job **STEMIT** and ran a real playlist through it end to end.
+- Stripped `EDM, …` off the tracks that came back from the migration drive (twice — it is a cockroach), dropped replicant rows, un-ID3'd the WAVs, and evicted the leftover `!` ghosts. The crate is playable. The fights are written down.
 
 ### Still ahead (not done)
 
@@ -105,7 +150,7 @@ Point Cursor Models at `http://127.0.0.1:11434/v1`. Full steps: `docs/local-setu
 - `docs/architecture.md`
 - `docs/security.md`
 - `docs/local-setup.md`
-- `docs/crate.md` — crate identity repair, Music.app media folder, and **STEMIT**
+- `docs/crate.md` — crate identity, Music.app toolkit (`music-*`, consolidate, riff-repair, STEMIT), and the scars we do not want to earn twice
 - `docs/djcu2.md` — Traktor ↔ Rekordbox via [ATGR DJCU2](https://atgr.nl/)
 - `docs/onetagger.md` — genre pass (files + Music.app); not an LLM
 - `docs/examples/music-set-genre.applescript` — generic Music.app `set genre` specimen (do not run)

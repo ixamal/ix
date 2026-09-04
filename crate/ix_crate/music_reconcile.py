@@ -39,6 +39,7 @@ from .paths import APPLE_MUSIC, REPORTS
 
 MEDIA_SEGMENT = "/Media.localized/"
 MUSIC_SEGMENT = "/Media.localized/Music/"
+MUSIC_HOME = Path.home() / "Music"
 # osascript grows quadratically slow on huge literals; this stays well under.
 BATCH = 200
 
@@ -105,6 +106,46 @@ def hoist(path: str) -> str | None:
     return path.replace(MUSIC_SEGMENT, MEDIA_SEGMENT, 1)
 
 
+def is_under_music(path: Path) -> bool:
+    """Library rows may only point at files under ``~/Music``."""
+    try:
+        path.expanduser().resolve().relative_to(MUSIC_HOME.resolve())
+        return True
+    except (ValueError, OSError):
+        return False
+
+
+def localize(path: Path, dest_root: Path) -> Path:
+    """Copy ``path`` into ``dest_root`` when it is not already under ``~/Music``.
+
+    Relinking straight to a removable volume makes the row go ``!`` the
+    moment that volume unmounts. The copy is the durable object.
+    """
+    path = path.expanduser()
+    if is_under_music(path):
+        return path
+    from .consolidate import Candidate, copy_one, destination, unique_dest
+    from .paths import STEMS_AUDIO
+
+    dest, artist, album, title = destination(path, dest_root, STEMS_AUDIO)
+    dest = unique_dest(dest, set())
+    if not is_under_music(dest):
+        raise ReconcileError(f"refusing to copy outside ~/Music: {dest}")
+    ok = copy_one(
+        Candidate(
+            source=path,
+            dest=dest,
+            artist=artist,
+            album=album,
+            title=title,
+            size=path.stat().st_size,
+        )
+    )
+    if not ok:
+        raise ReconcileError(f"copy failed {path} -> {dest}")
+    return dest
+
+
 def rebase(path: str, root: Path) -> list[str]:
     """Map a recorded Media.localized path onto another Media.localized root."""
     if MEDIA_SEGMENT not in path:
@@ -130,12 +171,12 @@ def scan_library(on_progress=None) -> tuple[list[DeadRow], set[str], int]:
         end = min(start + BATCH * 2 - 1, total)
         script = f"""
 tell application "Music"
-  set pids to persistent ID of file tracks {start} thru {end} of library playlist 1
-  set nms to name of file tracks {start} thru {end} of library playlist 1
-  set ars to artist of file tracks {start} thru {end} of library playlist 1
-  set als to album of file tracks {start} thru {end} of library playlist 1
-  set durs to duration of file tracks {start} thru {end} of library playlist 1
-  set locs to location of file tracks {start} thru {end} of library playlist 1
+  set pids to (persistent ID of file tracks {start} thru {end} of library playlist 1) as list
+  set nms to (name of file tracks {start} thru {end} of library playlist 1) as list
+  set ars to (artist of file tracks {start} thru {end} of library playlist 1) as list
+  set als to (album of file tracks {start} thru {end} of library playlist 1) as list
+  set durs to (duration of file tracks {start} thru {end} of library playlist 1) as list
+  set locs to (location of file tracks {start} thru {end} of library playlist 1) as list
   set out to ""
   repeat with i from 1 to count of pids
     set h to ""
@@ -341,6 +382,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--xml", type=Path, default=None, help="iTunes XML override")
     parser.add_argument(
+        "--copy-into",
+        type=Path,
+        default=APPLE_MUSIC,
+        help="when a match is not under ~/Music, copy it here first (default: Media.localized)",
+    )
+    parser.add_argument(
         "--passes",
         type=int,
         default=6,
@@ -389,6 +436,15 @@ def main(argv: list[str] | None = None) -> int:
 
         if not args.execute or not plan.relink:
             break
+
+        dest_root = args.copy_into.expanduser()
+        plan.relink = [
+            Relink(row=item.row, path=localize(item.path, dest_root), reason=item.reason)
+            for item in plan.relink
+        ]
+        outside = [item.path for item in plan.relink if not is_under_music(item.path)]
+        if outside:
+            raise ReconcileError(f"refusing to relink outside ~/Music: {outside[0]}")
 
         print(f"pass {round_no}/{rounds}", flush=True)
         done, skipped = apply_relinks(plan.relink, on_progress=applying)

@@ -354,3 +354,32 @@ class DiscardTest(unittest.TestCase):
                 self.assertFalse(copy_one(item))
             finally:
                 Path.unlink = original
+
+
+class DupMarkerTest(unittest.TestCase):
+    def test_itunes_duplicate_marker_is_a_title_key(self) -> None:
+        from ix_crate.consolidate import title_keys
+
+        keys = title_keys(Path("/x/14 Alone It's Me (Alley Cat Edit) 1.m4a"), "")
+        self.assertIn("alone it s me alley cat edit", keys)
+
+    def test_already_held_copy_is_not_copied_again(self) -> None:
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            src, dest, stems = root / "src", root / "dest", root / "stems"
+            payload = b"identical-bytes"
+            # local library holds it under the iTunes duplicate spelling
+            _mp3(dest / "Compilations" / "Choice" / "14 Alone 1.m4a", payload)
+            _mp3(src / "Compilations" / "Choice" / "14 Alone.m4a", payload)
+            plan = build_plan([src], index_local([dest]), dest_root=dest, stems_root=stems)
+            self.assertEqual(plan.copy, [])
+            self.assertEqual(plan.duplicate, 1)
+
+    def test_numbered_title_is_still_distinct_when_content_differs(self) -> None:
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            src, dest, stems = root / "src", root / "dest", root / "stems"
+            _mp3(dest / "Aphex Twin" / "Drukqs" / "Gwarek 2.mp3", b"aaaa")
+            _mp3(src / "Aphex Twin" / "Drukqs" / "Gwarek.mp3", b"bbbb")
+            plan = build_plan([src], index_local([dest]), dest_root=dest, stems_root=stems)
+            self.assertEqual(len(plan.copy), 1)

@@ -27,6 +27,8 @@ Music.app does **not** re-read file tags. Genre in Songs / the column browser co
 6. **Music.app still showed `EDM, Accapella`.** Column browser is the library DB, not the files. 11,731 `EDM*` library rows vs 11,031 files (cloud-only extras).
 7. **Library promote.** AppleScript one-track `set genre` (bulk list-set fails). 12 `EDM, Accapella` → `Acapella`; **11,719** other `EDM, …` promoted. Music.app leftover `EDM*`: **0**. **14** tracks `Acapella`. Click off a stale genre selection to refresh the column browser.
 
+**Recurrence (2026-09-04).** Consolidation copied tracks that had never been through this pass, so `EDM, House` / `EDM, Ambient` / `EDM, Electronica` came back (229 rows). The Terrarum recover the same afternoon brought **66** more — same prefix still on those files. Do not re-run the OneTagger strip script. The crate command is `PYTHONPATH=crate python3 -m ix_crate music-genre --execute` (file tags + library, `--passes` for reorder). Never mutagen-write `.wav`. Leftover `EDM*`: **0** again. Click off a stale genre in the column browser. Detail: `docs/crate.md`.
+
 Never move files. Never run this on Apple Music streams.
 
 ## Specimen (not the live driver)

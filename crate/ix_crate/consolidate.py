@@ -23,6 +23,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import shutil
 import threading
 import time
@@ -155,15 +156,26 @@ def title_of(path: Path, tag_title: str) -> str:
     return normalize_title(tag_title or strip_track_number(path.stem))
 
 
-def title_keys(path: Path, tag_title: str) -> set[str]:
-    """Tag title and filename title both count.
+DUP_MARKER = re.compile(r"\s+\d{1,2}$")
 
-    The exFAT copy truncated long filenames, so the two disagree often enough
-    that keying on only one of them would call a held track new.
+
+def title_keys(path: Path, tag_title: str) -> set[str]:
+    """Every spelling of the title this file might be known by.
+
+    The exFAT copy truncated long filenames, so tag title and filename title
+    disagree often enough that keying on one alone would call a held track
+    new. iTunes also names a second copy ``Track 1.m4a``, and missing that
+    marker is what let 353 already-held tracks be copied in again.
+
+    An extra key can only ever cause a duplicate *check*, never a false
+    match: the candidate still has to agree on exact byte size and leading
+    content before anything is treated as held.
     """
-    keys = {normalize_title(strip_track_number(path.stem))}
+    bare = strip_track_number(path.stem)
+    keys = {normalize_title(bare), normalize_title(DUP_MARKER.sub("", bare))}
     if tag_title:
         keys.add(normalize_title(tag_title))
+        keys.add(normalize_title(DUP_MARKER.sub("", tag_title)))
     return {key for key in keys if key}
 
 
