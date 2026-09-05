@@ -18,6 +18,7 @@ class DispatchTest(unittest.TestCase):
         self.assertIn("music-replicants", text)
         self.assertIn("consolidate", text)
         self.assertIn("music-cull", text)
+        self.assertIn("music-organize", text)
 
     def test_music_genre_help(self) -> None:
         from ix_crate.__main__ import main
@@ -34,6 +35,15 @@ class DispatchTest(unittest.TestCase):
         buf = io.StringIO()
         with patch("sys.stdout", buf), self.assertRaises(SystemExit) as ctx:
             main(["music-replicants", "--help"])
+        self.assertEqual(ctx.exception.code, 0)
+        self.assertIn("--execute", buf.getvalue())
+
+    def test_music_organize_help(self) -> None:
+        from ix_crate.__main__ import main
+
+        buf = io.StringIO()
+        with patch("sys.stdout", buf), self.assertRaises(SystemExit) as ctx:
+            main(["music-organize", "--help"])
         self.assertEqual(ctx.exception.code, 0)
         self.assertIn("--execute", buf.getvalue())
 
@@ -63,6 +73,12 @@ class ParserTest(unittest.TestCase):
 
     def test_cull_defaults_to_dry_run(self) -> None:
         from ix_crate.music_cull import build_parser
+
+        args = build_parser().parse_args([])
+        self.assertFalse(args.execute)
+
+    def test_organize_defaults_to_dry_run(self) -> None:
+        from ix_crate.music_organize import build_parser
 
         args = build_parser().parse_args([])
         self.assertFalse(args.execute)

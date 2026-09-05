@@ -2,13 +2,13 @@
 
 Hit these in order. Stop on the first **doable** open item. Detail: `docs/notes.md`. Off-repo tools and library paths stay off git.
 
-Last update: 2026-09-04. Playlist **Fix** identity closed (19 + 20). Various Artists fingerprint pass done (21). Screenshot compilations closed (22). **STEMIT** shipped and first playlist is done (23). `EDM, …` recurrence + replicants closed (24). Ghosts culled (25). Floor **10** parked.
+Last update: 2026-09-05. Playlist **Fix** identity closed (19 + 20). Various Artists fingerprint pass done (21). Screenshot compilations closed (22). **STEMIT** shipped and first playlist is done (23). `EDM, …` recurrence + replicants closed (24). Ghosts culled (25). **music-organize** shipped (26). Floor **10** parked.
 
 ## Now
 
-Crate is path-stable. Music.app is playable: **21,824** file tracks, **0** leftover `!`, **0** leftover `EDM,`. Sync Library Off. Copy-on-add works (`Media.localized/Music` is a real folder). STEMIT proved end to end on a real playlist. Toolkit write-up: README.
+Crate is path-stable. Music.app is playable: **21,824** file tracks, **0** leftover `!`, **0** leftover `EDM,`. Sync Library Off. Copy-on-add works (`Media.localized/Music` is a real folder). STEMIT proved end to end on a real playlist. Disk names from Songs metadata: `music-organize` (dry-run first on the Mac; remap Traktor / Rekordbox after `--execute`). Toolkit write-up: README.
 
-**Next:** Alternative stems, tracks **1–3 only** (TODO 17), or another playlist through **STEMIT** when David names one. Skip if that Artist/Album/Title already has `{name}.stem.m4a` in `~/Music/stems_audio`. Never write Apple Music. Never stem **Acapella**. Floor 10 when David asks.
+**Next on the Mac:** `PYTHONPATH=crate python3 -m ix_crate music-organize` (try `--playlist Fix` first), then `--execute`, then music_migration remaps. Keep **Keep Music Media folder organized** Off. After that: Alternative stems, tracks **1–3 only** (TODO 17), or another playlist through **STEMIT** when David names one. Skip if that Artist/Album/Title already has `{name}.stem.m4a` in `~/Music/stems_audio`. Never stem **Acapella**. Floor 10 when David asks.
 
 Do not start 11 unless David asks. Do not farm 35k to the cloud. Do not Discogs-blast.
 
@@ -30,6 +30,7 @@ Do not start 11 unless David asks. Do not farm 35k to the cloud. Do not Discogs-
 - [x] 23. **STEMIT + Music.app copy-on-add.** Drag-and-drop into Music.app failed with *“Attempting to copy to the disk ‘Data’ failed. A duplicate file name was specified.”* Cause: `Media.localized/Music` was a leftover iTunes **symlink to `.`**, so every copy landed on an existing path. Replaced with a real folder; Beatport + Traxsource drag-and-drop confirmed. New copies live at `Media.localized/Music/Artist/Album/`; the old crate stays at `Media.localized/Artist/`. `music-repair` now skips `Music/` as an artist name. Then built **STEMIT** (`ix_crate stemit`): Music.app playlist → hardlink mix into `stems_audio` → stems `py.exec.separate`. First run **Never Forget 50th v01**: 21/21 tracks, 42/42 factory writes, 0 fail, 1.50 GB, 78 min (3.7 min/track). Lords Of Acid *Undress and Possess* correctly dropped its pair (`we found none` — the mix **is** the instrumental) and still got `.stem.m4a`. All 21 mixes are still hardlinks to Apple Music (no copies, no moves).
 - [x] 24. **EDM recurrence + replicants.** Consolidation brought `EDM, …` back (229 rows) and copied already-held tracks in again because iTunes names a second copy `Track 1.m4a`. Terrarum recover brought 66 more. `music-genre` promotes the prefix on files + library (two-layer; leftover `EDM*`: 0). Never mutagen-write `.wav`. `music-replicants` drops extra rows whose files decode to the same audio (476). `music-dupes` dropped 146 same-file extras. `consolidate` now strips the iTunes duplicate marker from title keys. How/why: `docs/crate.md`. README toolkit.
 - [x] 25. **Cull remaining `!` / invalid media.** Terrarum search closed. `music-cull` dropped **425** Music.app rows (424 empty location, 1 `.itlp`). **0** corrupt WAV/AIFF. Library **21,824** file tracks, leftover drop **0**. Valid files stayed. How/why: `docs/crate.md`.
+- [x] 26. **Disk names from Music.app metadata.** `music-organize` files `Media.localized` as Artist / Album / `NN Title` from the Songs row. `Track 01` is renamed only when the library already has a real title. Stays in the artist-root or `Music/` tree — never hoists. Keep Music Media folder organized stays Off. Remap report for music_migration. Dry-run default. Execute on the Mac next session. How/why: `docs/crate.md`.
 
 ## Tagging
 
