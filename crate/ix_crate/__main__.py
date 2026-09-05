@@ -62,6 +62,10 @@ def main(argv: list[str] | None = None) -> int:
         from ix_crate.music_cull import main as music_cull_main
 
         return music_cull_main(argv[1:])
+    if argv and argv[0] == "music-organize":
+        from ix_crate.music_organize import main as music_organize_main
+
+        return music_organize_main(argv[1:])
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -80,13 +84,15 @@ def main(argv: list[str] | None = None) -> int:
             "consolidate",
             "riff-repair",
             "music-cull",
+            "music-organize",
         ),
         help=(
             "Scan Unknown Album, re-ID Inbox, sort mashups, drop Music.app "
             "same-file rows, drop same-audio rows under two filenames, "
             "promote EDM, … genres, locate missing files, relink dead rows "
             "from the iTunes XML, pull audio into ~/Music, fill a playlist's "
-            "identity, or STEMIT a playlist into stems_audio."
+            "identity, name Media.localized files from Music.app metadata, "
+            "or STEMIT a playlist into stems_audio."
         ),
     )
     parser.add_argument(

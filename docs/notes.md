@@ -2,7 +2,7 @@
 
 Parking lot for crate, tagging, and hardware ideas. Ordered checklist: `docs/TODO.md`. Agents: read both, then stop unless David asks to act. Off-repo tools and library paths stay off git.
 
-Last update: 2026-09-04. Playlist Fix identity closed (19 + 20). VA fingerprint closed (21). Screenshot compilations closed (22). Music.app `Media.localized/Music` is a real folder (drag-and-drop works; never symlink to `.`). **STEMIT** shipped; `Never Forget 50th v01` done 21/21 (23). Migration home, genre cockroach, replicants, riff-repair, cull (24 + 25). Library **21,824**, leftover `!` **0**. **Next:** Alternative stems, tracks 1–3 (TODO 17) unless David names another playlist. Floor **10** parked. Toolkit: README. How/why: `docs/crate.md`.
+Last update: 2026-09-05. Playlist Fix identity closed (19 + 20). VA fingerprint closed (21). Screenshot compilations closed (22). Music.app `Media.localized/Music` is a real folder (drag-and-drop works; never symlink to `.`). **STEMIT** shipped; `Never Forget 50th v01` done 21/21 (23). Migration home, genre cockroach, replicants, riff-repair, cull (24 + 25). **music-organize** shipped (26) — disk names from Songs metadata; Keep Music Media folder organized stays Off. Library **21,824**, leftover `!` **0**. **Next on the Mac:** `music-organize` dry-run, then `--execute`, then music_migration. Then Alternative stems, tracks 1–3 (TODO 17) unless David names another playlist. Floor **10** parked. Toolkit: README. How/why: `docs/crate.md`.
 
 ## Crate status
 
@@ -19,9 +19,10 @@ Traktor (2026-08-30): NML remapped, then [ATGR DJCU2](https://atgr.nl/) converte
 
 ### Resume next
 
-1. **STEMIT** is the stem factory job (`ix_crate stemit --playlist …` → hardlink → `py.exec.separate` HUD). `Never Forget 50th v01` is **done** (21/21, 78 min). Next: Alternative stems, tracks 1–3 only (TODO 17) unless David names another playlist. Skip existing `stems_audio` Artist/Album/Title. Never stem Acapella. Never write Apple Music. Local factory only.
-2. Floor **10** parked until David asks.
-3. Items 5 / 5b / 6 stay omitted. Do not Discogs-blast. Targeted one-album Discogs from a screenshot is OK (TODO 22 / `docs/crate.md`).
+1. **music-organize** names `Media.localized` from Music.app metadata (`Track 01` → `Artist/Album/01 Title` when Songs already knows the title). Dry-run first. Try `--playlist Fix`. Keep **Keep Music Media folder organized** Off. After `--execute`, remap Traktor / Rekordbox with music_migration from `remaps[]` in the report.
+2. **STEMIT** is the stem factory job (`ix_crate stemit --playlist …` → hardlink → `py.exec.separate` HUD). `Never Forget 50th v01` is **done** (21/21, 78 min). After organize: Alternative stems, tracks 1–3 only (TODO 17) unless David names another playlist. Skip existing `stems_audio` Artist/Album/Title. Never stem Acapella. Local factory only.
+3. Floor **10** parked until David asks.
+4. Items 5 / 5b / 6 stay omitted. Do not Discogs-blast. Targeted one-album Discogs from a screenshot is OK (TODO 22 / `docs/crate.md`).
 
 ```bash
 PYTHONPATH=crate python3 -m ix_crate unknown-album
@@ -34,6 +35,8 @@ PYTHONPATH=crate python3 -m ix_crate music-repair --execute
 PYTHONPATH=crate python3 -m ix_crate music-genre
 PYTHONPATH=crate python3 -m ix_crate music-replicants
 PYTHONPATH=crate python3 -m ix_crate music-cull
+PYTHONPATH=crate python3 -m ix_crate music-organize
+PYTHONPATH=crate python3 -m ix_crate music-organize --playlist Fix
 PYTHONPATH=crate python3 -m ix_crate riff-repair
 PYTHONPATH=crate python3 -m ix_crate music-fix --playlist Fix
 PYTHONPATH=crate python3 -m ix_crate music-fix --playlist Fix --execute
@@ -53,7 +56,7 @@ Path-stable crate done 2026-08-30. Accapella + `EDM, …` genre pass done 2026-0
     - [Issue #518](https://github.com/Marekkon5/onetagger/issues/518) / [#520](https://github.com/Marekkon5/onetagger/issues/520) — `__NEXT_DATA__` scrape gone.
     - [PR #526](https://github.com/Marekkon5/onetagger/pull/526) (rosgr100) — v4 OAuth + catalog search. Open since 2026-05, last activity 2026-06, **not merged**. Linux CLI testers say it works. No official Mac asset.
     - [PR #523](https://github.com/Marekkon5/onetagger/pull/523) — earlier Beatport v4 search attempt after `__NEXT_DATA__` removal.
-2a. Music.app genre is the library DB, not the file. After file writes, AppleScript `set genre` (one track at a time). Specimen: `docs/examples/music-set-genre.applescript` (do not run). Sync Library is Off — keep it off for the DJ crate. Copy-on-add is On. New files land in `Media.localized/Music/Artist/Album/`; the existing crate stays at `Media.localized/Artist/`. Never recreate `Media.localized/Music` as a symlink to `.` (breaks drag-and-drop). Details: `docs/crate.md`.
+2a. Music.app genre is the library DB, not the file. After file writes, AppleScript `set genre` (one track at a time). Specimen: `docs/examples/music-set-genre.applescript` (do not run). Sync Library is Off — keep it off for the DJ crate. Copy-on-add is On. **Keep Music Media folder organized** is Off — `music-organize` is the mover, so the artist-root crate is not hoisted into `Music/`. New files land in `Media.localized/Music/Artist/Album/`; the existing crate stays at `Media.localized/Artist/`. Never recreate `Media.localized/Music` as a symlink to `.` (breaks drag-and-drop). Details: `docs/crate.md`.
 2b. **TODO 5b omitted (2026-09-01).** Same blocker as 5: embed-while-processing was store lookups (Beatport / Traxsource / Discogs). Those stores are not viable here. If this ever reopens: owned `.mp3` / `.wav` / `.m4a` only; never `.m4p`; never mutagen `save()` on `.stem.m4a` (strips NI stem atom); sidecar `{name}.stem.json` beside the file, not in git.
 3. Never overwrite ReCK/MiK fields: Camelot/key, BPM, comments, cues.
 4. **TODO 6 omitted (2026-09-01).** Ollama (`qwen2.5:7b` on `127.0.0.1:11434`) was reviewer-after-stores, not a catalog. 5 never runs, so 6 would invent genres. Reopen only if Rekordbox leftovers bother David: JSON/CSV proposals, human approve, allowlisted write. Never the coder.

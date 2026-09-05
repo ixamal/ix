@@ -59,7 +59,7 @@ Filename → tags already on the mix → iTunes + Deezer (title and duration, or
 
 **We refused**
 
-Beets as the library. iCloud Sync. Relinking Songs to `/Volumes` (unplug = `!`). Moving Apple Music files to “clean up.” Guessing a title match (“24 Hours” is not unique). Stemming an acapella (it already *is* the vocal).
+Beets as the library. iCloud Sync. Relinking Songs to `/Volumes` (unplug = `!`). Turning on Music.app **Keep Music Media folder organized** (it would hoist the artist-root crate into `Music/` and break the decks). Guessing a title match (“24 Hours” is not unique). Stemming an acapella (it already *is* the vocal). Disk names that still say `Track 01` after Songs already knows the title are `music-organize`, not a casual reshuffle.
 
 ### What we just did, and why
 
@@ -85,6 +85,7 @@ Not a product. A crate that got sick of being a warehouse job. If yours looks li
 | `consolidate` | Pull a migration tree home as Artist / Album. Tags decide the folder. `Track 1` is a duplicate marker. |
 | `riff-repair` | ID3-headed WAV is trash. Restore RIFF. Delete `(2)` / `(3)` only when the audio matches. |
 | `music-cull` | Hunt over. Drop rows with no file. Valid audio stays. `.m4p` stays even if ffmpeg sulks. |
+| `music-organize` | Songs already knows the title; the file is still `Track 01`. Rename / refile Artist / Album / `NN Title`, then relink. Remap the decks after. |
 | `music-fix` / `stemit` | Name a playlist by sound. STEMIT hardlinks into `stems_audio` and calls [stems](https://github.com/ixamal/stems). |
 
 If you adapt this: dry-run first. Music.app is a database. Title-only match will collide. WAV is not MP3. The crate stays local.

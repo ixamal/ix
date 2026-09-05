@@ -42,6 +42,9 @@ PYTHONPATH=crate python3 -m ix_crate music-replicants         # same recording, 
 PYTHONPATH=crate python3 -m ix_crate music-replicants --execute
 PYTHONPATH=crate python3 -m ix_crate music-cull               # drop ! / missing / unreadable rows (dry-run)
 PYTHONPATH=crate python3 -m ix_crate music-cull --execute
+PYTHONPATH=crate python3 -m ix_crate music-organize           # disk names from Music.app metadata (dry-run)
+PYTHONPATH=crate python3 -m ix_crate music-organize --playlist Fix
+PYTHONPATH=crate python3 -m ix_crate music-organize --execute
 PYTHONPATH=crate python3 -m ix_crate riff-repair              # restore ID3-headed WAV, drop (2)/(3) twins (dry-run)
 PYTHONPATH=crate python3 -m ix_crate riff-repair --execute
 PYTHONPATH=crate python3 -m ix_crate consolidate SOURCE       # pull audio back into ~/Music (dry-run + HUD)
@@ -61,7 +64,7 @@ Unknown Album, mashups, and Inbox are executed. `_outliers` is gone. Unidentifie
 1. Traktor remapped. DJCU2 confirmed. Path-stable crate confirmed (TODO 3).
 2. Genre pass done (TODO 4): owned `Media.localized` tags + Music.app library. See `docs/onetagger.md`.
 
-Never *move* Apple Music `Media.localized`. In-place genre on owned `.mp3`/`.m4a` was TODO 4 only. Never commit `/Users/<name>/` paths.
+Do not casually move Apple Music `Media.localized`. The named mover is `music-organize` (dry-run first; remap Traktor / Rekordbox after). In-place genre on owned `.mp3`/`.m4a` was TODO 4 only. Never commit `/Users/<name>/` paths.
 
 ## Music.app media folder
 
@@ -75,7 +78,7 @@ Do **not** turn `Media.localized/Music` into a symlink to `.`. That leftover iTu
 
 Removing the loop had a cost that was not caught the same day. 7,110 rows had been written while it existed, so they record `Media.localized/Music/Artist/...` for a file that actually sits at `Media.localized/Artist/...`. The loop made both spellings resolve; a real folder does not. 5,368 rows went to **!** immediately. `music-reconcile` repaired them by pointing each row at the real path, so the library no longer depends on the loop existing.
 
-Leave **Sync Library** Off. Do not hoist new `Music/` files up onto the artist-root crate. Do not delete `Music/` to “flatten” the library. `music-repair` indexes both trees and skips `Music/` as an artist name.
+Leave **Sync Library** Off. Leave **Keep Music Media folder organized** Off — that switch would dump the artist-root crate into `Music/` and break the path-stable Traktor / Rekordbox crate. `music-organize` is how files get Artist / Album / `NN Title` names without hoisting. Do not hoist new `Music/` files up onto the artist-root crate. Do not delete `Music/` to “flatten” the library. `music-repair` indexes both trees and skips `Music/` as an artist name.
 
 ## music-reconcile
 
@@ -169,6 +172,30 @@ PYTHONPATH=crate python3 -m ix_crate music-cull --execute
 
 2026-09-04: **425** rows dropped (424 empty location, 1 leftover `.itlp`). **0** corrupt WAV/AIFF on disk. Library **21,824** file tracks, leftover drop **0**. What is not on Terrarum is a later hunt, not a Music.app ghost.
 
+## music-organize
+
+`music-fix` writes artist / album / title into Music.app. It does not rename the file. That is why Songs can say Moby / Play / Honey while `ls` still shows `Track 01.m4a`. DJ software and a zsh listing see the disc name.
+
+`music-organize` is file management for that gap. Music.app metadata is the source of truth:
+
+* folder = album artist (else artist) / album (or `Singles`)
+* file = `NN Title` when the library has a track number, else `Title`
+* stay in the tree you already live in (`Media.localized/Artist/…` or `Media.localized/Music/Artist/…`). Never hoist.
+* a real filename stays (Beatport `Artist - Title` is only *moved* if the folder is wrong)
+* `Track 01` is renamed only when Music.app already has a real title. No metadata, no rename.
+* never overwrite, never touch `.stem.m4a` / `.m4p`
+
+Keep **Keep Music Media folder organized** Off. That switch would reshuffle the artist-root crate into `Music/` and break path-stable Traktor / Rekordbox. This command organizes in place and writes `remaps[]` in `~/local_tools/crate/reports/music-organize-*.json` for [music_migration](https://github.com/ixamal/music_migration).
+
+Dry-run on the whole library, or try playlist `Fix` first. Quit Traktor / Rekordbox before `--execute`. Then remap the decks from the report.
+
+```bash
+PYTHONPATH=crate python3 -m ix_crate music-organize
+PYTHONPATH=crate python3 -m ix_crate music-organize --playlist Fix
+PYTHONPATH=crate python3 -m ix_crate music-organize --playlist Fix --execute
+PYTHONPATH=crate python3 -m ix_crate music-organize --execute
+```
+
 ## riff-repair
 
 `music-fix` / EasyID3 wrote `ID3` onto `.wav` files. That is where `RIFF` belongs, so Music.app and ffmpeg refuse the file (*invalid start code ID3[3]*). `consolidate` then copied the still-valid Terrarum original in as `Track (2).wav` (and later `(3)`) because the bloated corrupt file no longer matched on size.
@@ -198,7 +225,7 @@ The shell can look like it ran for hours after the batch ends — the Aqua HUD s
 
 `music-repair` relinks Songs rows with no file (the Locate / ! mark) to a unique match under Media.localized. It does not move Apple Music files. Empty artist/album/title uses the crate cascade. Empty genre uses iTunes only.
 
-`music-fix` fills identity on a playlist (default `Fix`). Default is **aggressive**: Chromaprint/AcoustID, duration-matched iTunes or Deezer, MusicBrainz length match, then **Shazam** (`shazamio` in `~/local_tools/crate/shazam-venv`; optional `songrec`) for cuts catalogs missed. Unidentified leftovers stay as they are — crate does **not** salvage them as Various Artists. `--library-va` scans the library artist instead of a playlist. `--strict` is dual-catalog only. Gaps only unless `--all`. Cream Live album stays. Dump folders become `Singles` when a real artist is found. Hits write album artist and clear the compilation flag so Apple Music files them under the artist, not Various Artists. In-place tags on owned audio; no Media.localized moves. The crate CLI never Discogs-blasts. Beets is not used (`docs/notes.md`).
+`music-fix` fills identity on a playlist (default `Fix`). Default is **aggressive**: Chromaprint/AcoustID, duration-matched iTunes or Deezer, MusicBrainz length match, then **Shazam** (`shazamio` in `~/local_tools/crate/shazam-venv`; optional `songrec`) for cuts catalogs missed. Unidentified leftovers stay as they are — crate does **not** salvage them as Various Artists. `--library-va` scans the library artist instead of a playlist. `--strict` is dual-catalog only. Gaps only unless `--all`. Cream Live album stays. Dump folders become `Singles` when a real artist is found. Hits write album artist and clear the compilation flag so Apple Music files them under the artist, not Various Artists. In-place tags on owned audio. Disk names are `music-organize`, not this command. The crate CLI never Discogs-blasts. Beets is not used (`docs/notes.md`).
 
 ## Screenshot compilations
 

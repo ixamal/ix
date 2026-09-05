@@ -16,6 +16,9 @@ PYTHONPATH=crate python3 -m ix_crate music-fix --playlist Fix
 PYTHONPATH=crate python3 -m ix_crate music-fix --playlist Fix --execute
 PYTHONPATH=crate python3 -m ix_crate music-fix --library-va
 PYTHONPATH=crate python3 -m ix_crate music-fix --library-va --execute
+PYTHONPATH=crate python3 -m ix_crate music-organize
+PYTHONPATH=crate python3 -m ix_crate music-organize --playlist Fix
+PYTHONPATH=crate python3 -m ix_crate music-organize --execute
 PYTHONPATH=crate python3 -m ix_crate stemit --playlist "Never Forget 50th v01"
 PYTHONPATH=crate python3 -m ix_crate stemit --playlist "Never Forget 50th v01" --execute
 ```
@@ -26,6 +29,8 @@ Leftovers after lookup go to `Compilations/Mashups/Miscellaneous/`. Dry-run is t
 
 `music-repair` relinks Songs rows with no file (Locate / !) to a unique match on disk, then fills empty artist/album/title (crate cascade) and empty genre (iTunes only). It does not move Media.localized.
 
-`music-fix` fills artist / album / title / genre on a Music.app playlist (default `Fix`). Default is aggressive: AcoustID fingerprints, Shazam, duration-matched iTunes/Deezer. Unidentified leftovers are skipped (not labeled Various Artists). `--library-va` targets library rows whose artist is Various Artists. `--strict` is the old dual-catalog path. Never moves Media.localized. Screenshot-driven one-album Discogs (not a crate command): `docs/crate.md`.
+`music-fix` fills artist / album / title / genre on a Music.app playlist (default `Fix`). Default is aggressive: AcoustID fingerprints, Shazam, duration-matched iTunes/Deezer. Unidentified leftovers are skipped (not labeled Various Artists). `--library-va` targets library rows whose artist is Various Artists. `--strict` is the old dual-catalog path. Does not rename files. Screenshot-driven one-album Discogs (not a crate command): `docs/crate.md`.
+
+`music-organize` names and files `Media.localized` from Music.app metadata (Artist / Album / `NN Title`). `Track 01` is renamed only when Songs already has a real title. Stays in the artist-root or `Music/` tree — never hoists. Keep **Keep Music Media folder organized** Off. Writes a remap report for music_migration. Dry-run default.
 
 **STEMIT** hardlinks a Music.app playlist into `~/Music/stems_audio/Artist/Album/` and runs the [stems](https://github.com/ixamal/stems) factory (`py.exec.separate`, Aqua HUD via `py.utils.progress`). Never writes Apple Music. Never stems Acapella. Skip existing `{name}.stem.m4a`. Dry-run default; `--execute` links then launches the factory.
