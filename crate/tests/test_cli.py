@@ -19,6 +19,16 @@ class DispatchTest(unittest.TestCase):
         self.assertIn("consolidate", text)
         self.assertIn("music-cull", text)
         self.assertIn("music-organize", text)
+        self.assertIn("traktor-nml", text)
+
+    def test_traktor_nml_help(self) -> None:
+        from ix_crate.__main__ import main
+
+        buf = io.StringIO()
+        with patch("sys.stdout", buf), self.assertRaises(SystemExit) as ctx:
+            main(["traktor-nml", "--help"])
+        self.assertEqual(ctx.exception.code, 0)
+        self.assertIn("--execute", buf.getvalue())
 
     def test_music_genre_help(self) -> None:
         from ix_crate.__main__ import main
@@ -82,6 +92,17 @@ class ParserTest(unittest.TestCase):
 
         args = build_parser().parse_args([])
         self.assertFalse(args.execute)
+
+    def test_stemit_help_lists_role_titles(self) -> None:
+        from ix_crate.__main__ import main
+
+        buf = io.StringIO()
+        with patch("sys.stdout", buf), self.assertRaises(SystemExit) as ctx:
+            main(["stemit", "--help"])
+        self.assertEqual(ctx.exception.code, 0)
+        text = buf.getvalue()
+        self.assertIn("--fix-role-titles", text)
+        self.assertIn("--nml", text)
 
 
 if __name__ == "__main__":

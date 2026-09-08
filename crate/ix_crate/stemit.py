@@ -4,9 +4,17 @@ Hardlink the mix into ``~/Music/stems_audio/Artist/Album/``, then run
 [ixamal/stems](https://github.com/ixamal/stems) ``py.exec.separate``
 (Mel pair + ``.stem.m4a``) with the Aqua HUD (``py.utils.progress``).
 
-Never writes Apple Music ``Media.localized``. Never mutagen-writes
-``.stem.m4a``. Never stems Acapella. Skip if that Artist/Album/Title
-already has a ``.stem.m4a``. Dry-run is the default.
+Never writes Apple Music ``Media.localized``. Acapellas stay in
+``stems_audio`` — they are not pushed back to Music.app. ``--sync-playlists``
+rewrites Traktor and Rekordbox crates from ``stems_audio`` in any state
+(factory or not): Mixes / Stems / Acapellas / Instrumentals. Files not
+yet imported get a collection location row. Analyze stays in-app.
+``--fix-role-titles`` fills Title = vocals from the mix sibling / folder
+onto owned ``.mp3`` / ``.m4a``. ``--nml`` patches Traktor TITLE after
+quit; Rekordbox follows via DJCU2, not our XML write.
+Never mutagen-writes ``.stem.m4a``. Never stems Acapella. Skip if
+that Artist/Album/Title already has a ``.stem.m4a``. Dry-run is the
+default.
 """
 
 from __future__ import annotations
@@ -201,8 +209,8 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--playlist",
-        required=True,
-        help="Music.app playlist name (exact).",
+        default="",
+        help="Music.app playlist name (exact). Required unless --sync-playlists or --fix-role-titles.",
     )
     parser.add_argument(
         "--execute",
@@ -214,7 +222,75 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Hardlink only. Do not launch the STEM factory.",
     )
+    parser.add_argument(
+        "--sync-playlists",
+        action="store_true",
+        help="Rewrite Traktor/Rekordbox STEMIT crates from stems_audio in any state (no factory).",
+    )
+    parser.add_argument(
+        "--fix-role-titles",
+        action="store_true",
+        help="Fill vocals/instrumental titles from sibling mix + folder onto mp3/m4a (never wav).",
+    )
+    parser.add_argument(
+        "--nml",
+        action="store_true",
+        help="With --fix-role-titles, also patch Traktor collection.nml TITLE/ARTIST. Quit Traktor first.",
+    )
     args = parser.parse_args(argv)
+
+    if args.fix_role_titles:
+        from ix_crate.role_titles import (
+            apply_role_tags,
+            format_role_plan,
+            patch_nml_titles,
+            plan_role_titles,
+            traktor_is_running,
+            write_role_report,
+        )
+
+        fixes = plan_role_titles()
+        extra = {"execute": args.execute, "nml": args.nml, "traktor_running": traktor_is_running()}
+        report = write_role_report(fixes, extra)
+        print(format_role_plan(fixes), flush=True)
+        print(f"report: {report}", flush=True)
+        if args.nml and traktor_is_running():
+            print("Traktor is open. Quit it before --nml --execute. Disk tags can still run.", flush=True)
+            if args.execute:
+                written = apply_role_tags(fixes)
+                print(f"wrote {written} file tags. NML skipped.", flush=True)
+                return 0
+            print("dry-run. pass --execute to write mp3/m4a tags.", flush=True)
+            return 0
+        if not args.execute:
+            print(
+                "dry-run. pass --execute to write mp3/m4a tags"
+                + (" and patch collection.nml." if args.nml else "."),
+                flush=True,
+            )
+            return 0
+        written = apply_role_tags(fixes)
+        print(f"wrote {written} file tags.", flush=True)
+        if args.nml:
+            patched = patch_nml_titles(fixes, execute=True)
+            print(f"patched {patched} Traktor NML titles. Reopen Traktor, then DJCU2 to Rekordbox.", flush=True)
+        else:
+            print("disk tags only. Quit Traktor, then --fix-role-titles --nml --execute. Then DJCU2.", flush=True)
+        return 0
+
+    if args.sync_playlists and not args.playlist:
+        from ix_crate.stems_playlists import format_plan, sync_playlists
+
+        plan = sync_playlists(execute=args.execute)
+        print(format_plan(plan), flush=True)
+        if not args.execute:
+            print("dry-run. pass --execute to write Traktor NML and Rekordbox XML.", flush=True)
+        else:
+            print("wrote STEMIT playlists. Quit/reopen Traktor. Refresh rekordbox xml.", flush=True)
+        return 0
+
+    if not args.playlist:
+        parser.error("--playlist is required unless you pass --sync-playlists or --fix-role-titles")
 
     try:
         payload = plan_playlist(args.playlist)
@@ -251,7 +327,12 @@ def main(argv: list[str] | None = None) -> int:
         print("hardlink only (--no-factory).")
         return 0
     print(f"{HUD_TITLE}: launching py.exec.separate (Aqua HUD until Close).", flush=True)
-    return run_factory(queue, execute=True)
+    code = run_factory(queue, execute=True)
+    from ix_crate.stems_playlists import format_plan, sync_playlists
+
+    plan = sync_playlists(execute=True)
+    print(format_plan(plan), flush=True)
+    return code
 
 
 if __name__ == "__main__":

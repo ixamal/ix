@@ -12,8 +12,17 @@ ROLE_ALT = "|".join(re.escape(role) for role in ROLE_SUFFIXES)
 ROLE_TAIL = re.compile(rf"\s+-\s+({ROLE_ALT})$", re.IGNORECASE)
 ROLE_UNDERSCORE = re.compile(rf"_({ROLE_ALT})$", re.IGNORECASE)
 ROLE_PAREN = re.compile(rf"\s*\(({ROLE_ALT})\)\s*$", re.IGNORECASE)
+# Space tails are vocals/instrumental only. "War drums" / "The other" stay mixes.
+ROLE_SPACE_ALT = "|".join(
+    re.escape(role)
+    for role in ROLE_SUFFIXES
+    if role in {"vocals", "instrumental", "acapella", "a cappella", "acappella"}
+)
+ROLE_SPACE = re.compile(rf"\s+({ROLE_SPACE_ALT})$", re.IGNORECASE)
+ROLE_BARE = re.compile(rf"^(?:{ROLE_ALT})(?:\s+\(\d+\))?$", re.IGNORECASE)
 STEM_LEFTOVER = re.compile(r"\.stem$", re.IGNORECASE)
 CONTAINER_LEFTOVER = re.compile(r"\.(?:wmv|avi|mov|mkv)$", re.IGNORECASE)
+ROLE_NAMES = {role.lower() for role in ROLE_SUFFIXES}
 
 
 def strip_role_markup(name: str) -> str:
@@ -24,7 +33,11 @@ def strip_role_markup(name: str) -> str:
     text = ROLE_TAIL.sub("", text)
     text = ROLE_UNDERSCORE.sub("", text)
     text = ROLE_PAREN.sub("", text)
-    return text.strip()
+    text = ROLE_SPACE.sub("", text)
+    text = text.strip()
+    if ROLE_BARE.fullmatch(text):
+        return ""
+    return text
 
 
 def basename_without_container(path: Path) -> str:

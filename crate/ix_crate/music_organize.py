@@ -17,6 +17,10 @@ This command is the missing file-management step:
 * never invent a title; leftover ``Track 01`` rows stay ``Track 01``
 * never overwrite, never touch ``.stem.m4a`` / ``.m4p``, never leave
   ``Media.localized``
+* ``Compilations/`` stays unless album artist is a real DJ. A compilation
+  that would split across dest artists stays put.
+* folder moves inside ``Media.localized/Music/`` do not stick — Music.app
+  restores the old path and deletes the dest. Artist-root crate can move.
 
 Music.app **Keep Music Media folder organized** stays **Off**. That switch
 would dump the artist-root crate into ``Music/`` and break the path-stable
@@ -33,6 +37,7 @@ import json
 import os
 import sys
 import time
+import unicodedata
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Callable
@@ -117,8 +122,21 @@ def filename_is_junk(stem: str) -> bool:
     return is_placeholder_title(strip_copy_suffix(strip_track_number(raw)))
 
 
-def filing_artist(row: OrganizeRow) -> str:
-    """Album artist wins so mix CDs stay under the DJ. VA is not a home."""
+def filing_artist(row: OrganizeRow, *, path: Path | None = None, root: Path | None = None) -> str:
+    """Album artist wins so mix CDs stay under the DJ. VA is not a home.
+
+    A file already under ``Compilations/`` stays there unless Music.app has a
+    real album artist (the DJ / series). Track artist alone must not explode
+    a mix CD into one folder per cut.
+    """
+    have_artist = ""
+    if path is not None and root is not None:
+        have_artist, _ = current_artist_album(path, root)
+    if normalize_title(have_artist) in {"compilations", "various artists", "various"}:
+        album_artist = (row.album_artist or "").strip()
+        if album_artist and not is_placeholder_artist(album_artist):
+            return album_artist
+        return have_artist
     for value in (row.album_artist, row.artist):
         if value and not is_placeholder_artist(value):
             return value
@@ -161,11 +179,16 @@ def current_artist_album(path: Path, root: Path) -> tuple[str, str]:
     return artist, album
 
 
+def _fold_folder(name: str) -> str:
+    """NFC + filesystem sanitize so Björk / Björk / A:Xus match the disk."""
+    return normalize_title(unicodedata.normalize("NFC", sanitize(name, "")))
+
+
 def folder_matches(path: Path, artist: str, album: str, root: Path) -> bool:
     have_artist, have_album = current_artist_album(path, root)
-    return normalize_title(have_artist) == normalize_title(artist) and normalize_title(
+    return _fold_folder(have_artist) == _fold_folder(artist) and _fold_folder(
         have_album
-    ) == normalize_title(album)
+    ) == _fold_folder(album)
 
 
 def organized_filename(
@@ -213,7 +236,7 @@ def skip_reason(row: OrganizeRow, *, media_root: Path) -> str:
         return "no_file"
     if tree_root(path, media_root) is None:
         return "outside_media"
-    if not filing_artist(row):
+    if not filing_artist(row, path=path, root=media_root):
         return "placeholder_identity"
     if not filing_title(row) and filename_is_junk(path.stem):
         return "placeholder_identity"
@@ -228,7 +251,7 @@ def planned_dest(row: OrganizeRow, *, media_root: Path) -> Path | None:
     root = tree_root(path, media_root)
     if root is None:
         return None
-    artist = sanitize(filing_artist(row), "")
+    artist = sanitize(filing_artist(row, path=path, root=media_root), "")
     album = sanitize(filing_album(row), "Singles")
     if not artist:
         return None
@@ -254,7 +277,9 @@ def move_reason(row: OrganizeRow, dest: Path, *, media_root: Path) -> str:
     root = tree_root(path, media_root)
     assert root is not None
     junk = filename_is_junk(path.stem)
-    wrong = not folder_matches(path, filing_artist(row), filing_album(row), root)
+    wrong = not folder_matches(
+        path, filing_artist(row, path=path, root=root), filing_album(row), root
+    )
     if junk and wrong:
         return "placeholder_and_folder"
     if junk:
@@ -283,17 +308,66 @@ def plan_row(
     why = move_reason(row, dest, media_root=media_root)
     if not why:
         return "already_organized"
+    root = tree_root(source, media_root)
+    if (
+        why in {"wrong_folder", "placeholder_and_folder"}
+        and root is not None
+        and root.resolve() == (media_root / "Music").resolve()
+    ):
+        return "music_tree_locked"
     dest = unique_dest(dest, taken)
     taken.add(dest)
     return OrganizeMove(
         persistent_id=row.persistent_id,
         source=str(source),
         dest=str(dest),
-        artist=filing_artist(row),
+        artist=filing_artist(row, path=source, root=media_root),
         album=filing_album(row),
         title=filing_title(row) or Path(dest).stem,
         reason=why,
     )
+
+
+def _compilation_album_key(path: Path, media_root: Path) -> str:
+    """Disk album under Compilations / Various Artists, or empty."""
+    root = tree_root(path, media_root)
+    if root is None:
+        return ""
+    have_artist, have_album = current_artist_album(path, root)
+    if _fold_folder(have_artist) not in {"compilations", "various artists", "various"}:
+        return ""
+    return f"{_fold_folder(have_artist)}\0{_fold_folder(have_album)}"
+
+
+def drop_split_compilation_moves(
+    plan: OrganizePlan, rows: list[OrganizeRow], *, media_root: Path
+) -> OrganizePlan:
+    """Keep a mix CD together when album artist is not one DJ for the whole disc."""
+    dest_artists: dict[str, set[str]] = {}
+    for row in rows:
+        loc = (row.location or "").strip()
+        if not loc:
+            continue
+        path = Path(loc)
+        key = _compilation_album_key(path, media_root)
+        if not key:
+            continue
+        artist = filing_artist(row, path=path, root=media_root)
+        if not artist:
+            continue
+        dest_artists.setdefault(key, set()).add(_fold_folder(artist))
+    split = {key for key, names in dest_artists.items() if len(names) > 1}
+    if not split:
+        return plan
+    kept: list[OrganizeMove] = []
+    for move in plan.moves:
+        key = _compilation_album_key(Path(move.source), media_root)
+        if key and key in split:
+            plan.skipped["split_compilation"] = plan.skipped.get("split_compilation", 0) + 1
+            continue
+        kept.append(move)
+    plan.moves = kept
+    return plan
 
 
 def plan_rows(rows: list[OrganizeRow], *, media_root: Path) -> OrganizePlan:
@@ -312,7 +386,7 @@ def plan_rows(rows: list[OrganizeRow], *, media_root: Path) -> OrganizePlan:
                 claimed.add(loc)
             continue
         plan.skipped[result] = plan.skipped.get(result, 0) + 1
-    return plan
+    return drop_split_compilation_moves(plan, rows, media_root=media_root)
 
 
 def _clean_missing(value: str) -> str:
@@ -516,6 +590,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="limit to one Music.app playlist (try Fix first)",
     )
     parser.add_argument(
+        "--placeholders-only",
+        action="store_true",
+        help="only rename Track 01 / junk filenames. Leave folder-only moves.",
+    )
+    parser.add_argument(
         "--limit",
         type=int,
         default=0,
@@ -534,6 +613,7 @@ def run(
     *,
     execute: bool,
     playlist: str = "",
+    placeholders_only: bool = False,
     limit: int = 0,
     media_root: Path | None = None,
     rows: list[OrganizeRow] | None = None,
@@ -551,7 +631,10 @@ def run(
                 on_progress=lambda done, total: print(f"scan {done}/{total}", flush=True),
             )
     plan = plan_rows(rows, media_root=root)
-    moves = plan.moves[:limit] if limit else plan.moves
+    moves = plan.moves
+    if placeholders_only:
+        moves = [item for item in moves if "placeholder" in item.reason]
+    moves = moves[:limit] if limit else moves
     payload: dict[str, Any] = {
         "scanned": plan.scanned,
         "moves": [asdict(item) for item in moves],
@@ -618,6 +701,7 @@ def main(argv: list[str] | None = None) -> int:
         run(
             execute=args.execute,
             playlist=args.playlist,
+            placeholders_only=args.placeholders_only,
             limit=args.limit,
             media_root=args.media_root,
         )

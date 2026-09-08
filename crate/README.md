@@ -21,6 +21,11 @@ PYTHONPATH=crate python3 -m ix_crate music-organize --playlist Fix
 PYTHONPATH=crate python3 -m ix_crate music-organize --execute
 PYTHONPATH=crate python3 -m ix_crate stemit --playlist "Never Forget 50th v01"
 PYTHONPATH=crate python3 -m ix_crate stemit --playlist "Never Forget 50th v01" --execute
+PYTHONPATH=crate python3 -m ix_crate stemit --fix-role-titles
+PYTHONPATH=crate python3 -m ix_crate stemit --fix-role-titles --execute
+PYTHONPATH=crate python3 -m ix_crate stemit --fix-role-titles --nml --execute
+PYTHONPATH=crate python3 -m ix_crate traktor-nml
+PYTHONPATH=crate python3 -m ix_crate traktor-nml --execute
 ```
 
 Leftovers after lookup go to `Compilations/Mashups/Miscellaneous/`. Dry-run is the default; pass `--execute` to move.
@@ -33,4 +38,6 @@ Leftovers after lookup go to `Compilations/Mashups/Miscellaneous/`. Dry-run is t
 
 `music-organize` names and files `Media.localized` from Music.app metadata (Artist / Album / `NN Title`). `Track 01` is renamed only when Songs already has a real title. Stays in the artist-root or `Music/` tree — never hoists. Keep **Keep Music Media folder organized** Off. Writes a remap report for music_migration. Dry-run default.
 
-**STEMIT** hardlinks a Music.app playlist into `~/Music/stems_audio/Artist/Album/` and runs the [stems](https://github.com/ixamal/stems) factory (`py.exec.separate`, Aqua HUD via `py.utils.progress`). Never writes Apple Music. Never stems Acapella. Skip existing `{name}.stem.m4a`. Dry-run default; `--execute` links then launches the factory.
+**STEMIT** hardlinks a Music.app playlist into `~/Music/stems_audio/Artist/Album/` and runs the [stems](https://github.com/ixamal/stems) factory (`py.exec.separate`, Aqua HUD via `py.utils.progress`). Never writes Apple Music. Never stems Acapella. Skip existing `{name}.stem.m4a`. Dry-run default; `--execute` links then launches the factory. `--fix-role-titles` fills Title = vocals from the sibling mix / folder onto owned `.mp3` / `.m4a` (never `.wav`). Quit Traktor, then `--nml --execute`. Rekordbox follows via DJCU2 (`docs/djcu2.md`), not a rekordbox.xml rewrite.
+
+`traktor-nml` drops duplicate playlist PRIMARYKEYs, copies sibling COVERARTID when the Coverart cache file exists, and drops Finder ``(2)`` copies under ``stems_audio`` when mutagen length matches and decoded audio is identical. Then it rewrites STEMIT Mixes / Stems / Acapellas / Instrumentals from disk so role files are not listed in Mixes. Mix / stem / vocals / instrumental are four files, not copies. Quit Traktor first. Dry-run default.

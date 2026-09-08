@@ -90,6 +90,123 @@ class NamingTests(unittest.TestCase):
         row = _row("/tmp/x.m4a", artist="Bonobo", album_artist="Various Artists")
         self.assertEqual(filing_artist(row), "Bonobo")
 
+    def test_compilation_track_artist_does_not_explode_the_mix_cd(self) -> None:
+        with TemporaryDirectory() as tmp:
+            media = Path(tmp) / "Media.localized"
+            src = _touch(
+                media / "Music" / "Compilations" / "Global Underground 014" / "01 Cut.m4a"
+            )
+            row = _row(
+                str(src),
+                artist="A:Xus",
+                album_artist="",
+                album="Global Underground 014",
+                name="Cut",
+            )
+            self.assertEqual(
+                filing_artist(row, path=src, root=media / "Music"),
+                "Compilations",
+            )
+            plan = plan_rows([row], media_root=media)
+            self.assertEqual(plan.moves, [])
+            self.assertEqual(plan.skipped.get("already_organized"), 1)
+
+    def test_various_artists_folder_does_not_explode(self) -> None:
+        with TemporaryDirectory() as tmp:
+            media = Path(tmp) / "Media.localized"
+            src = _touch(media / "Various Artists" / "Midnight Express" / "01 Cut.m4a")
+            row = _row(
+                str(src),
+                artist="A:Xus",
+                album_artist="Various Artists",
+                album="Midnight Express",
+                name="Cut",
+            )
+            plan = plan_rows([row], media_root=media)
+            self.assertEqual(plan.moves, [])
+            self.assertEqual(plan.skipped.get("already_organized"), 1)
+
+    def test_unicode_folder_is_already_organized(self) -> None:
+        with TemporaryDirectory() as tmp:
+            media = Path(tmp) / "Media.localized"
+            nfd = "Bjo\u0308rk"
+            src = _touch(media / nfd / "Homogenic" / "01 Hunter.m4a")
+            row = _row(
+                str(src),
+                artist="Björk",
+                album="Homogenic",
+                name="Hunter",
+            )
+            plan = plan_rows([row], media_root=media)
+            self.assertEqual(plan.moves, [])
+            self.assertEqual(plan.skipped.get("already_organized"), 1)
+
+    def test_split_compilation_stays_together(self) -> None:
+        with TemporaryDirectory() as tmp:
+            media = Path(tmp) / "Media.localized"
+            one = _touch(media / "Compilations" / "Barbie Dance" / "01 Cut.m4a")
+            two = _touch(media / "Compilations" / "Barbie Dance" / "02 Other.m4a")
+            plan = plan_rows(
+                [
+                    _row(
+                        str(one),
+                        pid="A",
+                        artist="Le Juice",
+                        album_artist="Le Juice",
+                        album="Barbie Dance",
+                        name="Cut",
+                    ),
+                    _row(
+                        str(two),
+                        pid="B",
+                        artist="95 North",
+                        album_artist="95 North",
+                        album="Barbie Dance",
+                        name="Other",
+                    ),
+                ],
+                media_root=media,
+            )
+            self.assertEqual(plan.moves, [])
+            self.assertGreaterEqual(plan.skipped.get("split_compilation", 0), 1)
+
+    def test_compilation_with_dj_album_artist_may_leave_artist_root(self) -> None:
+        with TemporaryDirectory() as tmp:
+            media = Path(tmp) / "Media.localized"
+            src = _touch(
+                media / "Compilations" / "Global Underground 010 Athens" / "01 Cut.m4a"
+            )
+            row = _row(
+                str(src),
+                artist="16 Bit Lolitas",
+                album_artist="Danny Tenaglia",
+                album="Global Underground 010 Athens",
+                name="Cut",
+            )
+            plan = plan_rows([row], media_root=media)
+            self.assertEqual(len(plan.moves), 1)
+            self.assertEqual(
+                Path(plan.moves[0].dest).parent,
+                media / "Danny Tenaglia" / "Global Underground 010 Athens",
+            )
+
+    def test_music_tree_folder_move_is_locked(self) -> None:
+        with TemporaryDirectory() as tmp:
+            media = Path(tmp) / "Media.localized"
+            src = _touch(
+                media / "Music" / "Compilations" / "Global Underground 010 Athens" / "01 Cut.m4a"
+            )
+            row = _row(
+                str(src),
+                artist="16 Bit Lolitas",
+                album_artist="Danny Tenaglia",
+                album="Global Underground 010 Athens",
+                name="Cut",
+            )
+            plan = plan_rows([row], media_root=media)
+            self.assertEqual(plan.moves, [])
+            self.assertEqual(plan.skipped.get("music_tree_locked"), 1)
+
     def test_empty_album_becomes_singles(self) -> None:
         self.assertEqual(filing_album(_row("/tmp/x.m4a", album="")), "Singles")
         self.assertEqual(filing_album(_row("/tmp/x.m4a", album="Unknown Album")), "Singles")
@@ -137,14 +254,19 @@ class PlanTests(unittest.TestCase):
     def test_stays_in_music_copy_on_add_tree(self) -> None:
         with TemporaryDirectory() as tmp:
             media = Path(tmp) / "Media.localized"
+            src = _touch(media / "Music" / "Moby" / "Play" / "01 Honey.m4a")
+            plan = plan_rows([_row(str(src))], media_root=media)
+            self.assertEqual(plan.moves, [])
+            self.assertEqual(plan.skipped.get("already_organized"), 1)
+            self.assertEqual(tree_root(src, media), media / "Music")
+
+    def test_music_tree_unknown_album_is_locked(self) -> None:
+        with TemporaryDirectory() as tmp:
+            media = Path(tmp) / "Media.localized"
             src = _touch(media / "Music" / "Unknown Album" / "Track 01.m4a")
             plan = plan_rows([_row(str(src))], media_root=media)
-            self.assertEqual(len(plan.moves), 1)
-            self.assertEqual(
-                Path(plan.moves[0].dest),
-                media / "Music" / "Moby" / "Play" / "01 Honey.m4a",
-            )
-            self.assertEqual(tree_root(src, media), media / "Music")
+            self.assertEqual(plan.moves, [])
+            self.assertEqual(plan.skipped.get("music_tree_locked"), 1)
 
     def test_does_not_hoist_music_tree_onto_artist_root(self) -> None:
         with TemporaryDirectory() as tmp:
@@ -258,6 +380,29 @@ class ApplyTests(unittest.TestCase):
 
 
 class RunTests(unittest.TestCase):
+    def test_placeholders_only_skips_folder_moves(self) -> None:
+        with TemporaryDirectory() as tmp:
+            media = Path(tmp) / "Media.localized"
+            named = _touch(media / "Downloads" / "Moby - Honey (Original Mix).mp3")
+            junk = _touch(media / "Unknown Album" / "Track 01.m4a")
+            with TemporaryDirectory() as reports:
+                with patch("ix_crate.music_organize.REPORTS", Path(reports)):
+                    payload = run(
+                        execute=False,
+                        placeholders_only=True,
+                        media_root=media,
+                        rows=[
+                            _row(
+                                str(named),
+                                name="Honey (Original Mix)",
+                                track_number=0,
+                            ),
+                            _row(str(junk)),
+                        ],
+                    )
+            self.assertEqual(len(payload["moves"]), 1)
+            self.assertIn("placeholder", payload["moves"][0]["reason"])
+
     def test_dry_run_does_not_move(self) -> None:
         with TemporaryDirectory() as tmp:
             media = Path(tmp) / "Media.localized"

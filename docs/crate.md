@@ -53,8 +53,15 @@ PYTHONPATH=crate python3 -m ix_crate music-fix                # playlist Fix ide
 PYTHONPATH=crate python3 -m ix_crate music-fix --execute      # write file tags + Music.app artist/album/genre
 PYTHONPATH=crate python3 -m ix_crate music-fix --library-va   # library Various Artists (dry-run)
 PYTHONPATH=crate python3 -m ix_crate music-fix --library-va --execute
+PYTHONPATH=crate python3 -m ix_crate stemit --sync-playlists
+PYTHONPATH=crate python3 -m ix_crate stemit --sync-playlists --execute
+PYTHONPATH=crate python3 -m ix_crate stemit --fix-role-titles
+PYTHONPATH=crate python3 -m ix_crate stemit --fix-role-titles --execute
+PYTHONPATH=crate python3 -m ix_crate stemit --fix-role-titles --nml --execute
 PYTHONPATH=crate python3 -m ix_crate stemit --playlist "Never Forget 50th v01"
 PYTHONPATH=crate python3 -m ix_crate stemit --playlist "Never Forget 50th v01" --execute
+PYTHONPATH=crate python3 -m ix_crate traktor-nml
+PYTHONPATH=crate python3 -m ix_crate traktor-nml --execute
 ```
 
 ## After this dump
@@ -184,17 +191,21 @@ PYTHONPATH=crate python3 -m ix_crate music-cull --execute
 * a real filename stays (Beatport `Artist - Title` is only *moved* if the folder is wrong)
 * `Track 01` is renamed only when Music.app already has a real title. No metadata, no rename.
 * never overwrite, never touch `.stem.m4a` / `.m4p`
+* a cut already under `Compilations/` stays there unless Music.app has a real album artist (the DJ). Track artist alone must not explode a mix CD.
+* a Compilations / Various Artists album that would split across dest artists stays put.
+* folder moves inside `Media.localized/Music/` do not stick. Music.app restores the old path and deletes the dest. Artist-root crate can move; copy-on-add then pulls those files into `Music/`.
 
 Keep **Keep Music Media folder organized** Off. That switch would reshuffle the artist-root crate into `Music/` and break path-stable Traktor / Rekordbox. This command organizes in place and writes `remaps[]` in `~/local_tools/crate/reports/music-organize-*.json` for [music_migration](https://github.com/ixamal/music_migration).
 
-Dry-run on the whole library, or try playlist `Fix` first. Quit Traktor / Rekordbox before `--execute`. Then remap the decks from the report.
+`--placeholders-only` renames `Track 01` junk and leaves folder-only moves. Playlist `Fix` is gone. Dry-run the library first.
 
 ```bash
 PYTHONPATH=crate python3 -m ix_crate music-organize
-PYTHONPATH=crate python3 -m ix_crate music-organize --playlist Fix
-PYTHONPATH=crate python3 -m ix_crate music-organize --playlist Fix --execute
-PYTHONPATH=crate python3 -m ix_crate music-organize --execute
+PYTHONPATH=crate python3 -m ix_crate music-organize --placeholders-only
+PYTHONPATH=crate python3 -m ix_crate music-organize --placeholders-only --execute
 ```
+
+2026-09-06: first dry-run wanted **6,818** folder moves — mostly `Compilations/` → per-cut track artist (would smash GU / mix CDs). Compilations stay unless album artist is the DJ; split compilations stay together. **17** `Track 01` files renamed (`--placeholders-only`). Second pass: **606** artist-root tracks now play from `Media.localized/Music/Artist/Album` (copy-on-add). **472** files already in the `Music/` tree did not move — Music.app restores that path if you rename out of it. All **1,078** Songs rows still have a file (`location as alias`). Report `~/local_tools/crate/reports/music-organize-20260906T183808Z.json`. Remaps for the 606: Rekordbox XML **539** + Collection **38** applied 2026-09-06. Traktor **561** wait in `~/local_tools/crate/reports/collection.nml.organize-606` (quit Traktor before swapping). Leftover junk with tags/filename identity: **51** added to Music.app.
 
 ## riff-repair
 
@@ -213,7 +224,7 @@ PYTHONPATH=crate python3 -m ix_crate riff-repair --execute
 
 Name for the local stem factory job: Music.app playlist → hardlink the mix into `~/Music/stems_audio/Artist/Album/` → [ixamal/stems](https://github.com/ixamal/stems) `py.exec.separate` as the RUNBOOK does (`PATH` = stems `.venv/bin` first, then that venv’s `python -m py.exec.separate`). Mel vocals/instrumental + `{name}.stem.m4a`. Aqua HUD is `py.utils.progress`. Homebrew Python 3.12 `.venv` in the stems repo. ~3.8 min/track. `audio-separator` lives in that venv — do not call the factory with system PATH.
 
-Never write Apple Music. Never mutagen-write `.stem.m4a`. Never stem **Acapella**. Skip if that dest already has `{name}.stem.m4a`. Dry-run unless `--execute`. Queue m3u + reports: `~/local_tools/crate/` (off git). Add the new siblings in Traktor / Rekordbox when David wants — do not hand-edit NML.
+Never write Apple Music. Acapellas stay in `stems_audio`. `--sync-playlists` works in any state — factory or not. It walks `stems_audio` and rewrites Traktor + Rekordbox crates **Mixes / Stems / Acapellas / Instrumentals**. Mixes is the hardlink / parallel original. Files not yet in the collection get a location row so the crate exists before Import / Analyze. Analyze stays in-app. `--fix-role-titles` writes a real title onto factory `.mp3` / `.m4a` pairs whose tag is `vocals` / `instrumental` (filename, mix sibling, or IndustryStems folder — not MusicBrainz, not OneTagger). Never mutagen-write `.wav` or `.stem.m4a`. After tags: quit Traktor, `--fix-role-titles --nml --execute`, reopen Traktor, then **DJCU2** to Rekordbox (`docs/djcu2.md`). Do not rewrite `rekordbox.xml` for this pass. `traktor-nml` drops duplicate playlist PRIMARYKEYs, copies sibling COVERARTID when the Coverart cache file exists, and drops Finder `(2)` copies when mutagen length matches and decoded audio is identical, then rewrites STEMIT crates from disk. Mix / stem / vocals / instrumental are four files, not copies. Never stem **Acapella**. Skip if that dest already has `{name}.stem.m4a`. Dry-run unless `--execute`. Queue m3u + reports: `~/local_tools/crate/` (off git).
 
 The mix is a **hardlink**, not a copy: one set of bytes, two paths (Apple Music + `stems_audio`). Deleting the `stems_audio` name never deletes the Apple Music file.
 

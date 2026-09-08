@@ -66,6 +66,10 @@ def main(argv: list[str] | None = None) -> int:
         from ix_crate.music_organize import main as music_organize_main
 
         return music_organize_main(argv[1:])
+    if argv and argv[0] == "traktor-nml":
+        from ix_crate.traktor_nml import main as traktor_nml_main
+
+        return traktor_nml_main(argv[1:])
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -85,6 +89,7 @@ def main(argv: list[str] | None = None) -> int:
             "riff-repair",
             "music-cull",
             "music-organize",
+            "traktor-nml",
         ),
         help=(
             "Scan Unknown Album, re-ID Inbox, sort mashups, drop Music.app "
@@ -92,7 +97,8 @@ def main(argv: list[str] | None = None) -> int:
             "promote EDM, … genres, locate missing files, relink dead rows "
             "from the iTunes XML, pull audio into ~/Music, fill a playlist's "
             "identity, name Media.localized files from Music.app metadata, "
-            "or STEMIT a playlist into stems_audio."
+            "STEMIT a playlist into stems_audio, or repair Traktor NML "
+            "playlist dupes and missing artwork IDs."
         ),
     )
     parser.add_argument(
