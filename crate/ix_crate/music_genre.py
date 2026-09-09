@@ -27,6 +27,25 @@ from .paths import REPORTS
 
 PREFIX = "EDM,"
 BATCH = 200
+ACCAPELLA = {"accapella", "acappella", "a cappella", "a capella", "acapela"}
+HOUSE_MAP = {
+    "House, Deep": "Deep House",
+    "House, Tech": "Tech House",
+    "House, Progressive": "Progressive House",
+    "House, Funk / Soul / Disco": "Funk / Soul / Disco",
+    "House, Minimal / Deep Tech": "Minimal / Deep Tech",
+    "House, Melodic": "Melodic House",
+    "House, Indie / Nu Disco": "Indie / Nu Disco",
+    "House, Electro": "Electro House",
+    "Tech House, STEMS": "Tech House",
+    "House, STEMS": "House",
+    "House, Latin": "Latin House",
+    "House, Garage / Bassline / Grime": "Garage / Bassline / Grime",
+    "House, Deep House": "Deep House",
+    "House, Electro House": "Electro House",
+    "Soulful House, Soulful House": "Soulful House",
+    "Hip-Hop": "Hip Hop",
+}
 
 
 class GenreError(RuntimeError):
@@ -64,6 +83,24 @@ def promote(genre: str) -> str:
     if not text.upper().startswith(PREFIX):
         return text
     return text[len(PREFIX) :].strip()
+
+
+def clean_genre(genre: str) -> str:
+    """EDM prefix, then House comma compounds, Accapella spelling, Hip-Hop.
+
+    ``EDM, House, Deep`` → ``Deep House``. Slash store spellings stay.
+    """
+    text = (genre or "").strip()
+    if not text:
+        return ""
+    lowered = text.lower()
+    if lowered in ACCAPELLA or lowered in {"edm, accapella", "edm, acapella"}:
+        return "Acapella"
+    text = promote(text)
+    text = HOUSE_MAP.get(text, text)
+    if text == "Hip-Hop":
+        return "Hip Hop"
+    return text
 
 
 def scan(on_progress=None) -> GenrePlan:

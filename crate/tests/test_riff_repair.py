@@ -10,6 +10,7 @@ from tempfile import TemporaryDirectory
 from ix_crate.music_repair import write_file_tags
 from ix_crate.riff_repair import (
     copy_number,
+    finder_copy_number,
     group_key,
     is_id3_headed,
     is_riff,
@@ -59,6 +60,9 @@ class GroupKeyTest(unittest.TestCase):
         )
         self.assertEqual(copy_number("Kwai (2)"), 2)
         self.assertEqual(copy_number("Kwai"), 0)
+        self.assertEqual(finder_copy_number(Path("Title.stem (2).m4a")), 2)
+        self.assertEqual(finder_copy_number(Path("Title (2).stem.m4a")), 2)
+        self.assertEqual(finder_copy_number(Path("Let's Get High (1999).mp3")), 0)
 
     def test_same_title_in_two_albums_stays_distinct(self) -> None:
         self.assertNotEqual(

@@ -16,6 +16,10 @@ PLACEHOLDER_ARTISTS = {
     "various",
     "various artists",
     "va",
+    "industrystems",
+    "industry stems",
+    "industry-stems",
+    "industry stem",
 }
 PLACEHOLDER_ALBUMS = {
     "",
@@ -81,6 +85,44 @@ def clean_text(part: str) -> str:
 def sanitize(part: str, fallback: str) -> str:
     text = INVALID_FS.sub("_", clean_text(part))
     return text or fallback
+
+
+BEATPORT_ID = re.compile(r"^(\d{6,9})_(.+)$")
+_END = r"(?=_|\W|$)"
+CONTRACTION_T = re.compile(
+    r"(Don|It|I|Can|Won|Isn|Aren|Wasn|Wer|Let|That|What|Here|There|"
+    r"He|She|We|They|You|Shouldn|Wouldn|Couldn|Didn|Doesn|Hasn|Haven|Hadn)_t"
+    + _END,
+    re.I,
+)
+CONTRACTION_S = re.compile(r"(It|That|What|Here|There|He|She|Let|Who)_s" + _END, re.I)
+CONTRACTION_RE = re.compile(r"(We|They|You)_re" + _END, re.I)
+CONTRACTION_LL = re.compile(r"(I|We|You|They|He|She)_ll" + _END, re.I)
+CONTRACTION_VE = re.compile(r"(I|We|You|They)_ve" + _END, re.I)
+CONTRACTION_M = re.compile(r"I_m" + _END, re.I)
+
+
+def is_beatport_title(text: str) -> bool:
+    """Beatport download name: ``12432715_Together_We_Fall_(Alexvnder_Remix)``."""
+    return bool(BEATPORT_ID.match((text or "").strip()))
+
+
+def pretty_beatport_title(text: str) -> str:
+    """Strip the catalog id and turn underscores into a readable title."""
+    raw = (text or "").strip()
+    match = BEATPORT_ID.match(raw)
+    body = match.group(2) if match else raw
+    if "_" not in body:
+        return body or raw
+    body = CONTRACTION_T.sub(lambda m: m.group(1) + "'t", body)
+    body = CONTRACTION_S.sub(lambda m: m.group(1) + "'s", body)
+    body = CONTRACTION_RE.sub(lambda m: m.group(1) + "'re", body)
+    body = CONTRACTION_LL.sub(lambda m: m.group(1) + "'ll", body)
+    body = CONTRACTION_VE.sub(lambda m: m.group(1) + "'ve", body)
+    body = CONTRACTION_M.sub("I'm", body)
+    body = body.replace("_", " ")
+    body = re.sub(r"\s+", " ", body).strip()
+    return body or raw
 
 
 def strip_track_number(title: str) -> str:

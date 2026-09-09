@@ -10,8 +10,11 @@ rewrites Traktor and Rekordbox crates from ``stems_audio`` in any state
 (factory or not): Mixes / Stems / Acapellas / Instrumentals. Files not
 yet imported get a collection location row. Analyze stays in-app.
 ``--fix-role-titles`` fills Title = vocals from the mix sibling / folder
-onto owned ``.mp3`` / ``.m4a``. ``--nml`` patches Traktor TITLE after
-quit; Rekordbox follows via DJCU2, not our XML write.
+onto owned ``.mp3`` / ``.m4a``. ``--fix-industry-artists`` fills artist
+on Industry Stems WAV packs from the crate, patches Traktor NML, and
+keeps one STEMIT playlist row per identity. ``--fix-titles`` pretties Beatport catalog TITLEs in NML and drops
+Google Drive shortcut rows. ``--nml`` patches Traktor
+TITLE after quit; Rekordbox follows via DJCU2, not our XML write.
 Never mutagen-writes ``.stem.m4a``. Never stems Acapella. Skip if
 that Artist/Album/Title already has a ``.stem.m4a``. Dry-run is the
 default.
@@ -210,7 +213,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--playlist",
         default="",
-        help="Music.app playlist name (exact). Required unless --sync-playlists or --fix-role-titles.",
+        help="Music.app playlist name (exact). Required unless --sync-playlists, --fix-role-titles, --fix-titles, --fix-industry-artists, --genres, --dedupe, or --drop-copies.",
     )
     parser.add_argument(
         "--execute",
@@ -233,11 +236,235 @@ def main(argv: list[str] | None = None) -> int:
         help="Fill vocals/instrumental titles from sibling mix + folder onto mp3/m4a (never wav).",
     )
     parser.add_argument(
+        "--fix-titles",
+        action="store_true",
+        help="Pretty Beatport catalog titles in collection.nml and drop Google Drive shortcut rows.",
+    )
+    parser.add_argument(
+        "--fix-industry-artists",
+        action="store_true",
+        help="Resolve Industry Stems artists from the crate, then drop STEMIT crate identity dupes.",
+    )
+    parser.add_argument(
+        "--genres",
+        action="store_true",
+        help="Clean EDM/House comma genres on STEMIT NML rows and rebuild STEMIT/Genres crates.",
+    )
+    parser.add_argument(
+        "--dedupe",
+        action="store_true",
+        help="Delete confirmed stems_audio copies (Mashups dumps, Unknown Album, same-audio twins) and rebuild STEMIT crates.",
+    )
+    parser.add_argument(
+        "--drop-copies",
+        action="store_true",
+        help="Delete Finder (2)/(3) copies with the same title+artist role, drop missing NML rows, rebuild STEMIT.",
+    )
+    parser.add_argument(
         "--nml",
         action="store_true",
-        help="With --fix-role-titles, also patch Traktor collection.nml TITLE/ARTIST. Quit Traktor first.",
+        help="With --fix-role-titles or --fix-industry-artists, patch collection.nml. Quit Traktor first.",
+    )
+    parser.add_argument(
+        "--offline",
+        action="store_true",
+        help="With --fix-industry-artists, crate match only (no iTunes/Deezer/MusicBrainz).",
     )
     args = parser.parse_args(argv)
+
+    if args.fix_titles:
+        from ix_crate.role_titles import (
+            apply_nml_store_titles,
+            format_store_title_plan,
+            plan_nml_store_titles,
+            traktor_is_running,
+            write_role_report,
+        )
+
+        fixes = plan_nml_store_titles()
+        print(format_store_title_plan(fixes), flush=True)
+        write_role_report(
+            [],
+            {
+                "tool": "ix.crate.stemit-titles",
+                "execute": args.execute,
+                "titles": [
+                    {"path": item.path, "old": item.old, "new": item.new, "cloud": item.cloud}
+                    for item in fixes
+                ],
+            },
+        )
+        if args.execute and traktor_is_running():
+            print("Traktor is open. Quit it before --execute writes collection.nml.", flush=True)
+            return 2
+        if not args.execute:
+            print(
+                "dry-run. pass --execute to pretty Beatport TITLEs and drop CloudStorage rows. "
+                "File names stay. Never writes Apple Music.",
+                flush=True,
+            )
+            return 0
+        titled, dropped = apply_nml_store_titles(fixes, execute=True)
+        print(
+            f"patched {titled} titles  dropped {dropped} cloud rows. Reopen Traktor.",
+            flush=True,
+        )
+        return 0
+
+    if args.genres:
+        from ix_crate.stemit_genres import (
+            format_genre_plan,
+            plan_genre_crates,
+            write_genre_report,
+        )
+        from ix_crate.role_titles import traktor_is_running
+        from ix_crate.stems_playlists import rebuild_stemit_nml
+
+        plan, _files, _assigned = plan_genre_crates()
+        print(format_genre_plan(plan), flush=True)
+        report = write_genre_report(plan, {"execute": args.execute})
+        print(f"report: {report}", flush=True)
+        if args.execute and traktor_is_running():
+            print("Traktor is open. Quit it before --execute writes collection.nml.", flush=True)
+            return 2
+        if not args.execute:
+            print(
+                "dry-run. pass --execute to patch STEMIT INFO GENRE and rebuild STEMIT/Genres. "
+                "Never writes wav or .stem.m4a tags.",
+                flush=True,
+            )
+            return 0
+        rebuild_stemit_nml()
+        print("STEMIT/Genres rebuilt. Reopen Traktor.", flush=True)
+        return 0
+
+    if args.drop_copies:
+        from ix_crate.stemit_dupes import (
+            apply_disk_dupes,
+            format_dedupe_plan,
+            plan_finder_copies,
+            rebuild_after_dedupe,
+            write_dedupe_report,
+        )
+        from ix_crate.role_titles import traktor_is_running
+
+        plan = plan_finder_copies()
+        print(format_dedupe_plan(plan), flush=True)
+        write_dedupe_report(plan, {"execute": args.execute, "mode": "finder-copies"})
+        if args.execute and traktor_is_running():
+            print("Traktor is open. Quit it before --execute deletes files and writes collection.nml.", flush=True)
+            return 2
+        if not args.execute:
+            print(
+                "dry-run. pass --execute to delete Finder (2) copies and drop missing NML rows. "
+                "Mix / stem / vocals / instrumental stay four files. Live vs studio stays.",
+                flush=True,
+            )
+            return 0
+
+        def on_delete(index: int, total: int, name: str, crate: str) -> None:
+            print(f"  drop  {index}/{total}  {crate}  {name}", flush=True)
+
+        deleted = apply_disk_dupes(plan, on_progress=on_delete)
+        added = rebuild_after_dedupe(plan)
+        write_dedupe_report(
+            plan,
+            {"execute": True, "mode": "finder-copies", "deleted": deleted, "stemit_added": added},
+        )
+        print(
+            f"deleted {deleted}  pruned {plan.pruned} empty folders. STEMIT rebuilt. Reopen Traktor.",
+            flush=True,
+        )
+        return 0
+
+    if args.dedupe:
+        from ix_crate.stemit_dupes import (
+            apply_disk_dupes,
+            format_dedupe_plan,
+            plan_disk_dupes,
+            rebuild_after_dedupe,
+            write_dedupe_report,
+        )
+        from ix_crate.role_titles import traktor_is_running
+
+        def on_progress(index: int, total: int, name: str, crate: str) -> None:
+            print(f"  group  {index}/{total}  {crate}  {name[:80]}", flush=True)
+
+        plan = plan_disk_dupes(on_progress=on_progress)
+        print(format_dedupe_plan(plan), flush=True)
+        report = write_dedupe_report(plan, {"execute": args.execute})
+        print(f"report: {report}", flush=True)
+        if args.execute and traktor_is_running():
+            print("Traktor is open. Quit it before --execute deletes files and writes collection.nml.", flush=True)
+            return 2
+        if not args.execute:
+            print(
+                "dry-run. pass --execute to delete confirmed copies under stems_audio and rebuild STEMIT. "
+                "Unique mashups and Industry Stems WAV packs stay.",
+                flush=True,
+            )
+            return 0
+
+        def on_delete(index: int, total: int, name: str, crate: str) -> None:
+            print(f"  drop  {index}/{total}  {crate}  {name}", flush=True)
+
+        deleted = apply_disk_dupes(plan, on_progress=on_delete)
+        added = rebuild_after_dedupe(plan)
+        write_dedupe_report(
+            plan,
+            {"execute": True, "deleted": deleted, "stemit_added": added},
+        )
+        print(
+            f"deleted {deleted}  pruned {plan.pruned} empty folders. STEMIT rebuilt. Reopen Traktor.",
+            flush=True,
+        )
+        return 0
+
+    if args.fix_industry_artists:
+        from ix_crate.industry_stems import (
+            apply_industry_plan,
+            build_industry_plan,
+            format_industry_plan,
+            traktor_is_running,
+            write_applescript_tsv,
+            write_industry_report,
+        )
+
+        def on_progress(index: int, total: int, name: str, artist: str, source: str) -> None:
+            label = artist or "unresolved"
+            print(f"  pack  {index}/{total}  {label} — {name}  ({source})", flush=True)
+
+        plan = build_industry_plan(lookup=not args.offline, on_progress=on_progress)
+        tsv = write_applescript_tsv(plan.fixes)
+        print(format_industry_plan(plan), flush=True)
+        print(f"applescript tsv: {tsv}", flush=True)
+        write_industry_report(plan, {"execute": args.execute, "applescript_tsv": str(tsv)})
+        if (args.nml or args.execute) and traktor_is_running():
+            print("Traktor is open. Quit it before --execute writes collection.nml.", flush=True)
+            return 2
+        if not args.execute:
+            print(
+                "dry-run. pass --execute to patch Traktor ARTIST and rewrite STEMIT crates. "
+                "WAV tags stay untouched. Music.app: docs/examples/music-set-industry-artist.applescript.",
+                flush=True,
+            )
+            return 0
+        apply_industry_plan(plan)
+        write_industry_report(
+            plan,
+            {
+                "execute": True,
+                "applescript_tsv": str(tsv),
+                "nml_patched": plan.nml_patched,
+                "stemit_rebuilt": True,
+            },
+        )
+        print(
+            f"patched {plan.nml_patched} NML rows. STEMIT rebuilt without crate identity dupes. "
+            "Reopen Traktor, then DJCU2.",
+            flush=True,
+        )
+        return 0
 
     if args.fix_role_titles:
         from ix_crate.role_titles import (
@@ -290,7 +517,10 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if not args.playlist:
-        parser.error("--playlist is required unless you pass --sync-playlists or --fix-role-titles")
+        parser.error(
+            "--playlist is required unless you pass --sync-playlists, --fix-role-titles, "
+            "--fix-titles, --fix-industry-artists, --genres, --dedupe, or --drop-copies"
+        )
 
     try:
         payload = plan_playlist(args.playlist)

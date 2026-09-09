@@ -2,13 +2,13 @@
 
 Hit these in order. Stop on the first **doable** open item. Detail: `docs/notes.md`. Off-repo tools and library paths stay off git.
 
-Last update: 2026-09-07. Playlist **Fix** identity closed (19 + 20). Various Artists fingerprint pass done (21). Screenshot compilations closed (22). **STEMIT** shipped and first playlist is done (23). `EDM, …` recurrence + replicants closed (24). Ghosts culled (25). **music-organize** shipped (26) and second folder pass applied. STEMIT crates shipped (27). Floor **10** parked.
+Last update: 2026-09-08. Playlist **Fix** identity closed (19 + 20). Various Artists fingerprint pass done (21). Screenshot compilations closed (22). **STEMIT** shipped and first playlist is done (23). `EDM, …` recurrence + replicants closed (24). Ghosts culled (25). **music-organize** shipped (26) and second folder pass applied. STEMIT crates shipped (27). Industry Stems + disk copies + genre crates (31–35). Floor **10** parked.
 
 ## Now
 
 Crate is path-stable. Music.app is playable. Sync Library Off. Copy-on-add works. STEMIT proved end to end. Disk names: **17** placeholders + **606** artist-root folder moves.
 
-**Next:** Factory pairs whose Title is `vocals` — `--fix-role-titles` (disk tags, then quit Traktor for `--nml`, then DJCU2). After that: Alternative stems, tracks **1–3 only** (TODO 17), or another playlist through **STEMIT** when David names one. Never write Apple Music from the factory. Never stem **Acapella**. Floor 10 when David asks.
+**Next:** Reopen Traktor — confirm STEMIT + **Genres**, then DJCU2 (`docs/djcu2.md`). Leftover same-title copies in STEMIT stay for a later pass (roles are four files). Alternative stems, tracks **1–3 only** (TODO 17), or another playlist through **STEMIT** when David names one. Never write Apple Music from the factory. Never stem **Acapella**. Floor 10 when David asks.
 
 Do not start 11 unless David asks. Do not farm 35k to the cloud. Do not Discogs-blast.
 
@@ -36,6 +36,10 @@ Do not start 11 unless David asks. Do not farm 35k to the cloud. Do not Discogs-
 - [x] 29. **Traktor playlist dupes + artwork.** 2026-09-07: dropped **237** duplicate PRIMARYKEY rows (Humid chills 86, stems_audio 94, 2024 Alive 29, …). Copied **3,512** sibling COVERARTIDs (8 broken pointers replaced). Backup `collection.nml.pre-nml-repair-20260907T133704Z`. Mix/stem/vocals are not copies. Reopen Traktor. Then DJCU2.
 - [x] 30. **STEMIT copy-twins.** Mixes was listing `.stem (2).m4a` and `vocals (2).wav` next to the real files. Dropped **186** Finder copies after mutagen length + decoded-audio match (WAV/mp3). STEMIT crates rebuilt from disk; numbered `(2)` files are not listed. 889 stem `(2)` files kept on disk (size/head differ — not the same bytes). Reopen Traktor. Then DJCU2.
 - [x] 30a. **STEMIT looked empty.** ElementTree `clear()` stripped `TYPE="LIST"` / `UUID`; rewrite also left empty name-only playlist shells first. Traktor shows the first node. Fixed 2026-09-07: four crates Mixes 1403 / Stems 1896 / Acapellas 2032 / Instrumentals 1749, each `TYPE=LIST`. Reopen Traktor.
+- [x] 31. **Industry Stems artists + STEMIT crate keepers.** 2026-09-08: **202/209** packs crate-matched (7 remix leftovers still IndustryStems). Patched **808** NML ARTIST rows. Never WAV tags. STEMIT crates rebuilt: one row per identity, **383** extra playlist rows dropped (Stems 125 groups). Files stayed on disk. Specimens: `docs/examples/stemit-industry-artists.py`, `docs/examples/music-set-industry-artist.applescript`. Reopen Traktor. Then DJCU2.
+- [x] 32. **STEMIT disk dedupe.** 2026-09-08: **286** copies deleted (197 + 89), **43** empty folders pruned. Unique mashups stayed. Industry Stems WAV packs stayed. Live vs studio (FLA Gun) kept. Google Drive shortcut skipped. STEMIT rebuilt. Reopen Traktor. Then DJCU2.
+- [x] 34. **Finder `(2)` copies.** 2026-09-08: deleted **920** disk copies (same title+artist role as the keeper) and dropped missing stems_audio NML rows. Mix/stem/vocals/instrumental stayed four files. Live vs studio stayed. Reopen Traktor. Then DJCU2.
+- [x] 35. **STEMIT genre crates.** 2026-09-08: `stemit --genres --execute` cleaned **3844** NML GENRE rows (`EDM, House, Deep` → Deep House) and wrote **53** `STEMIT/Genres/<Genre>/{Mixes,Stems,Acapellas,Instrumentals}` crates from keepers. Re-run anytime. Reopen Traktor. Then DJCU2.
 
 ## Tagging
 

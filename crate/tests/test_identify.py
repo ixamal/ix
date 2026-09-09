@@ -141,6 +141,23 @@ class ParseFilenameTests(unittest.TestCase):
 class CatalogMatchTests(unittest.TestCase):
     def test_strips_track_number(self) -> None:
         self.assertEqual(strip_track_number("03 As Alive As You Need Me To Be"), "As Alive As You Need Me To Be")
+
+    def test_pretty_beatport_title(self) -> None:
+        from ix_crate.identify import is_beatport_title, pretty_beatport_title
+
+        self.assertTrue(is_beatport_title("12432715_Together_We_Fall_(Alexvnder_Remix)"))
+        self.assertEqual(
+            pretty_beatport_title("12432715_Together_We_Fall_(Alexvnder_Remix)"),
+            "Together We Fall (Alexvnder Remix)",
+        )
+        self.assertEqual(
+            pretty_beatport_title("12432721_Don_t_Let_Go_(Original_Mix)"),
+            "Don't Let Go (Original Mix)",
+        )
+        self.assertEqual(
+            pretty_beatport_title("New Dawn (Original Mix)"),
+            "New Dawn (Original Mix)",
+        )
         self.assertEqual(strip_track_number("12 Who Wants To Live Forever_"), "Who Wants To Live Forever")
 
     def test_strips_mix_cd_artist_prefix(self) -> None:

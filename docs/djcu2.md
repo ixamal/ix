@@ -6,14 +6,16 @@ DJCU2 moves playlists, cues, loops, and beatgrids between Traktor, Rekordbox, Se
 
 ## Process
 
-1. Repair files with `crate/` (`docs/crate.md`). Remap Traktor with [music_migration](https://github.com/ixamal/music_migration). Role-file Title = vocals: `stemit --fix-role-titles --execute` (disk tags), quit Traktor, then `--fix-role-titles --nml --execute`.
-2. Quit Traktor and Rekordbox.
-3. **Export** the collection from Traktor (complete NML). **Uncheck** export audio files. A copy of the live `collection.nml` is still the original and DJCU2 will warn.
-4. Run **DJ Conversion Utility Two**: From Traktor → To Rekordbox. Include playlists and folders.
-5. Snapshot the live DBs into `databases/` on this Mac (gitignored). See `databases/README.md`.
-6. Reopen Rekordbox. Confirm playlists (including `stems_audio` / STEMIT) and year folders.
+STEMIT crates, titles, and `STEMIT/Genres` live in Traktor NML. Crate does **not** rewrite `rekordbox.xml` for this pass. DJCU2 is the bridge.
 
-Do not overwrite ReCK / Mixed in Key key, BPM, comments, or cues in a later tag pass.
+1. Reopen Traktor. Confirm All Tracks, **STEMIT** Mixes / Stems / Acapellas / Instrumentals, and **STEMIT/Genres** (one folder per genre, four role playlists each). Mix / stem / vocals / instrumental are four files, not copies. Leftover same-title copies can wait.
+2. Quit Traktor and Rekordbox.
+3. **Export** the collection from Traktor (File → Export Collection, complete NML). **Uncheck** export audio files. A copy of the live `collection.nml` is still the original and DJCU2 will warn — that is fine; use the export you just made.
+4. Run **DJ Conversion Utility Two**: From Traktor → To Rekordbox. Include playlists and folders. Do not copy audio.
+5. Snapshot the live DBs into `databases/` on this Mac (gitignored). See `databases/README.md`.
+6. Reopen Rekordbox. Confirm STEMIT + Genres folders landed, cues/grids survived, paths still under `~/Music`.
+
+Do not overwrite ReCK / Mixed in Key key, BPM, comments, or cues in a later tag pass. Do not Discogs-blast.
 
 ## Also from ATGR
 

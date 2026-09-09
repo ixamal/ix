@@ -29,10 +29,12 @@ from ix_crate.families import (
     strip_role_markup,
 )
 from ix_crate.identify import (
+    is_beatport_title,
     is_placeholder_album_folder,
     is_placeholder_artist,
     is_placeholder_title,
     parse_filename,
+    pretty_beatport_title,
     strip_track_number,
 )
 from ix_crate.music_repair import SKIP_SUFFIX, write_file_tags
@@ -159,8 +161,11 @@ def identity_for_role(path: Path, *, root: Path | None = None) -> RoleFix:
             source = "album-folder"
     artist = artist or folder_artist
     if is_placeholder_artist(artist):
-        artist = folder_artist
+        artist = ""
     album = album or folder_album or "Singles"
+    if title and is_beatport_title(title):
+        title = pretty_beatport_title(title)
+        source = "beatport-filename"
     if not title:
         source = "unresolved"
     current_artist, current_title = _tag_fields(path)
@@ -171,6 +176,7 @@ def identity_for_role(path: Path, *, root: Path | None = None) -> RoleFix:
     needs_tags = writable and bool(title) and (
         not current_title
         or is_placeholder_title(current_title)
+        or is_beatport_title(current_title)
         or current_title.lower() in ROLE_NAMES
         or (stripped_tag != current_title)
         or (is_placeholder_artist(current_artist) and bool(artist))
@@ -275,6 +281,120 @@ def patch_nml_titles(
     if execute and patched:
         tree.write(nml_path, encoding="UTF-8", xml_declaration=True)
     return patched
+
+
+@dataclass
+class StoreTitleFix:
+    path: str
+    old: str
+    new: str
+    cloud: bool = False
+
+
+def plan_nml_store_titles(nml: Path | None = None) -> list[StoreTitleFix]:
+    """Beatport catalog titles + Google Drive shortcut rows in collection.nml."""
+    from ix_crate.stems_playlists import TRAKTOR_NML, is_cloud_path
+
+    nml_path = nml or TRAKTOR_NML
+    tree = ET.parse(nml_path)
+    collection = tree.getroot().find("COLLECTION")
+    if collection is None:
+        return []
+    fixes: list[StoreTitleFix] = []
+    for entry in collection.findall("ENTRY"):
+        location = entry.find("LOCATION")
+        if location is None:
+            continue
+        directory = location.get("DIR") or ""
+        if "stems_audio" not in directory:
+            continue
+        path = _loc_to_path(directory, location.get("FILE") or "")
+        title = entry.get("TITLE") or ""
+        if is_cloud_path(path):
+            fixes.append(StoreTitleFix(path=str(path), old=title, new="", cloud=True))
+            continue
+        if not is_beatport_title(title):
+            continue
+        pretty = pretty_beatport_title(title)
+        if pretty and pretty != title:
+            fixes.append(StoreTitleFix(path=str(path), old=title, new=pretty))
+    return fixes
+
+
+def apply_nml_store_titles(
+    fixes: list[StoreTitleFix],
+    nml: Path | None = None,
+    *,
+    execute: bool,
+) -> tuple[int, int]:
+    """Pretty Beatport TITLEs and drop CloudStorage collection rows."""
+    from ix_crate.stems_playlists import TRAKTOR_NML, is_cloud_path
+
+    nml_path = nml or TRAKTOR_NML
+    tree = ET.parse(nml_path)
+    root = tree.getroot()
+    collection = root.find("COLLECTION")
+    if collection is None:
+        return 0, 0
+    by_path = {
+        Path(item.path).resolve(): item
+        for item in fixes
+        if item.new and not item.cloud
+    }
+    cloud_keys: set[str] = set()
+    titled = 0
+    dropped = 0
+    for entry in list(collection.findall("ENTRY")):
+        location = entry.find("LOCATION")
+        if location is None:
+            continue
+        path = _loc_to_path(location.get("DIR") or "", location.get("FILE") or "")
+        if is_cloud_path(path):
+            key = f"{location.get('VOLUME') or 'Macintosh HD'}{location.get('DIR') or ''}{location.get('FILE') or ''}"
+            cloud_keys.add(key)
+            if execute:
+                collection.remove(entry)
+            dropped += 1
+            continue
+        item = by_path.get(path)
+        if item is None:
+            continue
+        if execute:
+            entry.set("TITLE", item.new)
+        titled += 1
+    if execute and cloud_keys:
+        playlists = root.find("PLAYLISTS")
+        if playlists is not None:
+            for playlist in playlists.iter("PLAYLIST"):
+                for entry in list(playlist.findall("ENTRY")):
+                    pk = entry.find("PRIMARYKEY")
+                    if pk is not None and (pk.get("KEY") or "") in cloud_keys:
+                        playlist.remove(entry)
+                playlist.set("ENTRIES", str(len(playlist.findall("ENTRY"))))
+    if execute:
+        collection.set("ENTRIES", str(len(collection.findall("ENTRY"))))
+        stamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
+        backup = nml_path.with_suffix(nml_path.suffix + f".pre-titles-{stamp}")
+        if not backup.exists():
+            import shutil
+
+            shutil.copy2(nml_path, backup)
+        tree.write(nml_path, encoding="UTF-8", xml_declaration=True)
+    return titled, dropped
+
+
+def format_store_title_plan(fixes: list[StoreTitleFix]) -> str:
+    cloud = sum(1 for item in fixes if item.cloud)
+    titled = len(fixes) - cloud
+    lines = [f"store titles: {titled} beatport  cloud-rows {cloud}"]
+    for item in fixes[:12]:
+        if item.cloud:
+            lines.append(f"  drop cloud  {Path(item.path).name}")
+        else:
+            lines.append(f"  {item.old}  →  {item.new}")
+    if len(fixes) > 12:
+        lines.append(f"  … {len(fixes) - 12} more")
+    return "\n".join(lines)
 
 
 def write_role_report(fixes: list[RoleFix], extra: dict | None = None) -> Path:

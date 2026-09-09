@@ -93,6 +93,29 @@ def copy_number(stem: str) -> int:
     return 0
 
 
+FINDER_COPY_MAX = 12
+
+
+def finder_copy_number(path: Path) -> int:
+    """Finder ``(2)`` including ``.stem (2).m4a`` and ``Title (2).stem.m4a``.
+
+    Years like ``(1999)`` stay 0.
+    """
+    from ix_crate.paths import STEM_SUFFIXES
+
+    numbered = copy_number(path.stem)
+    if 0 < numbered <= FINDER_COPY_MAX:
+        return numbered
+    lower = path.name.lower()
+    for suffix in STEM_SUFFIXES:
+        if lower.endswith(suffix):
+            numbered = copy_number(path.name[: -len(suffix)])
+            if 0 < numbered <= FINDER_COPY_MAX:
+                return numbered
+            break
+    return 0
+
+
 def group_key(path: Path) -> str:
     """Same directory + unnumbered stem + suffix. Album folders stay distinct."""
     return f"{path.parent}\t{strip_copy_suffix(path.stem).lower()}\t{path.suffix.lower()}"

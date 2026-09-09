@@ -23,9 +23,16 @@ class PromoteTest(unittest.TestCase):
     def test_does_not_strip_a_genre_that_merely_contains_edm(self) -> None:
         self.assertEqual(promote("Progressive EDM, House"), "Progressive EDM, House")
 
-    def test_handles_empty(self) -> None:
-        self.assertEqual(promote(""), "")
-        self.assertEqual(promote("   "), "")
+    def test_clean_genre_promotes_edm_and_house_comma(self) -> None:
+        from ix_crate.music_genre import clean_genre
+
+        self.assertEqual(clean_genre("EDM, House"), "House")
+        self.assertEqual(clean_genre("EDM, House, Deep"), "Deep House")
+        self.assertEqual(clean_genre("House, Tech"), "Tech House")
+        self.assertEqual(clean_genre("EDM, Accapella"), "Acapella")
+        self.assertEqual(clean_genre("Hip-Hop"), "Hip Hop")
+        self.assertEqual(clean_genre("Deep House"), "Deep House")
+        self.assertEqual(clean_genre(""), "")
 
 
 class RowTest(unittest.TestCase):

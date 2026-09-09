@@ -2,7 +2,7 @@
 
 Parking lot for crate, tagging, and hardware ideas. Ordered checklist: `docs/TODO.md`. Agents: read both, then stop unless David asks to act. Off-repo tools and library paths stay off git.
 
-Last update: 2026-09-07. Playlist Fix identity closed (19 + 20). VA fingerprint closed (21). Screenshot compilations closed (22). Music.app `Media.localized/Music` is a real folder (drag-and-drop works; never symlink to `.`). **STEMIT** shipped; `Never Forget 50th v01` done 21/21 (23). Migration home, genre cockroach, replicants, riff-repair, cull (24 + 25). **music-organize** shipped (26) — 17 placeholders + 606 artist-root folder moves; Music-tree folder moves locked. STEMIT crates (27). Role titles `vocals` (28) — disk tags then Traktor NML then DJCU2. Keep Music Media folder organized stays Off. **Next on the Mac:** quit Traktor for `--fix-role-titles --nml`, then DJCU2. Alternative stems 1–3 (TODO 17) unless David names another playlist. Floor **10** parked. Toolkit: README. How/why: `docs/crate.md`.
+Last update: 2026-09-08. STEMIT night: Industry Stems artists (31), disk dedupe **286** (32), Beatport TITLEs **229**, Finder `(2)` copies **920** (34), genre crates **53** (35). Mix / stem / vocals / instrumental stay four files. Leftover same-title copies in Traktor are still there — next drop after DJCU2 unless David asks first. **Next on the Mac:** reopen Traktor, confirm STEMIT + Genres, then DJCU2 (`docs/djcu2.md`). Alternative stems 1–3 (TODO 17) unless David names another playlist. Floor **10** parked. Toolkit: README. How/why: `docs/crate.md`.
 
 ## Crate status
 
@@ -20,7 +20,8 @@ Traktor (2026-08-30): NML remapped, then [ATGR DJCU2](https://atgr.nl/) converte
 ### Resume next
 
 1. **Remap leftover:** Rekordbox XML **539** + master.db **38**. Traktor live NML remapped **561** (backup `collection.nml.pre-organize-606-20260906T142655`). Leftover junk with identity: **51** added to Music.app (library **21,875**).
-2. **STEMIT** crates + role titles + `traktor-nml` (29): playlist extras **0** leftover; **3,512** artwork IDs copied. Reopen Traktor. Then DJCU2. Alternative stems 1–3 (TODO 17) unless David names another playlist.
+2. **STEMIT** (31–35): reopen Traktor. Confirm Industry Stems artists, thinner crates, `STEMIT/Genres/<Genre>/{Mixes,Stems,Acapellas,Instrumentals}`. Leftover same-title copies still show — they are not the four role files. Then DJCU2 (`docs/djcu2.md`). Do not rewrite `rekordbox.xml`. Alternative stems 1–3 (TODO 17) unless David names another playlist.
+2a. Sanity later: `stemit --genres` / `--drop-copies` / `--dedupe` (dry-run first). Quit Traktor for `--execute`.
 3. Floor **10** parked until David asks.
 4. Items 5 / 5b / 6 stay omitted. Do not Discogs-blast. Targeted one-album Discogs from a screenshot is OK (TODO 22 / `docs/crate.md`).
 
@@ -45,6 +46,12 @@ PYTHONPATH=crate python3 -m ix_crate stemit --playlist "Never Forget 50th v01" -
 PYTHONPATH=crate python3 -m ix_crate stemit --fix-role-titles
 PYTHONPATH=crate python3 -m ix_crate stemit --fix-role-titles --execute
 PYTHONPATH=crate python3 -m ix_crate stemit --fix-role-titles --nml --execute
+PYTHONPATH=crate python3 -m ix_crate stemit --fix-industry-artists
+PYTHONPATH=crate python3 -m ix_crate stemit --fix-titles
+PYTHONPATH=crate python3 -m ix_crate stemit --drop-copies
+PYTHONPATH=crate python3 -m ix_crate stemit --genres
+PYTHONPATH=crate python3 -m ix_crate stemit --dedupe
+PYTHONPATH=crate python3 -m ix_crate stemit --sync-playlists
 ```
 
 ## Tagging

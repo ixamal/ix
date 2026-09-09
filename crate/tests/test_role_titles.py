@@ -6,8 +6,14 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from ix_crate.families import family_key, is_role_file, strip_role_markup
-from ix_crate.role_titles import identity_for_role, patch_nml_titles, plan_role_titles
-from ix_crate.stems_playlists import _traktor_dir_file, classify, filing_from_path
+from ix_crate.role_titles import (
+    apply_nml_store_titles,
+    identity_for_role,
+    patch_nml_titles,
+    plan_nml_store_titles,
+    plan_role_titles,
+)
+from ix_crate.stems_playlists import _traktor_dir_file, classify, filing_from_path, is_cloud_path, walk_stems
 
 
 class StripRoleMarkupTests(unittest.TestCase):
@@ -113,7 +119,7 @@ class IdentityForRoleTests(unittest.TestCase):
             artist, album, title = filing_from_path(path, root)
             self.assertEqual(title, "God is God")
             self.assertNotEqual(title, "vocals")
-            self.assertEqual(artist, "IndustryStems")
+            self.assertEqual(artist, "")
 
     def test_plan_includes_wav_and_taggable(self) -> None:
         with TemporaryDirectory() as tmp:
@@ -160,6 +166,81 @@ class IdentityForRoleTests(unittest.TestCase):
     def test_classify_bare_vocals(self) -> None:
         self.assertEqual(classify(Path("vocals.wav")), "Acapellas")
         self.assertEqual(classify(Path("vocals (2).wav")), "Acapellas")
+
+    def test_beatport_role_title_is_pretty(self) -> None:
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            dest = root / "Venture" / "Lost & Found"
+            dest.mkdir(parents=True)
+            path = dest / "12432715_Together_We_Fall_(Alexvnder_Remix)_vocals.mp3"
+            path.write_bytes(b"vox")
+            item = identity_for_role(path, root=root)
+            self.assertEqual(item.title, "Together We Fall (Alexvnder Remix)")
+
+    def test_nml_store_titles_and_cloud_drop(self) -> None:
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            dest = root / "stems_audio" / "Venture" / "Lost and Found"
+            dest.mkdir(parents=True)
+            local = dest / "12432715_Together_We_Fall_(Alexvnder_Remix)_vocals.mp3"
+            local.write_bytes(b"vox")
+            cloud = (
+                root
+                / "Library"
+                / "CloudStorage"
+                / "GoogleDrive-x"
+                / ".shortcut-targets-by-id"
+                / "abc"
+                / "Trotter Dubplate Mix.m4a"
+            )
+            cloud.parent.mkdir(parents=True)
+            cloud.write_bytes(b"cloud")
+            nml = Path(tmp) / "collection.nml"
+            loc_a, file_a = _traktor_dir_file(local.resolve())
+            loc_b, file_b = _traktor_dir_file(cloud.resolve())
+            nml.write_text(
+                '<?xml version="1.0" encoding="UTF-8"?>\n'
+                "<NML VERSION=\"20\">"
+                "<COLLECTION ENTRIES=\"2\">"
+                f'<ENTRY TITLE="12432715_Together_We_Fall_(Alexvnder_Remix)" ARTIST="Venture">'
+                f'<LOCATION DIR="{loc_a}" FILE="{file_a}" VOLUME="Macintosh HD"/>'
+                "</ENTRY>"
+                f'<ENTRY TITLE="Dubplate Mix" ARTIST="Trotter">'
+                f'<LOCATION DIR="{loc_b}" FILE="{file_b}" VOLUME="Macintosh HD"/>'
+                "</ENTRY></COLLECTION>"
+                "<PLAYLISTS><NODE TYPE=\"FOLDER\" NAME=\"$ROOT\"><SUBNODES COUNT=\"1\">"
+                '<NODE TYPE="PLAYLIST" NAME="STEMIT">'
+                '<PLAYLIST ENTRIES="1" TYPE="LIST" UUID="x">'
+                f'<ENTRY><PRIMARYKEY TYPE="TRACK" KEY="Macintosh HD{loc_b}{file_b}"/></ENTRY>'
+                "</PLAYLIST></NODE></SUBNODES></NODE></PLAYLISTS>"
+                "</NML>",
+                encoding="utf-8",
+            )
+            self.assertTrue(is_cloud_path(cloud, root))
+            self.assertEqual(len(walk_stems(root)), 1)
+            fixes = plan_nml_store_titles(nml)
+            titled, dropped = apply_nml_store_titles(fixes, nml=nml, execute=True)
+            self.assertEqual(titled, 1)
+            self.assertEqual(dropped, 1)
+            tree = ET.parse(nml)
+            entries = tree.findall("COLLECTION/ENTRY")
+            self.assertEqual(len(entries), 1)
+            self.assertEqual(entries[0].get("TITLE"), "Together We Fall (Alexvnder Remix)")
+            playlist = tree.find(".//PLAYLIST")
+            self.assertEqual(playlist.get("ENTRIES"), "0")
+
+    def test_walk_skips_library_cloud(self) -> None:
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            keep = root / "Trotter" / "Burning Man 2014 Mix"
+            keep.mkdir(parents=True)
+            (keep / "Trotter Dubplate Mix.m4a").write_bytes(b"local")
+            cloud = root / "Library" / "CloudStorage" / "GoogleDrive-x" / "mix.m4a"
+            cloud.parent.mkdir(parents=True)
+            cloud.write_bytes(b"cloud")
+            files = walk_stems(root)
+            self.assertEqual(len(files), 1)
+            self.assertEqual(files[0].path.name, "Trotter Dubplate Mix.m4a")
 
 
 if __name__ == "__main__":

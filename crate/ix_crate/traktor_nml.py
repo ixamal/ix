@@ -472,9 +472,9 @@ def main(argv: list[str] | None = None) -> int:
     plan.twins = twins
     dropped = drop_paths_from_nml(tree.getroot(), [Path(item.drop) for item in twins])
     backup = write_nml(tree, TRAKTOR_NML)
-    from ix_crate.stems_playlists import traktor_index, walk_stems, write_traktor
+    from ix_crate.stems_playlists import prefer_crate_files, traktor_index, walk_stems, write_traktor
 
-    files = walk_stems()
+    files = prefer_crate_files(walk_stems(), STEMS_AUDIO)
     index = traktor_index(TRAKTOR_NML)
     added = write_traktor(files, index, TRAKTOR_NML)
     plan.stemit_rebuilt = True

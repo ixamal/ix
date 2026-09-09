@@ -14,14 +14,16 @@ from __future__ import annotations
 import shutil
 import uuid
 import xml.etree.ElementTree as ET
+from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterable
 from urllib.parse import quote, unquote
 
-from ix_crate.families import STEM_SUFFIXES, is_role_file, strip_role_markup
+from ix_crate.families import ROLE_NAMES, STEM_SUFFIXES, family_key, is_role_file, strip_role_markup
+from ix_crate.identify import is_placeholder_artist, normalize_title, parse_filename
 from ix_crate.paths import AUDIO_EXTS, STEMS_AUDIO
-from ix_crate.riff_repair import copy_number
+from ix_crate.riff_repair import finder_copy_number
 
 PLAYLISTS = ("Mixes", "Stems", "Acapellas", "Instrumentals")
 TRAKTOR_NML = (
@@ -85,6 +87,19 @@ def classify(path: Path) -> str | None:
     return None
 
 
+def is_cloud_path(path: Path, root: Path | None = None) -> bool:
+    """Google Drive / File Provider nests. Not local crate audio."""
+    text = str(path).lower()
+    if "cloudstorage" in text or ".shortcut-targets-by-id" in text:
+        return True
+    base = (root or STEMS_AUDIO).expanduser()
+    try:
+        rel = path.expanduser().resolve().relative_to(base.resolve())
+    except ValueError:
+        return False
+    return bool(rel.parts) and rel.parts[0] == "Library"
+
+
 def walk_stems(root: Path | None = None) -> list[DiskFile]:
     base = (root or STEMS_AUDIO).expanduser()
     found: list[DiskFile] = []
@@ -93,7 +108,9 @@ def walk_stems(root: Path | None = None) -> list[DiskFile]:
     for path in base.rglob("*"):
         if not path.is_file() or path.name.startswith("."):
             continue
-        if copy_number(path.stem) > 0:
+        if is_cloud_path(path, base):
+            continue
+        if finder_copy_number(path) > 0:
             continue
         crate = classify(path)
         if crate:
@@ -108,16 +125,162 @@ def filing_from_path(path: Path, root: Path) -> tuple[str, str, str]:
 
     item = identity_for_role(path, root=root)
     if item.title:
-        return item.artist, item.album, item.title
+        artist = "" if is_placeholder_artist(item.artist) else item.artist
+        return artist, item.album, item.title
     try:
         rel = path.resolve().relative_to(root.expanduser().resolve())
     except ValueError:
         return "", "", strip_role_markup(path.stem)
     parts = list(rel.parts)
     artist = parts[0] if len(parts) > 1 else ""
+    if is_placeholder_artist(artist):
+        artist = ""
     album = parts[1] if len(parts) > 2 else "Singles"
     title = strip_role_markup(path.stem) or path.stem
     return artist, album, title
+
+
+DUMP_ALBUMS = {
+    "stems spring blossoms",
+    "stems",
+    "industry-stems",
+    "industry stems",
+    "industrystems",
+    "mashups",
+    "unknown album",
+}
+
+
+def _folder_artist(path: Path, root: Path) -> str:
+    try:
+        rel = path.resolve().relative_to(root.expanduser().resolve())
+    except ValueError:
+        return ""
+    artist = rel.parts[0] if rel.parts else ""
+    return "" if is_placeholder_artist(artist) else artist
+
+
+def crate_identity(
+    item: DiskFile,
+    root: Path,
+    resolved: dict[Path, object] | None = None,
+) -> tuple[str, str, str]:
+    artist, _album, filed_title = filing_from_path(item.path, root)
+    hit = (resolved or {}).get(item.path.resolve())
+    if hit is not None:
+        artist = getattr(hit, "artist", None) or artist
+        filed_title = getattr(hit, "title", None) or filed_title
+    title = normalize_title(family_key(item.path)) or normalize_title(filed_title)
+    if not title or title in ROLE_NAMES:
+        title = normalize_title(filed_title)
+    if not artist:
+        artist = _folder_artist(item.path, root)
+    if is_dump_path(item.path, root):
+        try:
+            rel = item.path.resolve().relative_to(root.expanduser().resolve())
+        except ValueError:
+            rel = Path(item.path.name)
+        parts = list(rel.parts)
+        if parts and (
+            is_placeholder_artist(parts[0])
+            or parts[0].lower().replace(" ", "").replace("-", "") == "industrystems"
+        ):
+            title = f"{title} industry-pack"
+        if len(parts) >= 3 and parts[1].lower() == "mashups":
+            artist = parts[2]
+        elif is_placeholder_artist(artist) or artist.lower() == "compilations":
+            parsed, _al, _t = parse_filename(item.path.stem)
+            artist = parsed or ""
+    return (
+        item.crate,
+        normalize_title(artist),
+        normalize_title(title) or item.path.stem.lower(),
+    )
+
+
+def is_dump_path(path: Path, root: Path) -> bool:
+    try:
+        rel = path.resolve().relative_to(root.expanduser().resolve())
+    except ValueError:
+        return False
+    parts = [part.lower() for part in rel.parts]
+    if parts and parts[0] in DUMP_ALBUMS | {"compilations", "unknown artist", "unknown", "archive"}:
+        return True
+    if len(parts) > 1 and (parts[1] in DUMP_ALBUMS or parts[1].startswith("stems")):
+        return True
+    return False
+
+
+def crate_keep_score(path: Path, root: Path) -> tuple[int, str]:
+    """Higher wins. Prefer Artist/Album factory files over Mashups dumps."""
+    score = 0
+    name = path.name.lower()
+    if ".stem" in name and name.endswith(".m4a"):
+        score += 100
+    elif ".stem" in name and name.endswith(".mp3"):
+        score += 40
+    elif ".stem" in name and name.endswith(".mp4"):
+        score += 10
+    elif path.suffix.lower() in {".m4a", ".mp3"}:
+        score += 30
+    elif path.suffix.lower() in {".wav", ".aiff", ".aif"}:
+        score += 5
+    if path.stem.lower() in {"vocals", "instrumental", "drums", "bass", "other"}:
+        score -= 20
+    if is_dump_path(path, root):
+        score -= 50
+    try:
+        top = path.resolve().relative_to(root.expanduser().resolve()).parts[0].lower()
+    except ValueError:
+        top = ""
+    if top in {"compilations", "unknown artist", "unknown", "archive"}:
+        score -= 40
+    if "tuberipper" in name:
+        score -= 20
+    return score, str(path).lower()
+
+
+def prefer_crate_files(
+    files: list[DiskFile],
+    root: Path,
+    *,
+    resolved: dict[Path, object] | None = None,
+) -> list[DiskFile]:
+    """One file per STEMIT crate identity. Mix/stem/vocals stay four crates.
+
+    Empty-artist mixes keep their folder artist so Club Angel and a Mashups
+    dump of the same title can collapse, but two untitled mixes do not.
+    """
+    groups: dict[tuple[str, str, str], list[DiskFile]] = defaultdict(list)
+    dumps: list[DiskFile] = []
+    for item in files:
+        key = crate_identity(item, root, resolved)
+        if is_dump_path(item.path, root) and not key[1]:
+            dumps.append(item)
+            continue
+        groups[key].append(item)
+    by_crate_title: dict[tuple[str, str], list[tuple[str, str, str]]] = defaultdict(list)
+    for key in groups:
+        by_crate_title[(key[0], key[2])].append(key)
+    for item in dumps:
+        crate, _artist, title = crate_identity(item, root, resolved)
+        candidates = by_crate_title.get((crate, title), [])
+        if len(candidates) == 1:
+            groups[candidates[0]].append(item)
+            continue
+        parsed, _al, _t = parse_filename(item.path.stem)
+        want = normalize_title(parsed)
+        matched = [key for key in candidates if key[1] == want] if want else []
+        if len(matched) == 1:
+            groups[matched[0]].append(item)
+            continue
+        groups[(crate, want or f"dump:{item.path.parent.name.lower()}", title)].append(item)
+    kept: list[DiskFile] = []
+    for rows in groups.values():
+        winner = max(rows, key=lambda row: crate_keep_score(row.path, root))
+        kept.append(winner)
+    kept.sort(key=lambda item: (item.crate, str(item.path).lower()))
+    return kept
 
 
 def _loc_to_path(directory: str, file_attr: str) -> Path:
@@ -197,7 +360,7 @@ def plan_sync(
     xml: Path | None = None,
 ) -> tuple[SyncPlan, list[DiskFile]]:
     root = (stems_root or STEMS_AUDIO).expanduser()
-    files = walk_stems(root)
+    files = prefer_crate_files(walk_stems(root), root)
     plan = SyncPlan(scanned=len(files))
     for name in PLAYLISTS:
         plan.crates[name] = PlaylistSync(crate=name)
@@ -323,6 +486,7 @@ def write_traktor(
     collection = root.find("COLLECTION")
     if collection is None:
         raise RuntimeError("Traktor NML is missing COLLECTION")
+    files = list(files)
     added = ensure_traktor_entries(
         files, index, collection, (stems_root or STEMS_AUDIO).expanduser()
     )
@@ -349,6 +513,11 @@ def write_traktor(
             ET.SubElement(entry, "PRIMARYKEY", TYPE=pk_type, KEY=key)
             count += 1
         playlist.set("ENTRIES", str(count))
+    from ix_crate.stemit_genres import apply_genre_crates
+
+    apply_genre_crates(
+        root, files, index, (stems_root or STEMS_AUDIO).expanduser()
+    )
     backup = nml.with_suffix(nml.suffix + ".stemit.bak")
     shutil.copy2(nml, backup)
     tree.write(nml, encoding="UTF-8", xml_declaration=True)
@@ -467,7 +636,7 @@ def rebuild_stemit_nml(
     """Rewrite Traktor STEMIT crates only. Does not touch rekordbox.xml."""
     nml_path = nml or TRAKTOR_NML
     root = (stems_root or STEMS_AUDIO).expanduser()
-    files = walk_stems(root)
+    files = prefer_crate_files(walk_stems(root), root)
     return write_traktor(files, traktor_index(nml_path), nml_path, stems_root=root)
 
 

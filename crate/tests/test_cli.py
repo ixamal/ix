@@ -103,6 +103,11 @@ class ParserTest(unittest.TestCase):
         text = buf.getvalue()
         self.assertIn("--fix-role-titles", text)
         self.assertIn("--nml", text)
+        self.assertIn("--fix-industry-artists", text)
+        self.assertIn("--dedupe", text)
+        self.assertIn("--fix-titles", text)
+        self.assertIn("--drop-copies", text)
+        self.assertIn("--genres", text)
 
 
 if __name__ == "__main__":
