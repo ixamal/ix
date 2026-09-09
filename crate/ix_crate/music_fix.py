@@ -110,6 +110,8 @@ tell application "Music"
   on error
     error "playlist not found: {quoted}"
   end try
+  set n to count of file tracks of p
+  if n is 0 then return ""
   set pids to persistent ID of file tracks of p
   set dbids to database ID of file tracks of p
   set nms to name of file tracks of p

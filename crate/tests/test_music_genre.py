@@ -34,6 +34,27 @@ class PromoteTest(unittest.TestCase):
         self.assertEqual(clean_genre("Deep House"), "Deep House")
         self.assertEqual(clean_genre(""), "")
 
+    def test_rekordbox_xml_genre_patch(self) -> None:
+        from ix_crate.music_genre import apply_rekordbox_xml, scan_rekordbox_xml
+
+        with TemporaryDirectory() as tmp:
+            xml = Path(tmp) / "rekordbox.xml"
+            xml.write_text(
+                '<?xml version="1.0" encoding="UTF-8"?>\n'
+                '<DJ_PLAYLISTS Version="1.0.0"><COLLECTION Entries="2">'
+                '<TRACK TrackID="1" Name="A" Genre="EDM, House, Deep"/>'
+                '<TRACK TrackID="2" Name="B" Genre="House"/>'
+                "</COLLECTION></DJ_PLAYLISTS>",
+                encoding="utf-8",
+            )
+            plan = scan_rekordbox_xml(xml)
+            self.assertEqual(len(plan.rows), 1)
+            self.assertEqual(plan.rows[0].genre, "EDM, House, Deep")
+            self.assertEqual(apply_rekordbox_xml(xml), 1)
+            tree = __import__("xml.etree.ElementTree", fromlist=["ET"]).parse(xml)
+            genres = [t.get("Genre") for t in tree.getroot().find("COLLECTION").findall("TRACK")]
+            self.assertEqual(genres, ["Deep House", "House"])
+
 
 class RowTest(unittest.TestCase):
     def test_row_exposes_its_promoted_genre(self) -> None:

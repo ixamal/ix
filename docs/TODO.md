@@ -2,15 +2,13 @@
 
 Hit these in order. Stop on the first **doable** open item. Detail: `docs/notes.md`. Off-repo tools and library paths stay off git.
 
-Last update: 2026-09-08. Playlist **Fix** identity closed (19 + 20). Various Artists fingerprint pass done (21). Screenshot compilations closed (22). **STEMIT** shipped and first playlist is done (23). `EDM, …` recurrence + replicants closed (24). Ghosts culled (25). **music-organize** shipped (26) and second folder pass applied. STEMIT crates shipped (27). Industry Stems + disk copies + genre crates (31–35). Floor **10** parked.
+Last update: 2026-09-09. **Crate night proved in-app.** `favorites` is recording plays + patterns (TODO 41). Review **2026-09-16** and **2026-10-09**. Floor **10** parked. Next hardware: Maschine tap of Traktor A/B/C (11a), then FLX10 CH2 digital (40).
 
 ## Now
 
-Crate is path-stable. Music.app is playable. Sync Library Off. Copy-on-add works. STEMIT proved end to end. Disk names: **17** placeholders + **606** artist-root folder moves.
+Crate is path-stable. Music.app, Traktor, and Rekordbox are playable from the same files. Sync Library Off. STEMIT + Music folders are in the xml sidecar and imported.
 
-**Next:** Reopen Traktor — confirm STEMIT + **Genres**, then DJCU2 (`docs/djcu2.md`). Leftover same-title copies in STEMIT stay for a later pass (roles are four files). Alternative stems, tracks **1–3 only** (TODO 17), or another playlist through **STEMIT** when David names one. Never write Apple Music from the factory. Never stem **Acapella**. Floor 10 when David asks.
-
-Do not start 11 unless David asks. Do not farm 35k to the cloud. Do not Discogs-blast.
+**Next:** Tomorrow (2026-09-09) [Danny Tenaglia Traktor Masterclass](https://superprogressive.mykajabi.com/dannytenaglia) (Super Progressive). After that: leftover same-title copies in STEMIT, Alternative stems **1–3** (TODO 17), or another STEMIT playlist when David names one. Never write Apple Music from the factory. Never stem **Acapella**. Floor 10 when David asks. Do not wire **11 / 11a** until a dedicated blackhole session. Do not farm 35k to the cloud. Do not Discogs-blast.
 
 ## Crate (done)
 
@@ -39,7 +37,10 @@ Do not start 11 unless David asks. Do not farm 35k to the cloud. Do not Discogs-
 - [x] 31. **Industry Stems artists + STEMIT crate keepers.** 2026-09-08: **202/209** packs crate-matched (7 remix leftovers still IndustryStems). Patched **808** NML ARTIST rows. Never WAV tags. STEMIT crates rebuilt: one row per identity, **383** extra playlist rows dropped (Stems 125 groups). Files stayed on disk. Specimens: `docs/examples/stemit-industry-artists.py`, `docs/examples/music-set-industry-artist.applescript`. Reopen Traktor. Then DJCU2.
 - [x] 32. **STEMIT disk dedupe.** 2026-09-08: **286** copies deleted (197 + 89), **43** empty folders pruned. Unique mashups stayed. Industry Stems WAV packs stayed. Live vs studio (FLA Gun) kept. Google Drive shortcut skipped. STEMIT rebuilt. Reopen Traktor. Then DJCU2.
 - [x] 34. **Finder `(2)` copies.** 2026-09-08: deleted **920** disk copies (same title+artist role as the keeper) and dropped missing stems_audio NML rows. Mix/stem/vocals/instrumental stayed four files. Live vs studio stayed. Reopen Traktor. Then DJCU2.
-- [x] 35. **STEMIT genre crates.** 2026-09-08: `stemit --genres --execute` cleaned **3844** NML GENRE rows (`EDM, House, Deep` → Deep House) and wrote **53** `STEMIT/Genres/<Genre>/{Mixes,Stems,Acapellas,Instrumentals}` crates from keepers. Re-run anytime. Reopen Traktor. Then DJCU2.
+- [x] 35. **STEMIT genre crates.** 2026-09-08: NML `STEMIT/Genres` **53** folders. `stemit --genres --execute` promotes the same tree into `rekordbox.xml` (NML stays). DJCU2 is not the folder bridge.
+- [x] 36. **Never Forget playlist refill.** 2026-09-08: `music-playlist` matched **21/21** Downloads filenames to `Media.localized` Songs rows and refilled **Never Forget 50th v01**. Use this after a reorg empties a Music.app playlist. Do not copy Downloads in again.
+- [x] 37. **Playlist membership bridge.** `crates --from music|nml|xml --to music|nml|xml`. Music → `rekordbox.xml/MUSIC/`, NML → `rekordbox.xml/TRAKTOR/`. Path + hardlink match. Collection cues / energy / comments stay. Unmatched tracks skipped, not stubbed. STEMIT stays `stemit --genres`. DJCU2 for cues on tracks Rekordbox does not have. How/why: `docs/crate.md`.
+- [x] 38. **Crate night (2026-09-08).** `music-genre --xml --execute`: **10,457** TRACK Genre rows (`EDM, …` leftover **0**). `crates --from music --to xml --all --execute`: **107** Music.app playlists under `MUSIC/` — **House** 14, **Origin Stories** 90, root DJ Sets / Front to Back / Never Forget 50th v01. **5,131** keys matched; **5,961** Music-only files skipped (not stubbed). Rekordbox imported MUSIC into collection. David playing in Rekordbox + Traktor. Import log skipped **21** files: **16** stale/missing paths, **4** Apple `.m4p` DRM. `<>` reload; Don't ask again + No on tag overwrite.
 
 ## Tagging
 
@@ -70,8 +71,17 @@ Do not start 11 unless David asks. Do not farm 35k to the cloud. Do not Discogs-
 
 ## NI / Maschine (after Floor)
 
-Parked in [ixamal/blackhole](https://github.com/ixamal/blackhole). Do not start while Floor is open.
+Parked in [ixamal/blackhole](https://github.com/ixamal/blackhole). Do not start while Floor is open. David queued **11a** 2026-09-08 — still a dedicated session, not tonight.
 
-- [ ] 11. Port BlackHole **2ch Channel D** onto **16ch**. Then Traktor A/B/C → Maschine sampler → S88.
+- [ ] 11. Port BlackHole **2ch Channel D** onto **16ch**. Prove tone, Traktor A, and S88-only-on-D. Commit in blackhole after this works.
+- [ ] 11a. **Sample Traktor A / B / C into Maschine.** Play pads on the S88. KK out — KK does not sample live decks. Ableton Link is clock, not audio. Internal Traktor may not offer three independent deck outs; 16ch alone does not invent them. Do not record the master into BlackHole while Channel D is up (feedback).
 - [ ] 12. Convert NI/Traktor material to WAV or AIFF only if file samples are needed. `~/local_tools`.
 - [ ] 13. S8 pads → S88 sample slots. After 11.
+
+## FLX10 / Traktor feed
+
+- [ ] 40. **Traktor → DDJ-FLX10 Channel 2 digital.** Today CH2 is analog from Traktor master out. Investigate a USB / Pro DJ Link / audio-interface feed so Rekordbox CH2 is not that analog insert. Leftover hum after the iFi iDefender Max USB-C (Bloom Audio order 52738, 2026-05-08) — that gadget already kills most USB ground-loop / power hum and is worth keeping. Detail: `docs/notes.md`.
+
+## Play history (parked)
+
+- [ ] 41. **Played / Not Played But Should.** `favorites` harvests plays + genre/BPM/energy/vibe (MiK `Energy N` comments). Live JSON gitignored; `favorites --snapshot` is the quarterly git copy (`configs/quarterly/*-2026Q3.json` is the first draft). `Played` = 100 most recent. Daily `Not Played But Should` / Neglected genres / Random / Favorites (12 each); skip crates if the play fingerprint is unchanged. Local LLM reads `play-patterns.json` on `127.0.0.1`. Own-repo the model quarterly if it outgrows crate. Reviews: **2026-09-16**, **2026-10-09**. Nightly 5am: `docs/examples/favorites-nightly.sh` (not loaded). Process: `docs/crate.md`.

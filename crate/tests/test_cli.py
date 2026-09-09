@@ -20,6 +20,8 @@ class DispatchTest(unittest.TestCase):
         self.assertIn("music-cull", text)
         self.assertIn("music-organize", text)
         self.assertIn("traktor-nml", text)
+        self.assertIn("crates", text)
+        self.assertIn("favorites", text)
 
     def test_traktor_nml_help(self) -> None:
         from ix_crate.__main__ import main
@@ -37,7 +39,9 @@ class DispatchTest(unittest.TestCase):
         with patch("sys.stdout", buf), self.assertRaises(SystemExit) as ctx:
             main(["music-genre", "--help"])
         self.assertEqual(ctx.exception.code, 0)
-        self.assertIn("--execute", buf.getvalue())
+        text = buf.getvalue()
+        self.assertIn("--execute", text)
+        self.assertIn("--xml", text)
 
     def test_music_replicants_help(self) -> None:
         from ix_crate.__main__ import main
@@ -92,6 +96,31 @@ class ParserTest(unittest.TestCase):
 
         args = build_parser().parse_args([])
         self.assertFalse(args.execute)
+
+    def test_crates_help(self) -> None:
+        from ix_crate.__main__ import main
+
+        buf = io.StringIO()
+        with patch("sys.stdout", buf), self.assertRaises(SystemExit) as ctx:
+            main(["crates", "--help"])
+        self.assertEqual(ctx.exception.code, 0)
+        text = buf.getvalue()
+        self.assertIn("--execute", text)
+        self.assertIn("--from", text)
+        self.assertIn("--to", text)
+        self.assertIn("--playlist", text)
+
+    def test_favorites_help(self) -> None:
+        from ix_crate.__main__ import main
+
+        buf = io.StringIO()
+        with patch("sys.stdout", buf), self.assertRaises(SystemExit) as ctx:
+            main(["favorites", "--help"])
+        self.assertEqual(ctx.exception.code, 0)
+        text = buf.getvalue()
+        self.assertIn("--execute", text)
+        self.assertIn("--playlists", text)
+        self.assertIn("--snapshot", text)
 
     def test_stemit_help_lists_role_titles(self) -> None:
         from ix_crate.__main__ import main

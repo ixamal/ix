@@ -56,6 +56,10 @@ agent-tools/
 # Crate reports stay off-repo (~/local_tools/crate/reports)
 crate/reports/
 
+# Live play inventory — commit only via `favorites --snapshot` (quarterly)
+configs/favorites.json
+configs/play-patterns.json
+
 # Live DJ collections — absolute /Users/<name>/ paths, never public git
 databases/*.nml
 databases/*.nml.*

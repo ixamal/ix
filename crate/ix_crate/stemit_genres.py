@@ -5,8 +5,9 @@ from the same disk keepers as the four root STEMIT crates. Safe to re-run
 when stems are added or copies dropped.
 
 Cleans ``EDM, …`` and ``House, …`` with ``music_genre.clean_genre``.
-Patches Traktor INFO GENRE only. Never mutagen-writes ``.wav`` /
-``.stem.m4a``. Never writes Apple Music. Rekordbox follows DJCU2.
+Patches Traktor INFO GENRE only when NML is rebuilt. Never mutagen-writes
+``.wav`` / ``.stem.m4a``. Never writes Apple Music. Rekordbox STEMIT /
+Genres crates are written to ``rekordbox.xml`` from the current NML.
 """
 
 from __future__ import annotations
@@ -261,6 +262,69 @@ def write_genre_crates(
                 ET.SubElement(entry, "PRIMARYKEY", TYPE=pk_type, KEY=key)
                 count += 1
             playlist.set("ENTRIES", str(count))
+
+
+def assign_genres(
+    files: list[DiskFile],
+    stems_root: Path,
+    nml: Path | None = None,
+) -> dict[Path, str]:
+    """Genre per keeper from current NML INFO (cleaned). Does not write NML."""
+    nml_path = nml or TRAKTOR_NML
+    entries: dict[Path, object] = {}
+    if nml_path.is_file():
+        collection = ET.parse(nml_path).getroot().find("COLLECTION")
+        if collection is not None:
+            entries = collection_by_path(collection, stems_root)
+    assigned: dict[Path, str] = {}
+    for item in files:
+        path = item.path.resolve()
+        genre, _source = resolve_genre(path, entries.get(path))
+        assigned[path] = genre
+    return assigned
+
+
+def write_rekordbox_genre_crates(
+    stemit_folder: ET.Element,
+    files: list[DiskFile],
+    index: dict[Path, str],
+    assigned: dict[Path, str],
+) -> int:
+    """Append STEMIT/Genres under a Rekordbox STEMIT folder."""
+    grouped: dict[str, dict[str, list[DiskFile]]] = defaultdict(
+        lambda: {name: [] for name in PLAYLISTS}
+    )
+    for item in files:
+        genre = assigned.get(item.path.resolve()) or UNTAGGED
+        if item.crate in grouped[genre]:
+            grouped[genre][item.crate].append(item)
+    genres_folder = ET.SubElement(
+        stemit_folder, "NODE", Name=GENRES_FOLDER, Type="0", Count="0"
+    )
+    genre_count = 0
+    for genre in sorted(grouped, key=str.lower):
+        folder = ET.SubElement(
+            genres_folder, "NODE", Name=genre, Type="0", Count=str(len(PLAYLISTS))
+        )
+        for name in PLAYLISTS:
+            keys = [
+                index[item.path]
+                for item in grouped[genre][name]
+                if item.path in index
+            ]
+            node = ET.SubElement(
+                folder,
+                "NODE",
+                Name=name,
+                Type="1",
+                KeyType="0",
+                Entries=str(len(keys)),
+            )
+            for tid in keys:
+                ET.SubElement(node, "TRACK", Key=tid)
+        genre_count += 1
+    genres_folder.set("Count", str(genre_count))
+    return genre_count
 
 
 def apply_genre_crates(

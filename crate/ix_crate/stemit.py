@@ -13,9 +13,9 @@ yet imported get a collection location row. Analyze stays in-app.
 onto owned ``.mp3`` / ``.m4a``. ``--fix-industry-artists`` fills artist
 on Industry Stems WAV packs from the crate, patches Traktor NML, and
 keeps one STEMIT playlist row per identity. ``--fix-titles`` pretties Beatport catalog TITLEs in NML and drops
-Google Drive shortcut rows. ``--nml`` patches Traktor
-TITLE after quit; Rekordbox follows via DJCU2, not our XML write.
-Never mutagen-writes ``.stem.m4a``. Never stems Acapella. Skip if
+Google Drive shortcut rows. ``--genres`` promotes STEMIT/Genres into ``rekordbox.xml`` from the
+current NML. NML stays unless ``--nml``. Never mutagen-writes
+``.stem.m4a``. Never stems Acapella. Skip if
 that Artist/Album/Title already has a ``.stem.m4a``. Dry-run is the
 default.
 """
@@ -248,7 +248,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--genres",
         action="store_true",
-        help="Clean EDM/House comma genres on STEMIT NML rows and rebuild STEMIT/Genres crates.",
+        help="Promote STEMIT/Genres into rekordbox.xml from current NML keepers. NML stays unless --nml.",
     )
     parser.add_argument(
         "--dedupe",
@@ -263,7 +263,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--nml",
         action="store_true",
-        help="With --fix-role-titles or --fix-industry-artists, patch collection.nml. Quit Traktor first.",
+        help="With --fix-role-titles, --fix-industry-artists, or --genres, also patch collection.nml. Quit Traktor first.",
     )
     parser.add_argument(
         "--offline",
@@ -318,24 +318,34 @@ def main(argv: list[str] | None = None) -> int:
             write_genre_report,
         )
         from ix_crate.role_titles import traktor_is_running
-        from ix_crate.stems_playlists import rebuild_stemit_nml
+        from ix_crate.stems_playlists import rebuild_stemit_nml, rebuild_stemit_xml, rekordbox_is_running
 
         plan, _files, _assigned = plan_genre_crates()
         print(format_genre_plan(plan), flush=True)
-        report = write_genre_report(plan, {"execute": args.execute})
+        report = write_genre_report(plan, {"execute": args.execute, "nml": args.nml})
         print(f"report: {report}", flush=True)
-        if args.execute and traktor_is_running():
-            print("Traktor is open. Quit it before --execute writes collection.nml.", flush=True)
+        if args.execute and rekordbox_is_running():
+            print("Rekordbox is open. Quit it before --execute writes rekordbox.xml.", flush=True)
+            return 2
+        if args.execute and args.nml and traktor_is_running():
+            print("Traktor is open. Quit it before --nml --execute writes collection.nml.", flush=True)
             return 2
         if not args.execute:
             print(
-                "dry-run. pass --execute to patch STEMIT INFO GENRE and rebuild STEMIT/Genres. "
-                "Never writes wav or .stem.m4a tags.",
+                "dry-run. pass --execute to write STEMIT/Genres into rekordbox.xml. "
+                "NML stays unless --nml. Never writes wav or .stem.m4a tags.",
                 flush=True,
             )
             return 0
-        rebuild_stemit_nml()
-        print("STEMIT/Genres rebuilt. Reopen Traktor.", flush=True)
+        if args.nml:
+            rebuild_stemit_nml()
+            print("STEMIT/Genres rebuilt in NML.", flush=True)
+        added = rebuild_stemit_xml()
+        print(
+            f"rekordbox.xml STEMIT/Genres written (+{added} collection rows). "
+            "Reopen Rekordbox and refresh the XML crate (or drag STEMIT in).",
+            flush=True,
+        )
         return 0
 
     if args.drop_copies:

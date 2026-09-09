@@ -2,7 +2,7 @@
 
 Parking lot for crate, tagging, and hardware ideas. Ordered checklist: `docs/TODO.md`. Agents: read both, then stop unless David asks to act. Off-repo tools and library paths stay off git.
 
-Last update: 2026-09-08. STEMIT night: Industry Stems artists (31), disk dedupe **286** (32), Beatport TITLEs **229**, Finder `(2)` copies **920** (34), genre crates **53** (35). Mix / stem / vocals / instrumental stay four files. Leftover same-title copies in Traktor are still there — next drop after DJCU2 unless David asks first. **Next on the Mac:** reopen Traktor, confirm STEMIT + Genres, then DJCU2 (`docs/djcu2.md`). Alternative stems 1–3 (TODO 17) unless David names another playlist. Floor **10** parked. Toolkit: README. How/why: `docs/crate.md`.
+Last update: 2026-09-09. **Milestone:** David is playing in Rekordbox and Traktor. `favorites` records plays + patterns (TODO 41); first quarterly draft is `configs/quarterly/*-2026Q3.json`. Reviews **2026-09-16** and **2026-10-09**. Hardware next: Maschine A/B/C (11a), FLX10 CH2 digital (40). Floor **10** parked. Toolkit: README. How/why: `docs/crate.md`.
 
 ## Crate status
 
@@ -17,13 +17,19 @@ Reports (off git): `~/local_tools/crate/reports/`. Cache: `~/local_tools/crate/l
 
 Traktor (2026-08-30): NML remapped, then [ATGR DJCU2](https://atgr.nl/) converted the collection to Rekordbox. It works. ix does not reimplement that bridge. Snapshots: `databases/` (off git). Steps: `docs/djcu2.md`.
 
+### Milestone (2026-09-08)
+
+Rekordbox + Traktor are fun-playable from the path-stable crate. `music-genre --xml` cleaned **10,457** sidecar Genre rows. `crates --all` wrote **107** Music.app playlists (House + Origin Stories + three root crates). Rekordbox imported MUSIC into collection. Import skipped 21 files (16 dead paths, 4 `.m4p`). Cues stayed on collection rows.
+
 ### Resume next
 
-1. **Remap leftover:** Rekordbox XML **539** + master.db **38**. Traktor live NML remapped **561** (backup `collection.nml.pre-organize-606-20260906T142655`). Leftover junk with identity: **51** added to Music.app (library **21,875**).
-2. **STEMIT** (31–35): reopen Traktor. Confirm Industry Stems artists, thinner crates, `STEMIT/Genres/<Genre>/{Mixes,Stems,Acapellas,Instrumentals}`. Leftover same-title copies still show — they are not the four role files. Then DJCU2 (`docs/djcu2.md`). Do not rewrite `rekordbox.xml`. Alternative stems 1–3 (TODO 17) unless David names another playlist.
-2a. Sanity later: `stemit --genres` / `--drop-copies` / `--dedupe` (dry-run first). Quit Traktor for `--execute`.
-3. Floor **10** parked until David asks.
-4. Items 5 / 5b / 6 stay omitted. Do not Discogs-blast. Targeted one-album Discogs from a screenshot is OK (TODO 22 / `docs/crate.md`).
+1. **2026-09-09:** [Danny Tenaglia: Traktor Masterclass](https://superprogressive.mykajabi.com/dannytenaglia) (Super Progressive / William Noglows). 8 modules, 25 videos, ~4 h. Traktor + Pioneer DJM-V10 + Kontrol F1; concepts also map to Rekordbox / Ableton. Labor Day sale $139 through 2026-09-14. Take notes after class — do not change the crate tonight.
+2. Leftover same-title copies in STEMIT. Alternative stems 1–3 (TODO 17) unless David names another playlist.
+3. **11 / 11a** when David opens a blackhole session: 16ch, then Traktor A/B/C → Maschine sampler → S88.
+4. **40** Investigate Traktor → FLX10 Channel 2 as a digital feed (today: analog master).
+5. Floor **10** parked until David asks.
+6. **41** Played / Not Played But Should — harvest + patterns live; crates via `--playlists`. Load the 5am LaunchAgent only when David asks. Quarterly `--snapshot` into git, not nightly.
+7. Items 5 / 5b / 6 stay omitted. Do not Discogs-blast. Targeted one-album Discogs from a screenshot is OK (TODO 22 / `docs/crate.md`).
 
 ```bash
 PYTHONPATH=crate python3 -m ix_crate unknown-album
@@ -38,6 +44,11 @@ PYTHONPATH=crate python3 -m ix_crate music-replicants
 PYTHONPATH=crate python3 -m ix_crate music-cull
 PYTHONPATH=crate python3 -m ix_crate music-organize
 PYTHONPATH=crate python3 -m ix_crate music-organize --playlist Fix
+PYTHONPATH=crate python3 -m ix_crate music-organize --execute
+PYTHONPATH=crate python3 -m ix_crate music-playlist
+PYTHONPATH=crate python3 -m ix_crate music-playlist --execute
+PYTHONPATH=crate python3 -m ix_crate music-genre
+PYTHONPATH=crate python3 -m ix_crate music-genre --xml
 PYTHONPATH=crate python3 -m ix_crate riff-repair
 PYTHONPATH=crate python3 -m ix_crate music-fix --playlist Fix
 PYTHONPATH=crate python3 -m ix_crate music-fix --playlist Fix --execute
@@ -52,6 +63,13 @@ PYTHONPATH=crate python3 -m ix_crate stemit --drop-copies
 PYTHONPATH=crate python3 -m ix_crate stemit --genres
 PYTHONPATH=crate python3 -m ix_crate stemit --dedupe
 PYTHONPATH=crate python3 -m ix_crate stemit --sync-playlists
+PYTHONPATH=crate python3 -m ix_crate crates --from music --to xml --playlist "Never Forget 50th v01"
+PYTHONPATH=crate python3 -m ix_crate crates --from music --to xml --all
+PYTHONPATH=crate python3 -m ix_crate crates --from nml --to xml --playlist "Humid chills"
+PYTHONPATH=crate python3 -m ix_crate favorites
+PYTHONPATH=crate python3 -m ix_crate favorites --execute
+PYTHONPATH=crate python3 -m ix_crate favorites --execute --playlists
+PYTHONPATH=crate python3 -m ix_crate favorites --execute --snapshot
 ```
 
 ## Tagging
@@ -75,9 +93,9 @@ Path-stable crate done 2026-08-30. Accapella + `EDM, …` genre pass done 2026-0
 
 ix Floor stays live OSC (`/rekordbox/bpm`, `/fader`, `/beat_phase`). It does not convert libraries or write ID3.
 
-## NI / Maschine (idea, crate stable, not started)
+## NI / Maschine (queued)
 
-Crate is path-stable (TODO 3) and the genre pass is closed (TODO 4). The old “wait until the crate is stable” gate is lifted. Still do not wire this until David asks. Execution lives in [ixamal/blackhole](https://github.com/ixamal/blackhole), not this repo.
+Crate is path-stable and playable (TODO 3 + 38). David queued **11a** 2026-09-08: sample Traktor **A / B / C into Maschine**. Execution lives in [ixamal/blackhole](https://github.com/ixamal/blackhole), not this repo. Dedicated session — do not wire during crate or Floor work.
 
 Working rig (2026-08-22): S88 keys (Light Guide) into Komplete Kontrol or Maschine, down **BlackHole 2ch**, into Traktor Channel D, out the S8 fader. KK and Maschine share one D fader. Leave Maschine Input off BlackHole (loop). Leave S8 unchecked in Maschine MIDI. Close KK when Maschine needs the S88.
 
@@ -88,13 +106,42 @@ Working rig (2026-08-22): S88 keys (Light Guide) into Komplete Kontrol or Maschi
 3. Convert Traktor / NI material to WAV or AIFF for Maschine + S88 only if file samples are needed. Off-repo under `~/local_tools`.
 4. **Idea to try:** can **Traktor Kontrol S8** pads drive **S88** sample slots (Maschine / Komplete Kontrol S88)? MIDI/bridge after 1–2.
 
-Keep converters and MIDI maps in `~/local_tools`, not in this public repo. Rekordbox / FLX10 stays later — keep RB shut during this work.
+Keep converters and MIDI maps in `~/local_tools`, not in this public repo. Keep Rekordbox shut during the 16ch / sampler graph so FLX10 USB is not in the same fight.
+
+## FLX10 Channel 2 + USB noise
+
+Rekordbox **DDJ-FLX10 Channel 2** is analog from Traktor master out today. TODO **40**: see whether Traktor can feed CH2 digitally (USB audio / interface / Link) so that insert is not the analog master.
+
+USB ground-loop / 5 V power hum on this rig: **iFi iDefender Max** (USB-C). Bought from [Bloom Audio](https://bloomaudio.com/) 2026-05-08, order **52738**. It sits on the USB path and strips host power so the interface is not sharing a dirty 5 V rail. David: it works pretty well. Leftover noise after that insert is why CH2 digital is on the list — do not rip the iDefender out while chasing 40. Note for anyone cloning the hall: try the iDefender Max before buying another mixer or a new interface.
 
 ## Parked in siblings (not this repo)
 
 - [ixamal/blackhole](https://github.com/ixamal/blackhole) — 2ch Channel D works. Next: 16ch, then A/B/C → Maschine → S88.
 - [ixamal/ix_bangers](https://github.com/ixamal/ix_bangers) — Bangers MCP catalog (stems, Music, Rekordbox, Traktor). Dry mode until David says commit. Not native Traktor.
 - [ixamal/stems](https://github.com/ixamal/stems) — factory idle after the first `stems_audio` pass. Parked there: dump the crate to JSON + a spreadsheet webpage. Not now.
+
+## Played / Not Played But Should (TODO 41)
+
+```bash
+PYTHONPATH=crate python3 -m ix_crate favorites
+PYTHONPATH=crate python3 -m ix_crate favorites --execute
+PYTHONPATH=crate python3 -m ix_crate favorites --execute --playlists
+PYTHONPATH=crate python3 -m ix_crate favorites --execute --snapshot
+```
+
+**Crates:** stable names. `Played` is the **100 most recent** (`last_played`). `Not Played But Should` has three subcrates of **12** each — neglected genres (genres you play that still have sitting tracks), random, favorites-match (genre + BPM ±6 + energy ±1). Skip playlist writes when the play fingerprint is unchanged (no new decks). Full 22k not-played stays in JSON only.
+
+**Patterns for the local LLM:** `configs/play-patterns.json` — genre / BPM band / energy / vibe histograms from played mixes. Vibe is `{genre}|{bpm-band}|e{energy}|{key}`, from tags (MiK `06A - Energy 5`), not invented. Ollama stays on `127.0.0.1:11434`. Do not farm this to the cloud.
+
+**Git:** `configs/favorites.json` and `play-patterns.json` are gitignored. Once a quarter: `favorites --execute --snapshot` → `configs/quarterly/favorites-YYYYQn.json` (played + stats, no 22k sitting list) + `play-patterns-YYYYQn.json`, then commit those two. Not nightly.
+
+**Nightly 5am:** LaunchAgent example `docs/examples/ai.ixamal.crate-favorites.plist` + `favorites-nightly.sh`. Not loaded until David asks. Skips NML/XML if Traktor/Rekordbox are open.
+
+**When the LLM gets its own repo:** keep it in crate + `~/local_tools/ollama` until a quarterly review says it outgrew this tree — fine-tune weights, an eval set, or a pattern corpus that is a product. Then [ixamal](https://github.com/ixamal) (e.g. `crate-oracle`), still loopback-only, no collection paths. Quarterly is the right cadence; do not split early.
+
+**Reviews booked:** week 1 **2026-09-16**, month 1 **2026-10-09**. Process: `docs/crate.md` (favorites). First quarterly draft in git: `configs/quarterly/*-2026Q3.json`.
+
+First harvest 2026-09-09: **812** played, **22,266** not played, **9** star-rated, **162** with Energy comments.
 
 ## Do not do until asked
 
@@ -103,7 +150,7 @@ Keep converters and MIDI maps in `~/local_tools`, not in this public repo. Rekor
 - Run OneTagger against Apple Music streams (`.m4p`).
 - Turn on Music.app **Sync Library** on this DJ crate (still matches/replaces local files; not a hybrid keep-local mode).
 - Convert NI/Traktor audio to WAV/AIFF.
-- Port BlackHole 2ch → 16ch, or tap Traktor A/B/C into Maschine.
+- Wire BlackHole 16ch / Traktor A/B/C → Maschine (11 / 11a) except in a dedicated blackhole session.
 - MIDI-map S8 pads to S88 samples.
 - Run Bangers writes (dry catalog only; [ixamal/ix_bangers](https://github.com/ixamal/ix_bangers)).
 - Re-run crate `--execute` on a live tree unless David asks.

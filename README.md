@@ -102,7 +102,7 @@ PYTHONPATH=crate python3 -m ix_crate music-cull --execute
 - Fill *empty* genres when Beatport works again. Do not blast the old EDM set.
 - While processing, stamp owned songs with whatever we already know or can look up (artist, album, title, genre, length, BPM, key, comments, cues). Same kind of store databases OneTagger uses. Do not smash STEM files or overwrite Mixed in Key / ReCK. For STEMs, keep that data beside the file as JSON so Traktor’s four decks stay intact.
 - Wire the DJ decks into Unreal so the visuals follow the music.
-- Bigger audio path, then sampling decks into Maschine / S88 — written down, not wired.
+- Bigger audio path, then sampling Traktor A/B/C into Maschine / S88 — queued as TODO **11a**, not wired.
 
 ### Where we are headed — Elysium
 

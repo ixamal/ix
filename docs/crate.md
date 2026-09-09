@@ -38,6 +38,10 @@ PYTHONPATH=crate python3 -m ix_crate music-reconcile          # relink ! rows fr
 PYTHONPATH=crate python3 -m ix_crate music-reconcile --execute
 PYTHONPATH=crate python3 -m ix_crate music-genre              # promote 'EDM, X' → 'X' (dry-run)
 PYTHONPATH=crate python3 -m ix_crate music-genre --execute    # write file tags + Music.app genre
+PYTHONPATH=crate python3 -m ix_crate music-genre --xml        # rekordbox.xml TRACK Genre (dry-run)
+PYTHONPATH=crate python3 -m ix_crate music-genre --xml --execute
+PYTHONPATH=crate python3 -m ix_crate music-playlist          # refill a Music.app playlist from Downloads filenames
+PYTHONPATH=crate python3 -m ix_crate music-playlist --execute
 PYTHONPATH=crate python3 -m ix_crate music-replicants         # same recording, two filenames (dry-run)
 PYTHONPATH=crate python3 -m ix_crate music-replicants --execute
 PYTHONPATH=crate python3 -m ix_crate music-cull               # drop ! / missing / unreadable rows (dry-run)
@@ -70,6 +74,14 @@ PYTHONPATH=crate python3 -m ix_crate stemit --playlist "Never Forget 50th v01"
 PYTHONPATH=crate python3 -m ix_crate stemit --playlist "Never Forget 50th v01" --execute
 PYTHONPATH=crate python3 -m ix_crate traktor-nml
 PYTHONPATH=crate python3 -m ix_crate traktor-nml --execute
+PYTHONPATH=crate python3 -m ix_crate crates --from music --to xml --playlist "Never Forget 50th v01"
+PYTHONPATH=crate python3 -m ix_crate crates --from music --to xml --playlist "Never Forget 50th v01" --execute
+PYTHONPATH=crate python3 -m ix_crate crates --from nml --to xml --playlist "Humid chills"
+PYTHONPATH=crate python3 -m ix_crate crates --from xml --to music --playlist "Never Forget 50th v01"
+PYTHONPATH=crate python3 -m ix_crate favorites
+PYTHONPATH=crate python3 -m ix_crate favorites --execute
+PYTHONPATH=crate python3 -m ix_crate favorites --execute --playlists
+PYTHONPATH=crate python3 -m ix_crate favorites --execute --snapshot
 ```
 
 ## After this dump
@@ -152,11 +164,13 @@ PYTHONPATH=crate python3 -m ix_crate consolidate "/Volumes/<drive>/<path>" --ind
 
 The 2026-08-30 OneTagger pass (`docs/onetagger.md`) cleared `EDM, …` from the crate. Consolidating the migration drive brought the spelling back on tracks that had never been through that pass.
 
-`music-genre` strips a leading `EDM,` only (`EDM, House` → `House`, `EDM, House, Deep` → `House, Deep`). Slash store spellings (`Funk / Soul / Disco`, `Electronica / Downtempo`) are left alone. Music.app does **not** re-read file tags, so the write is two-layer: mutagen on owned `.mp3` / `.m4a` (never `.m4p` or WAV/AIFF — ID3 prepends and breaks RIFF), then AppleScript `set genre` on the library row. `--passes` re-scans because editing a row can reorder `library playlist 1`. Click off a stale genre selection in the column browser after a run.
+`music-genre` uses `clean_genre`: leading `EDM,` then House comma compounds (`EDM, House, Deep` → Deep House), Accapella spelling, Hip-Hop → Hip Hop. Music.app does **not** re-read file tags, so the default write is two-layer: mutagen on owned `.mp3` / `.m4a` (never `.m4p` or WAV/AIFF), then AppleScript `set genre` on the library row. `--xml` patches `TRACK Genre` on `~/Music/PioneerDJ/rekordbox.xml` the same way (quit Rekordbox first; reload the `<>` xml crate). `--passes` re-scans Music.app because editing a row can reorder `library playlist 1`. Click off a stale genre selection in the column browser after a Music.app run.
 
 ```bash
 PYTHONPATH=crate python3 -m ix_crate music-genre
 PYTHONPATH=crate python3 -m ix_crate music-genre --execute
+PYTHONPATH=crate python3 -m ix_crate music-genre --xml
+PYTHONPATH=crate python3 -m ix_crate music-genre --xml --execute
 ```
 
 2026-09-04: **229** rows (182 `EDM, House` → `House`, 23 Ambient, 20 Electronica, 4 `House, Deep`). File tags 229, library rows 229, leftover `EDM*`: **0**.
@@ -232,7 +246,7 @@ PYTHONPATH=crate python3 -m ix_crate riff-repair --execute
 
 Name for the local stem factory job: Music.app playlist → hardlink the mix into `~/Music/stems_audio/Artist/Album/` → [ixamal/stems](https://github.com/ixamal/stems) `py.exec.separate` as the RUNBOOK does (`PATH` = stems `.venv/bin` first, then that venv’s `python -m py.exec.separate`). Mel vocals/instrumental + `{name}.stem.m4a`. Aqua HUD is `py.utils.progress`. Homebrew Python 3.12 `.venv` in the stems repo. ~3.8 min/track. `audio-separator` lives in that venv — do not call the factory with system PATH.
 
-Never write Apple Music. Acapellas stay in `stems_audio`. `--sync-playlists` works in any state — factory or not. It walks `stems_audio` and rewrites Traktor + Rekordbox crates **Mixes / Stems / Acapellas / Instrumentals**. Mixes is the hardlink / parallel original. Files not yet in the collection get a location row so the crate exists before Import / Analyze. Analyze stays in-app. `--fix-role-titles` writes a real title onto factory `.mp3` / `.m4a` pairs whose tag is `vocals` / `instrumental` (filename, mix sibling, or IndustryStems folder — not MusicBrainz, not OneTagger). Never mutagen-write `.wav` or `.stem.m4a`. After tags: quit Traktor, `--fix-role-titles --nml --execute`, reopen Traktor, then **DJCU2** to Rekordbox (`docs/djcu2.md`). Do not rewrite `rekordbox.xml` for this pass. `--fix-industry-artists` fills artist on Industry Stems packs from the crate (then iTunes leftovers), patches Traktor NML ARTIST (never WAV tags), and keeps one STEMIT playlist row per identity. `--genres` applies the same `EDM, …` / `House, …` cleanup as `music-genre` to STEMIT NML INFO GENRE (keepers plus leftover collection rows), then rebuilds `STEMIT/Genres/<Genre>/{Mixes,Stems,Acapellas,Instrumentals}` from crate keepers. Safe to re-run after adds or copies. Never mutagen-writes `.wav` / `.stem.m4a`. `--dedupe` then deletes confirmed copies from Finder (Mashups dumps, Unknown Album, same-audio twins) and rebuilds crates. Unique mashups and Industry Stems WAV packs stay. Never ffmpeg-decode `.stem.m4a`. Specimens: `docs/examples/stemit-industry-artists.py`, `docs/examples/music-set-industry-artist.applescript`. `traktor-nml` drops duplicate playlist PRIMARYKEYs, copies sibling COVERARTID when the Coverart cache file exists, and drops Finder `(2)` copies when mutagen length matches and decoded audio is identical, then rewrites STEMIT crates from disk. Mix / stem / vocals / instrumental are four files, not copies. Never stem **Acapella**. Skip if that dest already has `{name}.stem.m4a`. Dry-run unless `--execute`. Queue m3u + reports: `~/local_tools/crate/` (off git).
+Never write Apple Music. Acapellas stay in `stems_audio`. `--sync-playlists` works in any state — factory or not. It walks `stems_audio` and rewrites Traktor + Rekordbox crates **Mixes / Stems / Acapellas / Instrumentals**. Mixes is the hardlink / parallel original. Files not yet in the collection get a location row so the crate exists before Import / Analyze. Analyze stays in-app. `--fix-role-titles` writes a real title onto factory `.mp3` / `.m4a` pairs whose tag is `vocals` / `instrumental` (filename, mix sibling, or IndustryStems folder — not MusicBrainz, not OneTagger). Never mutagen-write `.wav` or `.stem.m4a`. After tags: quit Traktor, `--fix-role-titles --nml --execute`. Rekordbox STEMIT folders follow `stemit --genres --execute` into `rekordbox.xml` (`docs/djcu2.md`). DJCU2 is optional for cues/grids, not nested crates. `--fix-industry-artists` fills artist on Industry Stems packs from the crate (then iTunes leftovers), patches Traktor NML ARTIST (never WAV tags), and keeps one STEMIT playlist row per identity. `--genres` applies the same `EDM, …` / `House, …` cleanup as `music-genre` to STEMIT NML INFO GENRE (keepers plus leftover collection rows), then rebuilds `STEMIT/Genres/<Genre>/{Mixes,Stems,Acapellas,Instrumentals}` from crate keepers. `--genres --execute` promotes that tree into `rekordbox.xml` (NML stays unless `--nml`). Quit Rekordbox first. Refresh or drag STEMIT from the XML crate in Rekordbox. DJCU2 is not required for STEMIT folders. Safe to re-run after adds or copies. Never mutagen-writes `.wav` / `.stem.m4a`. `--dedupe` then deletes confirmed copies from Finder (Mashups dumps, Unknown Album, same-audio twins) and rebuilds crates. Unique mashups and Industry Stems WAV packs stay. Never ffmpeg-decode `.stem.m4a`. Specimens: `docs/examples/stemit-industry-artists.py`, `docs/examples/music-set-industry-artist.applescript`. `traktor-nml` drops duplicate playlist PRIMARYKEYs, copies sibling COVERARTID when the Coverart cache file exists, and drops Finder `(2)` copies when mutagen length matches and decoded audio is identical, then rewrites STEMIT crates from disk. Mix / stem / vocals / instrumental are four files, not copies. Never stem **Acapella**. Skip if that dest already has `{name}.stem.m4a`. Dry-run unless `--execute`. Queue m3u + reports: `~/local_tools/crate/` (off git).
 
 The mix is a **hardlink**, not a copy: one set of bytes, two paths (Apple Music + `stems_audio`). Deleting the `stems_audio` name never deletes the Apple Music file.
 
@@ -245,6 +259,64 @@ The shell can look like it ran for hours after the batch ends — the Aqua HUD s
 `music-repair` relinks Songs rows with no file (the Locate / ! mark) to a unique match under Media.localized. It does not move Apple Music files. Empty artist/album/title uses the crate cascade. Empty genre uses iTunes only.
 
 `music-fix` fills identity on a playlist (default `Fix`). Default is **aggressive**: Chromaprint/AcoustID, duration-matched iTunes or Deezer, MusicBrainz length match, then **Shazam** (`shazamio` in `~/local_tools/crate/shazam-venv`; optional `songrec`) for cuts catalogs missed. Unidentified leftovers stay as they are — crate does **not** salvage them as Various Artists. `--library-va` scans the library artist instead of a playlist. `--strict` is dual-catalog only. Gaps only unless `--all`. Cream Live album stays. Dump folders become `Singles` when a real artist is found. Hits write album artist and clear the compilation flag so Apple Music files them under the artist, not Various Artists. In-place tags on owned audio. Disk names are `music-organize`, not this command. The crate CLI never Discogs-blasts. Beets is not used (`docs/notes.md`).
+
+`music-playlist` refills a Music.app user playlist from download filenames (Beatport `123_Title_(Mix).mp3` and `Artist - Title.mp3` in `~/Downloads` plus `beatport_tracks_*`). It matches existing Songs rows under `Media.localized`. It does **not** copy Downloads in, and it does not add a second library row. After a reorg empties a playlist (STEMIT / organize), refill from the download list rather than dragging files again. 2026-09-08: **Never Forget 50th v01** 21/21.
+
+```bash
+PYTHONPATH=crate python3 -m ix_crate music-playlist --playlist "Never Forget 50th v01" --from ~/Downloads
+PYTHONPATH=crate python3 -m ix_crate music-playlist --playlist "Never Forget 50th v01" --from ~/Downloads --execute
+```
+
+## crates (Music ↔ Traktor ↔ Rekordbox)
+
+Playlist membership only. Cues, energy, comments, beatgrids, and ReCK/MiK fields stay on the collection row. Match is the file: resolved path, or the other hardlink (Apple Music mix ↔ `stems_audio` mix). Tracks that are not already in the destination collection are **skipped**, never stubbed — a stub XML TRACK is 0.00 BPM and will not load on the FLX10.
+
+STEMIT stays `stemit --genres`. DJCU2 still moves cues/grids onto tracks Rekordbox does not already have (`docs/djcu2.md`).
+
+```
+Music.app  --crates-->  rekordbox.xml/MUSIC/…
+Traktor NML --crates-->  rekordbox.xml/TRAKTOR/…
+rekordbox.xml/MUSIC/…  --crates-->  Music.app or NML/MUSIC/…
+```
+
+`--from` / `--to` are `music`, `nml`, `xml`. Default is Music → xml. `--playlist` (repeatable) or `--all` (every user playlist except STEMIT, smart lists, library lists). Dry-run default.
+
+Quit Rekordbox for `--to xml`. Quit Traktor for `--to nml`. Music.app must be open for `--from music` / `--to music`. Reload the xml sidecar (`<>`). Do not File → Import Collection. If Rekordbox asks to load tags over existing tracks: **Don't ask again + No**.
+
+```bash
+PYTHONPATH=crate python3 -m ix_crate crates --from music --to xml --playlist "Never Forget 50th v01"
+PYTHONPATH=crate python3 -m ix_crate crates --from music --to xml --playlist "Never Forget 50th v01" --execute
+PYTHONPATH=crate python3 -m ix_crate crates --from nml --to xml --playlist "Humid chills"
+PYTHONPATH=crate python3 -m ix_crate crates --from xml --to music --playlist "Never Forget 50th v01"
+PYTHONPATH=crate python3 -m ix_crate crates --from music --to nml --playlist "Never Forget 50th v01"
+PYTHONPATH=crate python3 -m ix_crate crates --from nml --to music --playlist "Humid chills"
+```
+
+`--to music` needs Share iTunes Library XML so crate can map path → persistent ID (`Media.localized/iTunes Music Library.xml`).
+
+2026-09-08 `--from music --to xml --all --execute`: **107** playlists (House 14, Origin Stories 90, three root). **5,131** matched. Rekordbox imported MUSIC; David playing. Import skipped 21 files (16 missing, 4 `.m4p`). How/why for the night: `docs/TODO.md` item 38.
+
+## favorites (play history)
+
+`favorites` reads Traktor NML + rekordbox.xml and writes a **local** inventory (`configs/favorites.json`, gitignored) plus compact **play-patterns.json** for the local LLM: genre, BPM band, energy, vibe. Artist/title only — no disk paths. Mixes count; STEMIT roles skipped. `Played` crate = 100 most recent. Daily `Not Played But Should` / Neglected genres / Random / Favorites (12 each); skipped if you have not played since last run. `--playlists` writes Music (if open) + NML + xml under `MUSIC/`. `--snapshot` is the quarterly git copy in `configs/quarterly/` (played + patterns only — the 22k sitting tracks stay local). Dry-run default.
+
+```bash
+PYTHONPATH=crate python3 -m ix_crate favorites
+PYTHONPATH=crate python3 -m ix_crate favorites --execute
+PYTHONPATH=crate python3 -m ix_crate favorites --execute --playlists
+PYTHONPATH=crate python3 -m ix_crate favorites --execute --snapshot
+```
+
+### Process
+
+1. **Harvest (any time, or 5am).** `favorites --execute` reads NML `PLAYCOUNT` / `LAST_PLAYED` and rekordbox.xml `PlayCount`. Encrypted `master.db` stays unread. STEMIT stems / vocals / instrumentals are skipped. Merge keeps the higher count unless `--replace`.
+2. **Patterns for the local LLM.** Same run writes `configs/play-patterns.json`: genre / BPM band / energy / vibe histograms, weighted by play count. Vibe is `{genre}|{bpm-band}|e{energy}|{key}` from tags (MiK `06A - Energy 5`). Hex iTunes comments are ignored. Do not invent genres. Ollama stays on `127.0.0.1:11434`.
+3. **Daily crates.** `--playlists` writes stable names: `Played` (100 most recent `last_played`) and `Not Played But Should` / Neglected genres / Favorites / Random (12 each). Favorites-match uses genre + BPM ±6 + energy ±1. Random is last so it does not steal the match pool. Skip the rewrite when the play fingerprint is unchanged. Quit Rekordbox for xml; quit Traktor for NML. Music.app only if it is open (flat `NPBS …` names).
+4. **Quarterly git.** Live JSON is gitignored (~7 MB sitting list). Once a quarter: `--execute --snapshot` → `configs/quarterly/favorites-YYYYQn.json` (played + stats) + `play-patterns-YYYYQn.json`, then commit those two. First draft: **2026Q3**. Not nightly.
+5. **Nightly agent (optional).** Example: `docs/examples/favorites-nightly.sh` + `ai.ixamal.crate-favorites.plist` (5:00). Not loaded until David asks.
+6. **Reviews.** Week 1 **2026-09-16** and month 1 **2026-10-09**: are the three NPBS trees useful, is energy still too sparse, load the 5am agent, keep the model in crate or split. Own-repo the oracle only when a fine-tune, eval set, or pattern corpus is a product — still loopback, no collection paths. Cadence after that is quarterly.
+
+First harvest 2026-09-09: **812** played, **22,266** not played, **9** star-rated, **162** with Energy comments. House / Deep House / Electronica; BPM pile **122–128**.
 
 ## Screenshot compilations
 

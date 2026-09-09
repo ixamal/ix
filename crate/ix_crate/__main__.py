@@ -62,6 +62,10 @@ def main(argv: list[str] | None = None) -> int:
         from ix_crate.music_cull import main as music_cull_main
 
         return music_cull_main(argv[1:])
+    if argv and argv[0] == "music-playlist":
+        from ix_crate.music_playlist import main as music_playlist_main
+
+        return music_playlist_main(argv[1:])
     if argv and argv[0] == "music-organize":
         from ix_crate.music_organize import main as music_organize_main
 
@@ -70,6 +74,14 @@ def main(argv: list[str] | None = None) -> int:
         from ix_crate.traktor_nml import main as traktor_nml_main
 
         return traktor_nml_main(argv[1:])
+    if argv and argv[0] == "crates":
+        from ix_crate.crates import main as crates_main
+
+        return crates_main(argv[1:])
+    if argv and argv[0] == "favorites":
+        from ix_crate.favorites import main as favorites_main
+
+        return favorites_main(argv[1:])
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -89,7 +101,10 @@ def main(argv: list[str] | None = None) -> int:
             "riff-repair",
             "music-cull",
             "music-organize",
+            "music-playlist",
             "traktor-nml",
+            "crates",
+            "favorites",
         ),
         help=(
             "Scan Unknown Album, re-ID Inbox, sort mashups, drop Music.app "
@@ -97,8 +112,10 @@ def main(argv: list[str] | None = None) -> int:
             "promote EDM, … genres, locate missing files, relink dead rows "
             "from the iTunes XML, pull audio into ~/Music, fill a playlist's "
             "identity, name Media.localized files from Music.app metadata, "
-            "STEMIT a playlist into stems_audio, or repair Traktor NML "
-            "playlist dupes and missing artwork IDs."
+            "STEMIT a playlist into stems_audio, repair Traktor NML "
+            "playlist dupes and missing artwork IDs, or sync playlist "
+            "membership between Music.app, Traktor NML, and rekordbox.xml, "
+            "or record play counts into configs/favorites.json."
         ),
     )
     parser.add_argument(

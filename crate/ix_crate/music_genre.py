@@ -16,7 +16,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 import time
+import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -24,6 +26,7 @@ from typing import Any
 from .music_dupes import _run_osascript, count_file_tracks
 from .music_repair import RIFF_NO_ID3, _quote_as
 from .paths import REPORTS
+from .stems_playlists import REKORDBOX_XML, rekordbox_is_running
 
 PREFIX = "EDM,"
 BATCH = 200
@@ -213,6 +216,58 @@ end tell
     return done, skipped
 
 
+def scan_rekordbox_xml(xml: Path | None = None) -> GenrePlan:
+    """TRACK Genre attributes that still need ``clean_genre``."""
+    path = xml or REKORDBOX_XML
+    plan = GenrePlan()
+    if not path.is_file():
+        return plan
+    collection = ET.parse(path).getroot().find("COLLECTION")
+    if collection is None:
+        return plan
+    tracks = collection.findall("TRACK")
+    plan.scanned = len(tracks)
+    for index, track in enumerate(tracks, 1):
+        old = (track.get("Genre") or "").strip()
+        new = clean_genre(old)
+        if not old or old == new:
+            continue
+        plan.rows.append(
+            GenreRow(
+                index=index,
+                persistent_id=track.get("TrackID") or "",
+                name=track.get("Name") or "",
+                genre=old,
+                path=track.get("Location") or "",
+            )
+        )
+        label = f"{old} -> {new}"
+        plan.by_change[label] = plan.by_change.get(label, 0) + 1
+    return plan
+
+
+def apply_rekordbox_xml(xml: Path | None = None) -> int:
+    """Patch TRACK Genre in rekordbox.xml. Other playlists and cues stay."""
+    path = xml or REKORDBOX_XML
+    tree = ET.parse(path)
+    collection = tree.getroot().find("COLLECTION")
+    if collection is None:
+        return 0
+    patched = 0
+    for track in collection.findall("TRACK"):
+        old = (track.get("Genre") or "").strip()
+        new = clean_genre(old)
+        if not old or old == new:
+            continue
+        track.set("Genre", new)
+        patched += 1
+    if patched:
+        backup = path.with_suffix(path.suffix + ".genre.bak")
+        shutil.copy2(path, backup)
+        tree.write(path, encoding="UTF-8", xml_declaration=True)
+    return patched
+
+
 def write_report(payload: dict[str, Any]) -> Path:
     REPORTS.mkdir(parents=True, exist_ok=True)
     stamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
@@ -224,9 +279,14 @@ def write_report(payload: dict[str, Any]) -> Path:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="ix_crate music-genre",
-        description="Promote 'EDM, X' genres to 'X' on files and library rows.",
+        description="Promote 'EDM, X' genres to 'X' on files, Music.app, or rekordbox.xml.",
     )
     parser.add_argument("--execute", action="store_true", help="apply the changes")
+    parser.add_argument(
+        "--xml",
+        action="store_true",
+        help="Clean TRACK Genre on PioneerDJ/rekordbox.xml (quit Rekordbox first).",
+    )
     parser.add_argument(
         "--passes",
         type=int,
@@ -238,6 +298,43 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+
+    if args.xml:
+        plan = scan_rekordbox_xml()
+        print(
+            f"rekordbox.xml genre: {len(plan.rows)} of {plan.scanned} TRACK rows",
+            flush=True,
+        )
+        for label, count in sorted(plan.by_change.items(), key=lambda kv: -kv[1])[:20]:
+            print(f"  {count:5}  {label}", flush=True)
+        if len(plan.by_change) > 20:
+            print(f"  … {len(plan.by_change) - 20} more", flush=True)
+        report = write_report(
+            {
+                "xml": True,
+                "scanned": plan.scanned,
+                "rows": len(plan.rows),
+                "by_change": plan.by_change,
+                "executed": bool(args.execute),
+            }
+        )
+        print(f"report {report}", flush=True)
+        if not args.execute:
+            print(
+                "dry-run. pass --xml --execute to patch TRACK Genre. "
+                "Quit Rekordbox first. Playlists stay.",
+                flush=True,
+            )
+            return 0
+        if rekordbox_is_running():
+            print("Rekordbox is open. Quit it before --execute writes rekordbox.xml.", flush=True)
+            return 2
+        patched = apply_rekordbox_xml()
+        print(
+            f"patched {patched} TRACK Genre rows. Reload rekordbox xml (<>).",
+            flush=True,
+        )
+        return 0
 
     total_lib = total_files = 0
     rounds = max(args.passes, 1) if args.execute else 1

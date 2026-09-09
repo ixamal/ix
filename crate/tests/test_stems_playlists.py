@@ -134,6 +134,7 @@ class SyncExecuteTests(unittest.TestCase):
             rb_names = [node.get("Name") for node in rtree.getroot().iter("NODE")]
             self.assertIn("STEMIT", rb_names)
             self.assertIn("Mixes", rb_names)
+            self.assertIn("Genres", rb_names)
             self.assertEqual(rtree.find("COLLECTION").get("Entries"), "2")
 
     def test_prunes_empty_stemit_shells(self) -> None:

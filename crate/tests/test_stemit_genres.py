@@ -7,7 +7,7 @@ from tempfile import TemporaryDirectory
 
 from ix_crate.stemit_genres import GENRES_FOLDER, UNTAGGED, apply_genre_crates
 from ix_crate.music_genre import clean_genre
-from ix_crate.stems_playlists import DiskFile, _traktor_dir_file, _traktor_key, write_traktor
+from ix_crate.stems_playlists import DiskFile, _traktor_dir_file, _traktor_key, write_rekordbox, write_traktor
 
 
 class CleanGenreAliasTests(unittest.TestCase):
@@ -150,6 +150,65 @@ class GenreCrateTests(unittest.TestCase):
             self.assertIn(GENRES_FOLDER, kids)
             self.assertEqual(kids[-1], GENRES_FOLDER)
             self.assertIn(UNTAGGED, ET.tostring(stemit, encoding="unicode"))
+
+    def test_write_rekordbox_nested_genre_crates(self) -> None:
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp) / "stems_audio"
+            album = root / "Kettama" / "Singles"
+            album.mkdir(parents=True)
+            mix = album / "Fly Away.m4a"
+            stem = album / "Fly Away.stem.m4a"
+            mix.write_bytes(b"mix")
+            stem.write_bytes(b"stem")
+            loc_m, file_m = _traktor_dir_file(mix.resolve())
+            loc_s, file_s = _traktor_dir_file(stem.resolve())
+            nml = Path(tmp) / "collection.nml"
+            nml.write_text(
+                '<?xml version="1.0" encoding="UTF-8"?>\n'
+                "<NML VERSION=\"20\">"
+                '<COLLECTION ENTRIES="2">'
+                f'<ENTRY TITLE="Fly Away" ARTIST="Kettama">'
+                f'<LOCATION DIR="{loc_m}" FILE="{file_m}" VOLUME="Macintosh HD"/>'
+                '<INFO GENRE="Deep House"/>'
+                "</ENTRY>"
+                f'<ENTRY TITLE="Fly Away" ARTIST="Kettama">'
+                f'<LOCATION DIR="{loc_s}" FILE="{file_s}" VOLUME="Macintosh HD"/>'
+                '<INFO GENRE="Deep House"/>'
+                "</ENTRY></COLLECTION>"
+                "<PLAYLISTS><NODE TYPE=\"FOLDER\" NAME=\"$ROOT\">"
+                '<SUBNODES COUNT="0"/></NODE></PLAYLISTS></NML>',
+                encoding="utf-8",
+            )
+            xml = Path(tmp) / "rekordbox.xml"
+            xml.write_text(
+                '<?xml version="1.0" encoding="UTF-8"?>\n'
+                '<DJ_PLAYLISTS Version="1.0.0">'
+                '<COLLECTION Entries="0"/>'
+                "<PLAYLISTS/>"
+                "</DJ_PLAYLISTS>",
+                encoding="utf-8",
+            )
+            files = [
+                DiskFile(path=mix.resolve(), crate="Mixes"),
+                DiskFile(path=stem.resolve(), crate="Stems"),
+            ]
+            write_rekordbox(files, {}, xml, stems_root=root, nml=nml)
+            tree = ET.parse(xml)
+            stemit = [
+                node
+                for node in tree.getroot().iter("NODE")
+                if node.get("Type") == "0" and node.get("Name") == "STEMIT"
+            ][0]
+            kids = [n.get("Name") for n in stemit.findall("NODE")]
+            self.assertEqual(kids[:4], ["Mixes", "Stems", "Acapellas", "Instrumentals"])
+            self.assertEqual(kids[-1], GENRES_FOLDER)
+            genres = next(n for n in stemit.findall("NODE") if n.get("Name") == GENRES_FOLDER)
+            deep = next(n for n in genres.findall("NODE") if n.get("Name") == "Deep House")
+            roles = [n.get("Name") for n in deep.findall("NODE")]
+            self.assertEqual(roles, ["Mixes", "Stems", "Acapellas", "Instrumentals"])
+            mixes = next(n for n in deep.findall("NODE") if n.get("Name") == "Mixes")
+            self.assertEqual(mixes.get("Entries"), "1")
+            self.assertEqual(mixes.get("Type"), "1")
 
 
 if __name__ == "__main__":

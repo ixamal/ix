@@ -12,6 +12,7 @@ Crates: **Mixes** (the hardlink / parallel original), **Stems**,
 from __future__ import annotations
 
 import shutil
+import subprocess
 import uuid
 import xml.etree.ElementTree as ET
 from collections import defaultdict
@@ -303,6 +304,29 @@ def _traktor_key(path: Path, volume: str = "Macintosh HD") -> tuple[str, str]:
     return pk_type, f"{volume}{directory}{file_attr}"
 
 
+def rekordbox_is_running() -> bool:
+    """True only if the Rekordbox app is open.
+
+    rekordboxAgent stays up after quit, and its path contains
+    ``.../MacOS/rekordbox`` as a prefix. Match the main binary only.
+    """
+    try:
+        result = subprocess.run(
+            ["ps", "-ax", "-o", "comm="],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError:
+        return False
+    needle = "/rekordbox.app/Contents/MacOS/rekordbox"
+    for line in result.stdout.splitlines():
+        comm = line.strip()
+        if comm.endswith(needle):
+            return True
+    return False
+
+
 def _rb_location(path: Path) -> str:
     posix = path.resolve().as_posix()
     if not posix.startswith("/"):
@@ -591,15 +615,16 @@ def write_rekordbox(
     xml: Path,
     *,
     stems_root: Path | None = None,
+    nml: Path | None = None,
 ) -> int:
     tree = ET.parse(xml)
     root = tree.getroot()
     collection = root.find("COLLECTION")
     if collection is None:
         collection = ET.SubElement(root, "COLLECTION", Entries="0")
-    added = ensure_rekordbox_entries(
-        files, index, collection, (stems_root or STEMS_AUDIO).expanduser()
-    )
+    stems = (stems_root or STEMS_AUDIO).expanduser()
+    files = list(files)
+    added = ensure_rekordbox_entries(files, index, collection, stems)
     playlists = root.find("PLAYLISTS")
     if playlists is None:
         playlists = ET.SubElement(root, "PLAYLISTS")
@@ -607,7 +632,6 @@ def write_rekordbox(
     by_crate: dict[str, list[DiskFile]] = {name: [] for name in PLAYLISTS}
     for item in files:
         by_crate[item.crate].append(item)
-    count = 0
     for name in PLAYLISTS:
         keys = [index[item.path] for item in by_crate[name] if item.path in index]
         node = ET.SubElement(
@@ -620,8 +644,11 @@ def write_rekordbox(
         )
         for tid in keys:
             ET.SubElement(node, "TRACK", Key=tid)
-        count += 1
-    folder.set("Count", str(count))
+    from ix_crate.stemit_genres import assign_genres, write_rekordbox_genre_crates
+
+    assigned = assign_genres(files, stems, nml=nml)
+    write_rekordbox_genre_crates(folder, files, index, assigned)
+    folder.set("Count", str(len(folder.findall("NODE"))))
     backup = xml.with_suffix(xml.suffix + ".stemit.bak")
     shutil.copy2(xml, backup)
     tree.write(xml, encoding="UTF-8", xml_declaration=True)
@@ -638,6 +665,28 @@ def rebuild_stemit_nml(
     root = (stems_root or STEMS_AUDIO).expanduser()
     files = prefer_crate_files(walk_stems(root), root)
     return write_traktor(files, traktor_index(nml_path), nml_path, stems_root=root)
+
+
+def rebuild_stemit_xml(
+    xml: Path | None = None,
+    *,
+    stems_root: Path | None = None,
+    nml: Path | None = None,
+) -> int:
+    """Rewrite Rekordbox STEMIT + Genres from disk keepers and current NML genres.
+
+    Does not touch collection.nml. Other rekordbox.xml playlists stay.
+    """
+    xml_path = xml or REKORDBOX_XML
+    root = (stems_root or STEMS_AUDIO).expanduser()
+    files = prefer_crate_files(walk_stems(root), root)
+    return write_rekordbox(
+        files,
+        rekordbox_index(xml_path) if xml_path.is_file() else {},
+        xml_path,
+        stems_root=root,
+        nml=nml or TRAKTOR_NML,
+    )
 
 
 def sync_playlists(
@@ -657,7 +706,11 @@ def sync_playlists(
         )
     if plan.rekordbox_xml:
         plan.added_rekordbox = write_rekordbox(
-            files, rekordbox_index(plan.rekordbox_xml), plan.rekordbox_xml, stems_root=root
+            files,
+            rekordbox_index(plan.rekordbox_xml),
+            plan.rekordbox_xml,
+            stems_root=root,
+            nml=plan.traktor_nml,
         )
     return plan
 
