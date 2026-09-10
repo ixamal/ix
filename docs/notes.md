@@ -2,7 +2,7 @@
 
 Parking lot for crate, tagging, and hardware ideas. Ordered checklist: `docs/TODO.md`. Agents: read both, then stop unless David asks to act. Off-repo tools and library paths stay off git.
 
-Last update: 2026-09-09. **Milestone:** David is playing in Rekordbox and Traktor. `favorites` records plays + patterns (TODO 41); first quarterly draft is `configs/quarterly/*-2026Q3.json`. Reviews **2026-09-16** and **2026-10-09**. Hardware next: Maschine A/B/C (11a), FLX10 CH2 digital (40). Floor **10** parked. Toolkit: README. How/why: `docs/crate.md`.
+Last update: 2026-09-10. **Milestone:** Music → Traktor → Rekordbox rebuilt. DJ Sets **230** in Rekordbox (was empty). IndustryStems artist **0**. `favorites` still recording (TODO 41); reviews **2026-09-16** / **2026-10-09**. Hardware next: Maschine A/B/C (11a), FLX10 CH2 digital (40). Floor **10** parked. Toolkit: README. How/why: `docs/crate.md`.
 
 ## Crate status
 
@@ -21,14 +21,31 @@ Traktor (2026-08-30): NML remapped, then [ATGR DJCU2](https://atgr.nl/) converte
 
 Rekordbox + Traktor are fun-playable from the path-stable crate. `music-genre --xml` cleaned **10,457** sidecar Genre rows. `crates --all` wrote **107** Music.app playlists (House + Origin Stories + three root crates). Rekordbox imported MUSIC into collection. Import skipped 21 files (16 dead paths, 4 `.m4p`). Cues stayed on collection rows.
 
+### MUSIC ingest (2026-09-10)
+
+Empty Rekordbox MUSIC crates were Music.app lists whose files were never in the sidecar collection (DJ Sets **0** vs **236** file tracks). `crates` now writes a Location row for missing files that exist on disk. Never a stub without a file. Skip `.m4p`.
+
+```bash
+PYTHONPATH=crate python3 -m ix_crate stemit --fix-industry-artists --execute
+PYTHONPATH=crate python3 -m ix_crate crates --from music --to nml --all --execute
+PYTHONPATH=crate python3 -m ix_crate crates --from music --to xml --all --execute
+```
+
+**Benchmark (this Mac, 2026-09-10):**
+- Industry packs **209/209**. Sources: crate-exact **201**, crate-prefix **4**, MusicBrainz **2**, Shazam **2**. NML ARTIST leftover **28 → 0**. xml ARTIST **968 → 0** (831 live files + 133 dead-path ghosts, artist from pack folder). Music.app already **0**. WAV tags not written.
+- `crates --all` Music → NML **111** playlists (~58 s dump+write). Music → xml **111** (~41 s after NML dump cached in the same session shape).
+- **DJ Sets 0 → 230** (6 Apple DRM skipped). MUSIC empties **28 → 5** (`Feel it`, `Internet Songs`, `Kum Baja`, `Ringtones`, extra Social Network list — empty or DRM-only in Music).
+- Played / NPBS Favorites / Neglected / Random now under **MUSIC/** on both decks.
+- New collection rows have no grid until Rekordbox Analyze (or DJCU2 later). Reload xml `<>`. Don't ask again + **No** on tag overwrite.
+
 ### Resume next
 
-1. **2026-09-09:** [Danny Tenaglia: Traktor Masterclass](https://superprogressive.mykajabi.com/dannytenaglia) (Super Progressive / William Noglows). 8 modules, 25 videos, ~4 h. Traktor + Pioneer DJM-V10 + Kontrol F1; concepts also map to Rekordbox / Ableton. Labor Day sale $139 through 2026-09-14. Take notes after class — do not change the crate tonight.
+1. Reload Rekordbox xml (`<>`) and reopen Traktor if needed — analyze new DJ Sets rows. First glance 2026-09-10 was good.
 2. Leftover same-title copies in STEMIT. Alternative stems 1–3 (TODO 17) unless David names another playlist.
 3. **11 / 11a** when David opens a blackhole session: 16ch, then Traktor A/B/C → Maschine sampler → S88.
 4. **40** Investigate Traktor → FLX10 Channel 2 as a digital feed (today: analog master).
 5. Floor **10** parked until David asks.
-6. **41** Played / Not Played But Should — harvest + patterns live; crates via `--playlists`. Load the 5am LaunchAgent only when David asks. Quarterly `--snapshot` into git, not nightly.
+6. **41** Played / Not Played But Should — harvest + patterns live; crates via `--playlists`. Load the 5am LaunchAgent only when David asks. Quarterly `--snapshot` into git, not nightly. Reviews **2026-09-16**, **2026-10-09**.
 7. Items 5 / 5b / 6 stay omitted. Do not Discogs-blast. Targeted one-album Discogs from a screenshot is OK (TODO 22 / `docs/crate.md`).
 
 ```bash

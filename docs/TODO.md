@@ -2,13 +2,13 @@
 
 Hit these in order. Stop on the first **doable** open item. Detail: `docs/notes.md`. Off-repo tools and library paths stay off git.
 
-Last update: 2026-09-09. **Crate night proved in-app.** `favorites` is recording plays + patterns (TODO 41). Review **2026-09-16** and **2026-10-09**. Floor **10** parked. Next hardware: Maschine tap of Traktor A/B/C (11a), then FLX10 CH2 digital (40).
+Last update: 2026-09-10. **MUSIC ingest:** DJ Sets 230 in Rekordbox (was 0). IndustryStems artist **0** on NML + xml. `crates` Music → Traktor → Rekordbox **111** playlists. Reviews **2026-09-16** and **2026-10-09**. Floor **10** parked. Next hardware: Maschine A/B/C (11a), FLX10 CH2 digital (40).
 
 ## Now
 
 Crate is path-stable. Music.app, Traktor, and Rekordbox are playable from the same files. Sync Library Off. STEMIT + Music folders are in the xml sidecar and imported.
 
-**Next:** Tomorrow (2026-09-09) [Danny Tenaglia Traktor Masterclass](https://superprogressive.mykajabi.com/dannytenaglia) (Super Progressive). After that: leftover same-title copies in STEMIT, Alternative stems **1–3** (TODO 17), or another STEMIT playlist when David names one. Never write Apple Music from the factory. Never stem **Acapella**. Floor 10 when David asks. Do not wire **11 / 11a** until a dedicated blackhole session. Do not farm 35k to the cloud. Do not Discogs-blast.
+**Next:** Reload Rekordbox xml (`<>`) and reopen Traktor if not already — analyze new DJ Sets rows. Then leftover same-title copies in STEMIT, Alternative stems **1–3** (TODO 17), or another STEMIT playlist when David names one. Never write Apple Music from the factory. Never stem **Acapella**. Floor 10 when David asks. Do not wire **11 / 11a** until a dedicated blackhole session. Do not farm 35k to the cloud. Do not Discogs-blast.
 
 ## Crate (done)
 
@@ -41,6 +41,7 @@ Crate is path-stable. Music.app, Traktor, and Rekordbox are playable from the sa
 - [x] 36. **Never Forget playlist refill.** 2026-09-08: `music-playlist` matched **21/21** Downloads filenames to `Media.localized` Songs rows and refilled **Never Forget 50th v01**. Use this after a reorg empties a Music.app playlist. Do not copy Downloads in again.
 - [x] 37. **Playlist membership bridge.** `crates --from music|nml|xml --to music|nml|xml`. Music → `rekordbox.xml/MUSIC/`, NML → `rekordbox.xml/TRAKTOR/`. Path + hardlink match. Collection cues / energy / comments stay. Unmatched tracks skipped, not stubbed. STEMIT stays `stemit --genres`. DJCU2 for cues on tracks Rekordbox does not have. How/why: `docs/crate.md`.
 - [x] 38. **Crate night (2026-09-08).** `music-genre --xml --execute`: **10,457** TRACK Genre rows (`EDM, …` leftover **0**). `crates --from music --to xml --all --execute`: **107** Music.app playlists under `MUSIC/` — **House** 14, **Origin Stories** 90, root DJ Sets / Front to Back / Never Forget 50th v01. **5,131** keys matched; **5,961** Music-only files skipped (not stubbed). Rekordbox imported MUSIC into collection. David playing in Rekordbox + Traktor. Import log skipped **21** files: **16** stale/missing paths, **4** Apple `.m4p` DRM. `<>` reload; Don't ask again + No on tag overwrite.
+- [x] 39. **Empty MUSIC crates + IndustryStems listen (2026-09-10).** `crates` now ingests missing files that exist on disk (Location row, not a 0.00 BPM stub). Skip `.m4p`. Music → NML + xml `--all --execute`: **111** playlists. **DJ Sets 0 → 230** (236 in Music; 6 DRM skipped). MUSIC empties **28 → 5** (empty or DRM-only in Music). `stemit --fix-industry-artists`: **209/209** packs (crate 201 + prefix 4 + MusicBrainz 2 + Shazam 2). NML IndustryStems artist **0**. xml artist **968 → 0** (831 live + 133 dead-path ghosts by pack folder). Music.app already **0**. Played / NPBS now under MUSIC/ on both decks. Analyze new DJ Sets rows in-app. How/why: `docs/notes.md`.
 
 ## Tagging
 

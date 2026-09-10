@@ -213,6 +213,61 @@ class XmlMembershipTests(unittest.TestCase):
             self.assertEqual(len(planned[0].missing), 1)
             self.assertEqual(planned[0].missing[0].label, "Ghost")
 
+    def test_ingest_adds_location_row_not_stub(self) -> None:
+        with TemporaryDirectory() as tmp:
+            known = Path(tmp) / "Honey.m4a"
+            extra = Path(tmp) / "Closer.m4a"
+            drm = Path(tmp) / "Cloud.m4p"
+            known.write_bytes(b"mix")
+            extra.write_bytes(b"also")
+            drm.write_bytes(b"fairplay")
+            xml = Path(tmp) / "rekordbox.xml"
+            _xml(
+                xml,
+                f'<TRACK TrackID="7" Name="Honey" Genre="House" Location="{_rb_location(known)}">'
+                '<POSITION_MARK Name="cue1" Type="0" Start="12.5"/>'
+                "</TRACK>",
+                "",
+            )
+            from ix_crate.crates import SyncPlan
+
+            playlists = [
+                CratePlaylist(
+                    name="DJ Sets",
+                    tracks=[
+                        TrackRef(path=known, artist="Moby", title="Honey"),
+                        TrackRef(path=extra, artist="NIN", title="Closer"),
+                        TrackRef(path=drm, artist="X", title="Cloud"),
+                    ],
+                )
+            ]
+            plan = SyncPlan(
+                source="music",
+                dest="xml",
+                dest_folder="MUSIC",
+                playlists=plan_membership(playlists, xml_path_index(xml)),
+            )
+            apply_xml(plan, xml)
+            tree = ET.parse(xml)
+            tracks = tree.find("COLLECTION").findall("TRACK")
+            self.assertEqual(len(tracks), 2)
+            honey = next(t for t in tracks if t.get("TrackID") == "7")
+            self.assertEqual(honey.get("Genre"), "House")
+            self.assertEqual(honey.find("POSITION_MARK").get("Start"), "12.5")
+            closer = next(t for t in tracks if t.get("Name") == "Closer")
+            self.assertEqual(closer.get("Artist"), "NIN")
+            self.assertTrue(closer.get("Location"))
+            crate = [
+                n
+                for n in tree.getroot().iter("NODE")
+                if n.get("Name") == "DJ Sets" and n.get("Type") == "1"
+            ][0]
+            keys = {child.get("Key") for child in crate.findall("TRACK")}
+            self.assertEqual(keys, {"7", closer.get("TrackID")})
+            self.assertEqual(plan.playlists[0].ingested, 1)
+            self.assertEqual(len(plan.playlists[0].missing), 1)
+            self.assertTrue(str(plan.playlists[0].missing[0].path).endswith(".m4p"))
+
 
 class NmlMembershipTests(unittest.TestCase):
     def test_nml_to_xml_skips_stemit_and_writes_traktor_folder(self) -> None:

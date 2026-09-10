@@ -60,6 +60,7 @@ def fold_title(value: str) -> str:
     text = unicodedata.normalize("NFKD", value or "")
     text = "".join(ch for ch in text if not unicodedata.combining(ch))
     text = text.replace("'", "").replace("'", "").replace("'", "")
+    text = re.sub(r"\bi\s+m\b", "im", text, flags=re.I)
     text = re.sub(r"\bf[\W_]*k\b", "fuck", text, flags=re.I)
     return normalize_title(text)
 
@@ -91,6 +92,8 @@ class IndustryPlan:
     files: int = 0
     nml_patched: int = 0
     crate_dropped: int = 0
+    xml_patched: int = 0
+    music_patched: int = 0
     fixes: list[IndustryFix] = field(default_factory=list)
     keepers: list[CrateKeeper] = field(default_factory=list)
 
@@ -227,6 +230,18 @@ def match_crate_artist(title: str, index: dict[str, Counter[str]]) -> tuple[str,
     artist = _pick_artist(words)
     if artist and word_hits <= 6:
         return artist, "crate-prefix"
+    longest = ""
+    longest_artist = ""
+    for other, counts in folded_index.items():
+        if len(other.split()) < 3:
+            continue
+        if key.startswith(other + " ") and len(other) > len(longest):
+            pick = _pick_artist(counts)
+            if pick:
+                longest = other
+                longest_artist = pick
+    if longest_artist:
+        return longest_artist, "crate-prefix"
     return "", ""
 
 
@@ -263,6 +278,82 @@ def _catalog_artist(title: str, path: Path | None) -> tuple[str, str, str]:
     return "", "", ""
 
 
+def _duration_s(path: Path | None) -> float | None:
+    if path is None or not path.is_file():
+        return None
+    try:
+        from mutagen import File as MutagenFile
+
+        audio = MutagenFile(path)
+        if audio is not None and audio.info is not None:
+            return float(audio.info.length or 0) or None
+    except Exception:
+        return None
+    return None
+
+
+def _listen_file(files: list[str]) -> Path | None:
+    paths = [Path(item) for item in files]
+    for stem in ("vocals", "other", "drums", "bass"):
+        hit = next((path for path in paths if path.stem.lower() == stem), None)
+        if hit is not None:
+            return hit
+    return next((path for path in paths if path.is_file()), None)
+
+
+def _listen_artist(title: str, path: Path | None) -> tuple[str, str, str]:
+    """STEMIT leftover cascade: AcoustID → MusicBrainz duration → Shazam."""
+    if path is None or not path.is_file():
+        return "", "", ""
+    cache: dict = {}
+    try:
+        from ix_crate.lookup import _load_cache
+
+        cache = _load_cache()
+    except Exception:
+        cache = {}
+    duration = _duration_s(path)
+
+    def _ok(hit: dict | None, fallback: str) -> tuple[str, str, str]:
+        if not hit or not hit.get("artist"):
+            return "", "", ""
+        artist = str(hit["artist"])
+        if is_placeholder_artist(artist):
+            return "", "", ""
+        album = str(hit.get("album") or "Industry Stems")
+        source = str(hit.get("source") or fallback)
+        return artist, album, source
+
+    try:
+        from ix_crate.acoustid import acoustid_identify
+
+        artist, album, source = _ok(acoustid_identify(path, cache, duration), "acoustid")
+        if artist:
+            return artist, album, source
+    except Exception:
+        pass
+    if title and duration:
+        try:
+            from ix_crate.lookup import musicbrainz_duration_search
+
+            artist, album, source = _ok(
+                musicbrainz_duration_search(title, duration, cache), "musicbrainz"
+            )
+            if artist:
+                return artist, album, source
+        except Exception:
+            pass
+    try:
+        from ix_crate.shazam import shazam_identify
+
+        artist, album, source = _ok(shazam_identify(path, cache), "shazam")
+        if artist:
+            return artist, album, source
+    except Exception:
+        pass
+    return "", "", ""
+
+
 def resolve_pack(
     folder: Path,
     index: dict[str, Counter[str]],
@@ -288,6 +379,11 @@ def resolve_pack(
         cat_a, cat_al, cat_src = _catalog_artist(title, vocals)
         if cat_a:
             artist, album, source = cat_a, cat_al or album, cat_src
+    if not artist and lookup:
+        listen = _listen_file(files)
+        listen_a, listen_al, listen_src = _listen_artist(title, listen)
+        if listen_a:
+            artist, album, source = listen_a, listen_al or album, listen_src
     if on_progress:
         on_progress(folder.name, artist or "unresolved", source or "unresolved")
     return IndustryFix(
@@ -423,6 +519,67 @@ def patch_nml_industry(
     return patched
 
 
+def patch_xml_industry(
+    fixes: list[IndustryFix],
+    xml: Path | None = None,
+    *,
+    execute: bool,
+) -> int:
+    from urllib.parse import unquote
+
+    from ix_crate.stems_playlists import REKORDBOX_XML
+
+    xml_path = xml or REKORDBOX_XML
+    by_path = artist_map(fixes)
+    by_folder = {Path(item.folder).name: item for item in fixes if item.artist}
+    if (not by_path and not by_folder) or not xml_path.is_file():
+        return 0
+    tree = ET.parse(xml_path)
+    collection = tree.getroot().find("COLLECTION")
+    if collection is None:
+        return 0
+    patched = 0
+    for track in collection.findall("TRACK"):
+        raw = unquote((track.get("Location") or "").replace("file://localhost", "").replace("file://", ""))
+        if not raw:
+            continue
+        path = Path(raw)
+        try:
+            resolved = path.expanduser().resolve()
+        except OSError:
+            resolved = path
+        item = by_path.get(resolved) or by_path.get(path)
+        if item is None and "IndustryStems" in resolved.parts:
+            idx = resolved.parts.index("IndustryStems")
+            if idx + 1 < len(resolved.parts):
+                item = by_folder.get(resolved.parts[idx + 1])
+        if item is None:
+            continue
+        changed = False
+        if item.title and track.get("Name") != item.title:
+            if execute:
+                track.set("Name", item.title)
+            changed = True
+        if item.artist and track.get("Artist") != item.artist:
+            if execute:
+                track.set("Artist", item.artist)
+            changed = True
+        if item.album and (track.get("Album") or "") != item.album:
+            if execute:
+                track.set("Album", item.album)
+            changed = True
+        if changed:
+            patched += 1
+    if execute and patched:
+        import shutil
+
+        stamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
+        backup = xml_path.with_suffix(xml_path.suffix + f".pre-industry-{stamp}")
+        shutil.copy2(xml_path, backup)
+        tree.write(xml_path, encoding="UTF-8", xml_declaration=True)
+    return patched
+
+
 def write_applescript_tsv(fixes: list[IndustryFix], dest: Path | None = None) -> Path:
     REPORTS.mkdir(parents=True, exist_ok=True)
     stamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
@@ -462,6 +619,7 @@ def format_industry_plan(plan: IndustryPlan) -> str:
     lines = [
         f"industry stems: {plan.packs} packs  resolved {plan.resolved}  "
         f"unresolved {plan.unresolved}  files {plan.files}  "
+        f"nml {plan.nml_patched}  xml {plan.xml_patched}  "
         f"crate extras {plan.crate_dropped}"
     ]
     if sources:
@@ -526,16 +684,21 @@ def apply_industry_plan(
     plan: IndustryPlan,
     *,
     nml: Path | None = None,
+    xml: Path | None = None,
     stems_root: Path | None = None,
 ) -> IndustryPlan:
+    from ix_crate.stems_playlists import REKORDBOX_XML, rekordbox_is_running, traktor_index
+
     root = (stems_root or STEMS_AUDIO).expanduser()
     nml_path = nml or TRAKTOR_NML
-    plan.nml_patched = patch_nml_industry(plan.fixes, nml=nml_path, execute=True)
-    from ix_crate.stems_playlists import traktor_index
-
-    resolved = artist_map(plan.fixes)
-    files = prefer_crate_files(walk_stems(root), root, resolved=resolved)
-    write_traktor(files, traktor_index(nml_path), nml_path, stems_root=root)
+    xml_path = xml or REKORDBOX_XML
+    if not traktor_is_running():
+        plan.nml_patched = patch_nml_industry(plan.fixes, nml=nml_path, execute=True)
+        resolved = artist_map(plan.fixes)
+        files = prefer_crate_files(walk_stems(root), root, resolved=resolved)
+        write_traktor(files, traktor_index(nml_path), nml_path, stems_root=root)
+    if xml_path.is_file() and not rekordbox_is_running():
+        plan.xml_patched = patch_xml_industry(plan.fixes, xml=xml_path, execute=True)
     return plan
 
 

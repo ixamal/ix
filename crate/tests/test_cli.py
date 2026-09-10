@@ -109,6 +109,7 @@ class ParserTest(unittest.TestCase):
         self.assertIn("--from", text)
         self.assertIn("--to", text)
         self.assertIn("--playlist", text)
+        self.assertIn("--no-ingest", text)
 
     def test_favorites_help(self) -> None:
         from ix_crate.__main__ import main

@@ -13,6 +13,7 @@ from ix_crate.industry_stems import (
     is_industry_name,
     match_crate_artist,
     patch_nml_industry,
+    patch_xml_industry,
     plan_crate_keepers,
     plan_industry_artists,
 )
@@ -37,8 +38,9 @@ class IndustryNameTests(unittest.TestCase):
         self.assertEqual(industry_folder_title("102_Wish"), "Wish")
         self.assertEqual(industry_folder_title("03_God_is_God"), "God is God")
 
-    def test_fold_naive_and_censored_fuck(self) -> None:
+    def test_fold_naive_im_and_censored_fuck(self) -> None:
         self.assertEqual(fold_title("Naïve"), fold_title("Naive"))
+        self.assertEqual(fold_title("Control I'm Here"), fold_title("Control Im Here"))
         self.assertEqual(fold_title("What the F k Is Wrong With You"), "what the fuck is wrong with you")
 
 
@@ -63,6 +65,18 @@ class CrateMatchTests(unittest.TestCase):
             (dest / "Join In The Chant.stem.m4a").write_bytes(b"stem")
             artist, source = match_crate_artist(
                 "Join In The Chant XPress 2 Remix 1", crate_title_index(root)
+            )
+            self.assertEqual(artist, "Nitzer Ebb")
+            self.assertEqual(source, "crate-prefix")
+
+    def test_remix_keeps_stem_when_prefix_pool_is_busy(self) -> None:
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            dest = root / "Nitzer Ebb" / "Singles"
+            dest.mkdir(parents=True)
+            (dest / "Control Im Here.stem.m4a").write_bytes(b"stem")
+            artist, source = match_crate_artist(
+                "Control Im Here The Hacker Remix 2006", crate_title_index(root)
             )
             self.assertEqual(artist, "Nitzer Ebb")
             self.assertEqual(source, "crate-prefix")
@@ -181,6 +195,56 @@ class NmlPatchTests(unittest.TestCase):
             entry = ET.parse(nml).find("COLLECTION/ENTRY")
             self.assertEqual(entry.get("ARTIST"), "Juno Reactor")
             self.assertEqual(entry.get("TITLE"), "God is God")
+
+    def test_xml_patch_sets_artist(self) -> None:
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            dest = root / "Juno Reactor" / "Singles"
+            dest.mkdir(parents=True)
+            (dest / "God is God.stem.m4a").write_bytes(b"stem")
+            pack = root / "IndustryStems" / "03_God_is_God"
+            pack.mkdir(parents=True)
+            vocals = pack / "vocals.wav"
+            vocals.write_bytes(b"RIFF")
+            xml = Path(tmp) / "rekordbox.xml"
+            from ix_crate.stems_playlists import _rb_location
+
+            xml.write_text(
+                '<?xml version="1.0" encoding="UTF-8"?>\n'
+                '<DJ_PLAYLISTS Version="1.0.0"><COLLECTION Entries="1">'
+                f'<TRACK TrackID="3" Name="vocals" Artist="IndustryStems" '
+                f'Location="{_rb_location(vocals.resolve())}"/>'
+                "</COLLECTION></DJ_PLAYLISTS>",
+                encoding="utf-8",
+            )
+            fixes = plan_industry_artists(stems_root=root, lookup=False)
+            patched = patch_xml_industry(fixes, xml=xml, execute=True)
+            self.assertEqual(patched, 1)
+            track = ET.parse(xml).find("COLLECTION/TRACK")
+            self.assertEqual(track.get("Artist"), "Juno Reactor")
+            self.assertEqual(track.get("Name"), "God is God")
+
+    def test_listen_fills_unresolved_remix(self) -> None:
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            pack = root / "IndustryStems" / "Murderous_Phil_Kieran_Remix"
+            pack.mkdir(parents=True)
+            (pack / "vocals.wav").write_bytes(b"RIFF")
+            from unittest.mock import patch
+
+            with (
+                patch(
+                    "ix_crate.industry_stems._catalog_artist",
+                    return_value=("", "", ""),
+                ),
+                patch(
+                    "ix_crate.industry_stems._listen_artist",
+                    return_value=("Nitzer Ebb", "That Total Age", "shazam"),
+                ),
+            ):
+                fixes = plan_industry_artists(stems_root=root, lookup=True)
+            self.assertEqual(fixes[0].artist, "Nitzer Ebb")
+            self.assertEqual(fixes[0].source, "shazam")
 
 
 if __name__ == "__main__":

@@ -269,7 +269,7 @@ PYTHONPATH=crate python3 -m ix_crate music-playlist --playlist "Never Forget 50t
 
 ## crates (Music ↔ Traktor ↔ Rekordbox)
 
-Playlist membership only. Cues, energy, comments, beatgrids, and ReCK/MiK fields stay on the collection row. Match is the file: resolved path, or the other hardlink (Apple Music mix ↔ `stems_audio` mix). Tracks that are not already in the destination collection are **skipped**, never stubbed — a stub XML TRACK is 0.00 BPM and will not load on the FLX10.
+Playlist membership only. Cues, energy, comments, beatgrids, and ReCK/MiK fields stay on existing collection rows. Match is the file: resolved path, or the other hardlink (Apple Music mix ↔ `stems_audio` mix). Files that exist on disk but are not yet in the dest collection get a **Location** row (Name / Artist / path) so Rekordbox and Traktor can import and analyze — that is how empty MUSIC crates like DJ Sets fill. Skip `.m4p` and missing files. Never a stub without a file (0.00 BPM). `--no-ingest` is the old skip-only behavior.
 
 STEMIT stays `stemit --genres`. DJCU2 still moves cues/grids onto tracks Rekordbox does not already have (`docs/djcu2.md`).
 
@@ -295,6 +295,8 @@ PYTHONPATH=crate python3 -m ix_crate crates --from nml --to music --playlist "Hu
 `--to music` needs Share iTunes Library XML so crate can map path → persistent ID (`Media.localized/iTunes Music Library.xml`).
 
 2026-09-08 `--from music --to xml --all --execute`: **107** playlists (House 14, Origin Stories 90, three root). **5,131** matched. Rekordbox imported MUSIC; David playing. Import skipped 21 files (16 missing, 4 `.m4p`). How/why for the night: `docs/TODO.md` item 38.
+
+2026-09-10 ingest: Music → NML + xml **111** playlists. **DJ Sets 0 → 230** (6 `.m4p` skipped). MUSIC empties **28 → 5**. IndustryStems **209/209**, xml/NML artist **0**. Analyze new rows in-app. TODO **39**.
 
 ## favorites (play history)
 

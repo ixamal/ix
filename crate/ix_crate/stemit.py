@@ -439,6 +439,7 @@ def main(argv: list[str] | None = None) -> int:
             write_applescript_tsv,
             write_industry_report,
         )
+        from ix_crate.stems_playlists import rekordbox_is_running
 
         def on_progress(index: int, total: int, name: str, artist: str, source: str) -> None:
             label = artist or "unresolved"
@@ -449,16 +450,18 @@ def main(argv: list[str] | None = None) -> int:
         print(format_industry_plan(plan), flush=True)
         print(f"applescript tsv: {tsv}", flush=True)
         write_industry_report(plan, {"execute": args.execute, "applescript_tsv": str(tsv)})
-        if (args.nml or args.execute) and traktor_is_running():
-            print("Traktor is open. Quit it before --execute writes collection.nml.", flush=True)
-            return 2
         if not args.execute:
             print(
-                "dry-run. pass --execute to patch Traktor ARTIST and rewrite STEMIT crates. "
-                "WAV tags stay untouched. Music.app: docs/examples/music-set-industry-artist.applescript.",
+                "dry-run. pass --execute to patch Traktor + rekordbox.xml ARTIST "
+                "(AcoustID / MusicBrainz / Shazam on leftovers). WAV tags stay untouched. "
+                "Music.app has 0 IndustryStems rows.",
                 flush=True,
             )
             return 0
+        if traktor_is_running():
+            print("Traktor is open — NML skipped. Quit it to patch collection.nml.", flush=True)
+        if rekordbox_is_running():
+            print("Rekordbox is open — xml skipped. Quit it to patch rekordbox.xml.", flush=True)
         apply_industry_plan(plan)
         write_industry_report(
             plan,
@@ -466,12 +469,13 @@ def main(argv: list[str] | None = None) -> int:
                 "execute": True,
                 "applescript_tsv": str(tsv),
                 "nml_patched": plan.nml_patched,
-                "stemit_rebuilt": True,
+                "xml_patched": plan.xml_patched,
+                "stemit_rebuilt": not traktor_is_running(),
             },
         )
         print(
-            f"patched {plan.nml_patched} NML rows. STEMIT rebuilt without crate identity dupes. "
-            "Reopen Traktor, then DJCU2.",
+            f"patched nml {plan.nml_patched}  xml {plan.xml_patched}. "
+            "Reload the sidecar that was closed.",
             flush=True,
         )
         return 0

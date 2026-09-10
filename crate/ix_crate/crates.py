@@ -1,10 +1,12 @@
 """Playlist membership bridge: Music.app ↔ Traktor NML ↔ rekordbox.xml.
 
-Cues, energy, comments, and beatgrids live on collection rows. This
-command only rewrites playlist membership, matched by resolved path or
-hardlink inode. It never adds stub TRACK/ENTRY rows (those load as
-0.00 BPM). STEMIT stays owned by ``stemit --genres``. DJCU2 still
-moves cues onto tracks Rekordbox does not already have.
+Cues, energy, comments, and beatgrids stay on existing collection rows.
+Membership matches by resolved path or hardlink inode. Files that are
+in the source crate but not yet in the dest collection get a
+**location** row (Name / Artist / Location) so Rekordbox and Traktor can
+import and analyze — never a stub without a file (those load as 0.00
+BPM). Skip ``.m4p``. STEMIT stays owned by ``stemit --genres``. DJCU2
+still moves cues onto tracks Rekordbox does not already have.
 
 Dry-run default. Quit Rekordbox for ``--to xml``. Quit Traktor for
 ``--to nml``. Music.app must be open for ``--from music`` / ``--to music``.
@@ -23,13 +25,16 @@ from pathlib import Path
 from urllib.parse import unquote
 
 from ix_crate.music_dupes import MusicDupesError, _run_osascript, music_running
-from ix_crate.paths import APPLE_MUSIC, REPORTS
+from ix_crate.paths import APPLE_MUSIC, AUDIO_EXTS, REPORTS
 from ix_crate.stems_playlists import (
+    KIND,
     REKORDBOX_XML,
     TRAKTOR_NML,
     _ensure_traktor_folder,
     _ensure_traktor_playlist,
     _loc_to_path,
+    _rb_location,
+    _traktor_dir_file,
     rekordbox_is_running,
 )
 from ix_crate.traktor_nml import _walk_playlists, traktor_is_running
@@ -52,12 +57,15 @@ SKIP_MUSIC_NAMES = frozenset(
     }
 )
 TOOL_ID = "ix.crate.crates"
+SKIP_INGEST_SUFFIXES = {".m4p"}
 
 
 @dataclass
 class TrackRef:
     path: Path
     label: str = ""
+    artist: str = ""
+    title: str = ""
 
 
 @dataclass
@@ -81,6 +89,7 @@ class PlaylistPlan:
     folder: tuple[str, ...]
     matched: list[Hit] = field(default_factory=list)
     missing: list[TrackRef] = field(default_factory=list)
+    ingested: int = 0
 
 
 @dataclass
@@ -97,6 +106,7 @@ class SyncPlan:
     dest_folder: str
     playlists: list[PlaylistPlan] = field(default_factory=list)
     replace_folder: bool = False
+    ingest: bool = True
 
 
 class PathIndex:
@@ -433,6 +443,8 @@ end tell
             TrackRef(
                 path=Path(location).expanduser(),
                 label=f"{artist} — {name}".strip(" —"),
+                artist=artist,
+                title=name,
             )
         )
     return tracks
@@ -497,6 +509,131 @@ def plan_membership(playlists: list[CratePlaylist], index: PathIndex) -> list[Pl
     return planned
 
 
+def ingestible(track: TrackRef) -> bool:
+    path = track.path.expanduser()
+    try:
+        if not path.is_file():
+            return False
+    except OSError:
+        return False
+    suffix = path.suffix.lower()
+    if suffix in SKIP_INGEST_SUFFIXES:
+        return False
+    if ".stem." in path.name.lower():
+        return True
+    return suffix in AUDIO_EXTS
+
+
+def _filing(track: TrackRef) -> tuple[str, str]:
+    artist = (track.artist or "").strip()
+    title = (track.title or "").strip()
+    if not title and " — " in (track.label or ""):
+        artist, title = (track.label.split(" — ", 1) + [""])[:2]
+    if not title:
+        title = track.path.stem
+    return artist, title
+
+
+def _next_xml_id(collection: ET.Element) -> int:
+    used = set()
+    for track in collection.findall("TRACK"):
+        tid = track.get("TrackID") or ""
+        if tid.isdigit():
+            used.add(int(tid))
+    return (max(used) + 1) if used else 900000000
+
+
+def ingest_xml_collection(collection: ET.Element, plan: SyncPlan) -> int:
+    if not plan.ingest:
+        return 0
+    added = 0
+    next_id = _next_xml_id(collection)
+    used = set()
+    for track in collection.findall("TRACK"):
+        tid = track.get("TrackID") or ""
+        if tid.isdigit():
+            used.add(int(tid))
+    if next_id in used:
+        next_id = max(used) + 1
+    for item in plan.playlists:
+        still: list[TrackRef] = []
+        seen = {hit.dest_key for hit in item.matched}
+        ingested = 0
+        for miss in item.missing:
+            if not ingestible(miss):
+                still.append(miss)
+                continue
+            while next_id in used:
+                next_id += 1
+            artist, title = _filing(miss)
+            suffix = miss.path.suffix.lower()
+            kind = (
+                "M4A File"
+                if ".stem." in miss.path.name.lower()
+                else KIND.get(suffix, "M4A File")
+            )
+            tid = str(next_id)
+            used.add(next_id)
+            next_id += 1
+            ET.SubElement(
+                collection,
+                "TRACK",
+                TrackID=tid,
+                Name=title,
+                Artist=artist,
+                Kind=kind,
+                Size=str(miss.path.stat().st_size),
+                Location=_rb_location(miss.path),
+            )
+            if tid not in seen:
+                item.matched.append(Hit(path=miss.path, dest_key=tid, via="ingest"))
+                seen.add(tid)
+            ingested += 1
+            added += 1
+        item.missing = still
+        item.ingested = ingested
+    collection.set("Entries", str(len(collection.findall("TRACK"))))
+    return added
+
+
+def ingest_nml_collection(collection: ET.Element, plan: SyncPlan) -> int:
+    if not plan.ingest:
+        return 0
+    added = 0
+    for item in plan.playlists:
+        still: list[TrackRef] = []
+        seen = {hit.dest_key for hit in item.matched}
+        ingested = 0
+        for miss in item.missing:
+            if not ingestible(miss):
+                still.append(miss)
+                continue
+            artist, title = _filing(miss)
+            directory, file_attr = _traktor_dir_file(miss.path.resolve())
+            pk_type = "STEM" if ".stem." in miss.path.name.lower() else "TRACK"
+            key = f"Macintosh HD{directory}{file_attr}"
+            entry = ET.SubElement(collection, "ENTRY", TITLE=title, ARTIST=artist)
+            ET.SubElement(
+                entry,
+                "LOCATION",
+                DIR=directory,
+                FILE=file_attr,
+                VOLUME="Macintosh HD",
+                VOLUMEID="Macintosh HD",
+            )
+            if key not in seen:
+                item.matched.append(
+                    Hit(path=miss.path, dest_key=key, via="ingest", extra=pk_type)
+                )
+                seen.add(key)
+            ingested += 1
+            added += 1
+        item.missing = still
+        item.ingested = ingested
+    collection.set("ENTRIES", str(len(collection.findall("ENTRY"))))
+    return added
+
+
 def format_plan(plan: SyncPlan) -> str:
     lines = [
         f"crates {plan.source} → {plan.dest}  folder {plan.dest_folder}  "
@@ -504,8 +641,10 @@ def format_plan(plan: SyncPlan) -> str:
     ]
     for item in plan.playlists:
         path = "/".join(item.folder + (item.name,)) if item.folder else item.name
+        to_ingest = sum(1 for miss in item.missing if ingestible(miss))
+        to_skip = sum(1 for miss in item.missing if not ingestible(miss))
         lines.append(
-            f"  {path}: {len(item.matched)} matched  {len(item.missing)} not in dest collection"
+            f"  {path}: {len(item.matched)} in dest  {to_ingest} ingest  {to_skip} skip"
         )
         for miss in item.missing[:8]:
             loc = str(miss.path).replace(str(Path.home()), "~")
@@ -572,6 +711,10 @@ def apply_xml(plan: SyncPlan, xml: Path) -> int:
                 root_node.remove(node)
                 root_node.set("Count", str(len(root_node.findall("NODE"))))
                 break
+    collection = root.find("COLLECTION")
+    if collection is None:
+        collection = ET.SubElement(root, "COLLECTION", Entries="0")
+    ingest_xml_collection(collection, plan)
     written = 0
     for item in plan.playlists:
         folder = _rb_folder_path(
@@ -600,6 +743,10 @@ def apply_nml(plan: SyncPlan, nml: Path) -> int:
     root = tree.getroot()
     root_folder = _nml_root_folder(root)
     dest = _ensure_traktor_folder(root_folder, plan.dest_folder)
+    collection = root.find("COLLECTION")
+    if collection is None:
+        raise RuntimeError("Traktor NML is missing COLLECTION")
+    ingest_nml_collection(collection, plan)
     written = 0
     for item in plan.playlists:
         if item.name in PROTECTED or any(part in PROTECTED for part in item.folder):
@@ -721,6 +868,7 @@ def write_report(plan: SyncPlan, extra: dict | None = None) -> Path:
                 "name": item.name,
                 "folder": list(item.folder),
                 "matched": len(item.matched),
+                "ingested": item.ingested,
                 "missing": [
                     {"path": str(miss.path), "label": miss.label} for miss in item.missing
                 ],
@@ -767,6 +915,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--nml", type=Path, default=TRAKTOR_NML)
     parser.add_argument("--xml", type=Path, default=REKORDBOX_XML)
+    parser.add_argument(
+        "--no-ingest",
+        action="store_true",
+        help="Do not add missing files to the dest collection (old skip-only behavior).",
+    )
     parser.add_argument("--execute", action="store_true")
     return parser
 
@@ -805,15 +958,25 @@ def main(argv: list[str] | None = None) -> int:
         dest_folder=dest_folder_for(args.source, args.dest),
         playlists=plan_membership(playlists, index),
         replace_folder=bool(args.all and args.dest == "xml"),
+        ingest=bool(args.dest != "music" and not args.no_ingest),
     )
+    if plan.ingest:
+        would = sum(
+            1 for item in plan.playlists for miss in item.missing if ingestible(miss)
+        )
+        skipped = sum(
+            1 for item in plan.playlists for miss in item.missing if not ingestible(miss)
+        )
+        print(f"  ingest {would} missing files into dest collection  skip {skipped}", flush=True)
     print(format_plan(plan), flush=True)
     report = write_report(plan, {"execute": bool(args.execute)})
     print(f"report {report}", flush=True)
     if not args.execute:
         print(
-            "dry-run. pass --execute to rewrite playlist membership only. "
-            "Collection cues / energy / comments stay. Unmatched tracks are skipped, "
-            "not stubbed.",
+            "dry-run. pass --execute to rewrite playlist membership. "
+            "Missing files that exist on disk get a Location row (Rekordbox/Traktor "
+            "analyze after reload). .m4p and missing files stay skipped. "
+            "Existing cues / energy / comments stay.",
             flush=True,
         )
         return 0
