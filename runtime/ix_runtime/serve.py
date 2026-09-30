@@ -24,6 +24,7 @@ STATE: dict[str, Any] = {
     "lastAddress": None,
     "lastArgs": None,
     "updatedAt": None,
+    "values": {},
 }
 
 
@@ -64,6 +65,7 @@ def osc_loop(host: str, port: int, control_url: str, stop: threading.Event) -> N
         STATE["lastAddress"] = address
         STATE["lastArgs"] = args
         STATE["updatedAt"] = time.time()
+        STATE["values"][address] = {"args": args, "at": STATE["updatedAt"]}
         forward_to_control_plane(address, args, control_url)
     sock.close()
 
@@ -77,7 +79,8 @@ class HealthHandler(BaseHTTPRequestHandler):
             self.send_response(404)
             self.end_headers()
             return
-        body = json.dumps(STATE).encode("utf-8")
+        snapshot = {**STATE, "values": dict(STATE["values"])}
+        body = json.dumps(snapshot).encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(body)))

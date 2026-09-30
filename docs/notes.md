@@ -253,6 +253,10 @@ This is the working rig. Archive (off git): `~/Music/blackhole_16ch_2026-09-23_1
 
 Traktor: 48 kHz, buffer 512, Internal, master **1/2**, phones **3/4**, record **7/8**, Deck D **In 10/In 11**. Maschine: Out 1 = **Out 0/Out 1**, In 1 off, In 2 = **In 2/In 3**, In 3 = **In 4/In 5**. Rekordbox: native **DDJ-FLX10**, 44.1 kHz, PC MASTER OUT off, master and phones on the FLX10, booth empty. One FLX10 was in Core Audio. Mac default output was External Headphones. Channel 2 **LINE** is still the S8 RCA. Boot: **S8 → S88 → Traktor → Maschine**.
 
+## MCP bridges live (2026-09-30)
+
+**Blender** and **Rekordbox** MCP both load in Cursor. Blender updated to **5.2.2 LTS** (5.2.0 backed up off git; there is no 5.4, only a 5.3 alpha). Blender bridge proven with a read-only scene call. Rekordbox adapter replaced the placeholder stub with a real read-only server over `ix_runtime`, which now keeps the latest value per OSC address. Setup and gotchas: `docs/local-setup.md` → MCP bridges. Houdini and Ableton adapters are still stubs.
+
 ## Parked in siblings (not this repo)
 
 - [ixamal/blackhole](https://github.com/ixamal/blackhole) — 16ch Channel D + 11a live. 2ch archive: `~/Music/blackhole_2ch/`. **11b parked** (FLX10 native). **13 on hold.** Next work is Floor on this repo.

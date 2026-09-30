@@ -10,8 +10,12 @@
       }
     },
     "blender-dcc": {
-      "command": "uvx",
-      "args": ["blender-mcp-server"]
+      "command": "/opt/homebrew/bin/uvx",
+      "args": ["blender-mcp-server"],
+      "env": {
+        "BLENDER_MCP_HOST": "127.0.0.1",
+        "BLENDER_MCP_PORT": "9876"
+      }
     },
     "houdini-dcc": {
       "command": "python3",
@@ -26,7 +30,7 @@
       }
     },
     "dj-rekordbox": {
-      "command": "node",
+      "command": "/opt/homebrew/bin/node",
       "args": ["${HOME}/local_tools/mcp_adapters/dj_bridge.js"],
       "env": {
         "DJ_OSC_HOST": "127.0.0.1",
