@@ -19,27 +19,27 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Alkalurops",
   description:
-    "Real-time generative visual infrastructure. Zero latency. Driven by edge AI.",
+    "Visuals serve a music performance as symbiotically as music serves a film. Alkalurops works alongside artists, making their sound seen: performant, real-time, and true to what they imagine.",
 };
 
 const architecture = [
   {
-    epithet: "ComfyUI · PyTorch",
-    title: "Edge-optimized local AI",
+    epithet: "Local · Any medium",
+    title: "Whatever the music asks for",
     summary:
-      "Quantized diffusion on the laptop: SDXL Turbo, LCM, Flux.1. Apple Metal Performance Shaders and TensorRT. Ultra-low latency frames at a small latent, then scale in the 3D engine.",
+      "We build whatever the performance needs, and we build it locally, where the music lives. No waiting on the cloud, no distance between the artist's vision and what the audience sees.",
   },
   {
     epithet: "OSC · MIDI",
-    title: "Zero-latency audio modulation",
+    title: "Driven by the music",
     summary:
-      "Live DAW stems and performance metrics over local UDP. Rekordbox, Traktor, Ableton on the loopback bus — amplitude, bands, and the booth, not a bounced movie.",
+      "DAWs, DJ software, and live rigs send tempo, controls, and frequency bands over the local network. The visuals follow the performer, not a bounced movie.",
   },
   {
     epithet: "Syphon · NDI · UE5",
     title: "Real-time 3D compositing",
     summary:
-      "Generative textures into Unreal Engine 5. Deterministic lighting and Niagara on top, so the stage stays safe when the model improvises.",
+      "Live textures into Unreal Engine 5, with deterministic lighting and Niagara on top, so the stage stays steady whatever the generator does.",
   },
 ];
 
@@ -74,22 +74,15 @@ export default async function HallPage() {
     <div className="flex flex-col gap-12">
       <section className="flex flex-col gap-5">
         <p className="text-[11px] tracking-[0.42em] text-primary uppercase">
-          Real-time generative visual infrastructure
+          Real-time visual instruments
         </p>
         <h1 className="font-heading max-w-3xl text-5xl leading-[1.05] text-balance sm:text-7xl">
           Alkalurops
         </h1>
         <p className="max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">
-          Zero latency. Driven by edge AI.
-        </p>
-        <p className="max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">
-          Live music visuals are either rigid and pre-rendered, or expensive
-          enough to need a dedicated VJ. Alkalurops is an open-source research
-          and engineering effort (Apache 2.0) to bring real-time generative AI
-          visuals into the booth. A lightweight, edge-accelerated pipeline that
-          runs beside memory-heavy DAWs and DJ software on one laptop, generating
-          audio-reactive 3D environments and textures live, without audio
-          dropouts or crashes.
+          Visuals serve a music performance as symbiotically as music serves a
+          film. Alkalurops works alongside artists, making their sound seen:
+          performant, real-time, and true to what they imagine.
         </p>
         <div className="flex flex-wrap gap-3">
           <Link href="/telemetry" className={cn(buttonVariants())}>
@@ -124,30 +117,26 @@ export default async function HallPage() {
 
       <section className="flex flex-col gap-4">
         <p className="text-[11px] tracking-[0.28em] text-muted-foreground uppercase">
-          Ethos
+          Behind the name
         </p>
         <Card>
           <CardHeader>
             <CardDescription className="tracking-[0.28em] uppercase">
-              The ninth planet
+              The Herdsman&apos;s staff
             </CardDescription>
-            <CardTitle className="font-heading text-3xl">Ix</CardTitle>
+            <CardTitle className="font-heading text-3xl">Alkalurops</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 text-sm leading-6 text-muted-foreground sm:text-base">
             <p>
-              In Frank Herbert&apos;s Dune, Ix is the ninth planet of the star
-              Alkalurops, a world on the razor edge of a technological taboo. The
-              commandment is &ldquo;Thou shalt not make a machine in the likeness
-              of a human mind.&rdquo; Ix built the advanced hardware everyone
-              else depended on and feared.
+              Alkalurops is a real star, set in the constellation Boötes, the
+              Herdsman. Its name comes from the Greek for a herdsman&apos;s staff.
+              For us it is that staff: the thing we carry and the heading we
+              follow as we steer toward what live performance can become.
             </p>
             <p>
-              The project name is an intentional, ironic statement. Modern AI
-              carries a similar aura of anxiety. Alkalurops rejects the idea that
-              models must replace or counterfeit human agency. It reclaims the
-              technology as a real-time instrument: machine execution as a
-              direct extension of the artist&apos;s live performance. The irony
-              is ours — not a claim the books make for us.
+              Frank Herbert gave the star a planet, Ix, a world of makers.
+              Alkalurops treats the machine as an instrument: it follows the
+              artist&apos;s hands and the room, and never stands in for them.
             </p>
           </CardContent>
         </Card>
@@ -215,8 +204,8 @@ export default async function HallPage() {
           <CardContent className="flex flex-col gap-4 text-sm leading-6 text-muted-foreground sm:text-base">
             <p>
               Live performance tools should be open, accessible, and resilient.
-              The core is Apache 2.0. Artists and developers who want generative
-              visuals in the booth — without a rented VJ stack — are invited to
+              The core is Apache 2.0. Performers, visual artists, VJs, and
+              developers who want live visuals on stage are invited to
               collaborate.
             </p>
             <Link
