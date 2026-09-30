@@ -79,6 +79,33 @@ Licenses available: Unreal Engine, Maya, Blender.
 
 This replaces the old Unreal-MCP-first → Maya → Blender → Houdini order. Existing 10 / 10a–c Niagara slice still matters; it sits in Phase 3. RedefineFX Chaos & Niagara Destruction is the learning-session track for performant Chaos + Niagara effects (Phase 3).
 
+### Live feed — Rekordbox / Traktor → param bus → UE + ComfyUI
+
+The OSC router (10f) owns the inputs and fans them out on loopback. The Rekordbox MCP (`dj-rekordbox`) is **not** in the live path: it only reads `ix_runtime` so Cursor can see the feed. No LLM in the beat loop.
+
+```mermaid
+flowchart LR
+  RB[Rekordbox / Traktor] -->|Ableton Link| Bridge
+  FLX[FLX10 MIDI] -->|faders| Bridge
+  Hist[Rekordbox history] -->|track id| Bridge
+  Audio[Master audio via BlackHole] -->|amplitude + bands| Bridge
+  Bridge[OSC router / param bus<br/>127.0.0.1] --> UE[Unreal OSC :9000]
+  Bridge --> Comfy[ComfyUI listener :8000]
+  Bridge --> RT[ix_runtime]
+  RT -.read-only.-> MCP[Rekordbox MCP / Cursor]
+```
+
+- Pro DJ Link does not apply: it is for CDJ networks, not Rekordbox Performance mode on the USB FLX10.
+- Rekordbox cannot give ComfyUI amplitude / frequency bands (46b). Those come from the master audio on BlackHole.
+- Port clash today: `ix_runtime` and the UE OSC plugin both want UDP `127.0.0.1:9000`. The router fixes it: UE keeps 9000, ComfyUI 8000, `ix_runtime` moves to its own port as the observer.
+
+Build order (notes only — do not install from this list):
+
+- [ ] 50. **Ableton Link → OSC** for `/rekordbox/bpm` and `/rekordbox/beat_phase`. Rekordbox (6+) and Traktor both join Link, so one bridge covers either deck software. First piece of 10f.
+- [ ] 50a. **FLX10 MIDI → OSC** for `/rekordbox/fader`. CoreMIDI lets a listener read the FLX10 alongside Rekordbox.
+- [ ] 50b. **BlackHole master audio → amplitude + frequency bands** for ComfyUI (46b).
+- [ ] 50c. **Rekordbox history → `/rekordbox/track_id`** (pyrekordbox). Seconds behind: fine for look switches, not for beat timing.
+
 ### Phase 1 — local ComfyUI on the MacBook
 
 Native Apple Silicon. Python 3.11. PyTorch MPS, force-fp16. Distilled models (SDXL Turbo, LCM, Flux.1 schnell), 1–4 steps, 512×512. Lightweight OSC listener on UDP `127.0.0.1:8000` for amplitude and frequency bands, threaded so it never locks generation. Route those floats into prompt weights, denoise, or latent seed.
