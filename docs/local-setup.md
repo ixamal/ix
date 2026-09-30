@@ -93,6 +93,25 @@ Cursor launched from the Dock does not see `/opt/homebrew/bin` on its PATH. Use 
 
 - `ix_runtime` and the UE OSC plugin both want UDP `127.0.0.1:9000`. Only one can own it at a time. Decide before the Floor Phase 3 UE work.
 
+## ComfyUI (installed 2026-09-30, Floor Phase 1)
+
+Lives off-repo in `~/local_tools/comfyui/`: `ComfyUI/` (git clone of Comfy-Org/ComfyUI), `.venv/` (uv, Python 3.13), `workflows/`, `comfyui.log`. PyTorch MPS, `--force-fp16`, built-in Manager (`--enable-manager`), bound to `127.0.0.1:8188`.
+
+Runs from LaunchAgent `ai.ixamal.comfyui` (on demand, not at login, so it does not hold memory beside the DAW). Processes started from a Cursor agent shell die when the command ends, so always use the agent:
+
+```bash
+launchctl kickstart gui/$(id -u)/ai.ixamal.comfyui   # start
+launchctl kill TERM gui/$(id -u)/ai.ixamal.comfyui   # stop
+open http://127.0.0.1:8188                            # UI
+```
+
+Model: `models/checkpoints/sd_xl_turbo_1.0_fp16.safetensors` (sha256 verified). Smoke test: `workflows/floor_sdxl_turbo_test.json` (1 step, 512×512, `SDTurboScheduler`). First run ≈ 26 s (model load), then ≈ 0.25 s/frame.
+
+**MCP (`comfyui`).** Official [Comfy-Org/comfy-mcp](https://github.com/Comfy-Org/comfy-mcp) + `comfy-cli`, both in the ComfyUI venv. `~/.cursor/mcp.json` runs `${HOME}/local_tools/comfyui/.venv/bin/comfy-mcp` with `COMFY_BIN` and `COMFYUI_URL=http://127.0.0.1:8188`. `comfy-cli` tracking disabled; default workspace set.
+
+- `run_workflow` with `wait=true` errors; submit with `wait=false`, then `job(action="status")`.
+- Circuit-break: `partner_generate` / paid templates spend Comfy credits; `install_node`, `update_comfyui`, `switch_comfyui_version` change the install. Ask David first.
+
 ## Alkalurop org bridge (monthly 15th)
 
 Public [ixamal](https://github.com/ixamal) originals are mirrored into the [alkalurop](https://github.com/alkalurop) org. The org section landing page is [`alkalurop/.github`](https://github.com/alkalurop/.github) (`profile/README.md`). Day-to-day work stays on ixamal.

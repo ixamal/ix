@@ -17,6 +17,13 @@
         "BLENDER_MCP_PORT": "9876"
       }
     },
+    "comfyui": {
+      "command": "${HOME}/local_tools/comfyui/.venv/bin/comfy-mcp",
+      "env": {
+        "COMFY_BIN": "${HOME}/local_tools/comfyui/.venv/bin/comfy",
+        "COMFYUI_URL": "http://127.0.0.1:8188"
+      }
+    },
     "houdini-dcc": {
       "command": "python3",
       "args": ["${HOME}/local_tools/mcp_adapters/houdini.py"]

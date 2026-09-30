@@ -110,8 +110,8 @@ Build order (notes only — do not install from this list):
 
 Native Apple Silicon. Python 3.11. PyTorch MPS, force-fp16. Distilled models (SDXL Turbo, LCM, Flux.1 schnell), 1–4 steps, 512×512. Lightweight OSC listener on UDP `127.0.0.1:8000` for amplitude and frequency bands, threaded so it never locks generation. Route those floats into prompt weights, denoise, or latent seed.
 
-- [ ] 46. **ComfyUI native on Apple Silicon.** Python 3.11, PyTorch MPS, force-fp16. Notes only from this list — do not install from here.
-- [ ] 46a. **Distilled models.** SDXL Turbo, LCM, Flux.1 schnell. 1–4 steps at 512×512. High frame rate at the latent; scale later in the 3D engine.
+- [x] 46. **ComfyUI native on Apple Silicon.** Installed 2026-09-30 (David asked): ComfyUI 0.38.0, Python 3.13 (upstream now recommends 3.13 over 3.11), PyTorch 2.14 MPS, force-fp16, Manager on. `127.0.0.1:8188` only. Setup: `docs/local-setup.md` → ComfyUI.
+- [ ] 46a. **Distilled models.** SDXL Turbo, LCM, Flux.1 schnell. 1–4 steps at 512×512. High frame rate at the latent; scale later in the 3D engine. **SDXL Turbo in and proven:** 1 step 512×512 ≈ **0.25 s/frame (~4 fps) warm** on the M5 Max. Still to add: FLUX.1 schnell (Apache 2.0, license-clean default for paid gigs). SDXL Turbo needs Stability Community License registration before commercial use.
 - [ ] 46b. **OSC listener node.** UDP `127.0.0.1:8000`. Amplitude and frequency bands. Threaded; must not lock generation.
 - [ ] 46c. **Route OSC floats** into prompt weights, denoise, or latent seed.
 - [ ] 10h. **Rekordbox + Traktor → OSC/MIDI** into the same param bus that feeds ComfyUI (and, in Phase 3, Unreal). Live path. **No LLM** in the beat loop — ComfyUI diffusion is not the Ollama oracle.
