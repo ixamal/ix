@@ -86,6 +86,10 @@ def main(argv: list[str] | None = None) -> int:
         from ix_crate.crater import main as crater_main
 
         return crater_main(argv[1:])
+    if argv and argv[0] == "xml-prune":
+        from ix_crate.xml_prune import main as xml_prune_main
+
+        return xml_prune_main(argv[1:])
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -110,6 +114,7 @@ def main(argv: list[str] | None = None) -> int:
             "crates",
             "favorites",
             "crater",
+            "xml-prune",
         ),
         help=(
             "Scan Unknown Album, re-ID Inbox, sort mashups, drop Music.app "
@@ -120,8 +125,9 @@ def main(argv: list[str] | None = None) -> int:
             "STEMIT a playlist into stems_audio, repair Traktor NML "
             "playlist dupes and missing artwork IDs, sync playlist "
             "membership between Music.app, Traktor NML, and rekordbox.xml, "
-            "record play counts into configs/favorites.json, or run CRATER "
-            "(daily celestial crate pass)."
+            "record play counts into configs/favorites.json, run CRATER "
+            "(daily celestial crate pass), or drop rekordbox.xml rows "
+            "Rekordbox cannot import (missing files, .m4p)."
         ),
     )
     parser.add_argument(

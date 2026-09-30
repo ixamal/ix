@@ -12,6 +12,8 @@ One command that refreshes the DJ-facing crates from the live library:
 4. **STEMIT genres** — ``STEMIT/Genres/<Genre>/{Mixes,…}`` into NML + xml.
 5. **Music playlists** (optional) — when Music.app is open,
    ``crates --from music --all`` into NML and xml under ``MUSIC/``.
+6. **xml prune** — drop rekordbox.xml rows Rekordbox cannot import
+   (missing files, ``.m4p``) so the Import Log dialog stops repeating.
 
 Never writes Apple Music media. Never runs the stem factory. Quit Traktor
 before NML. Quit Rekordbox before xml. Dry-run default.
@@ -124,6 +126,17 @@ def run_music_crates(*, execute: bool) -> int:
     return crates_main(["--from", "music", "--to", "xml", "--all", "--execute"])
 
 
+def run_xml_prune(*, execute: bool, xml: Path) -> int:
+    from ix_crate.xml_prune import format_plan, prune_xml
+
+    if execute and rekordbox_is_running():
+        print("Rekordbox is open. xml prune skipped.", flush=True)
+        return 0
+    plan = prune_xml(xml, execute=execute)
+    print(format_plan(plan), flush=True)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="ix_crate crater", description=__doc__)
     parser.add_argument("--nml", type=Path, default=TRAKTOR_NML)
@@ -185,6 +198,9 @@ def main(argv: list[str] | None = None) -> int:
         code = run_music_crates(execute=args.execute)
         if code:
             return code
+
+    print("CRATER prune dead rekordbox.xml rows", flush=True)
+    run_xml_prune(execute=args.execute, xml=args.xml)
 
     print("CRATER done.", flush=True)
     return 0
