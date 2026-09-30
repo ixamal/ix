@@ -1,0 +1,19 @@
+---
+description: "CRATER" alone means run the daily crate pass end to end
+alwaysApply: true
+---
+
+# CRATER
+
+When David says **CRATER** (alone, or "run CRATER"), do the whole pass without asking:
+
+1. Check no STEMIT factory is writing (`pgrep -f py.exec.separate`). If one is, say so and stop.
+2. Quit Traktor and Rekordbox with a normal AppleScript `quit` (never force-kill). If a dialog blocks the quit, tell David to click through; wait for both to close before running.
+3. Make sure Music.app is open (`open -a Music`) so user playlists bridge.
+4. Run detached, logging to `~/local_tools/crate/reports/crater-<utc>.log` (own session, file output — not a pipe to the agent shell):
+   `PYTHONPATH=crate python3 -u -m ix_crate crater --execute --skip-follow`
+5. Report: GENRES / ACAPELLAS counts, STEMIT on-disk vs added rows, STEMIT/Genres count, Music playlists written. Remind: reload rekordbox xml (`<>`), Don't ask again + No on tag overwrite.
+
+**CRATER full** drops `--skip-follow` (MusicBrainz + Shazam for unmatched ACAPELLAS; hours).
+
+Never runs the stem factory. Never writes Apple Music media. How/why: `docs/crate.md` (CRATER).
