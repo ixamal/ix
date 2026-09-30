@@ -4,13 +4,13 @@ Hit these in order. Stop on the first **doable** open item. Detail: `docs/notes.
 
 **Tracker:** open work is also on [GitHub Issues + milestones](https://github.com/ixamal/ix/milestones?state=all) (ixamal). How this splits from docs: `docs/tracker.md`. Alkalurop mirrors the git docs, not the issue metadata.
 
-Last update: 2026-09-24. **Rock STEMIT done** ([milestone 12](https://github.com/ixamal/ix/milestone/12), [#21](https://github.com/ixamal/ix/issues/21)). Library conversion ≈ **23%** of `MUSIC/GENRES` (3,691 mixes / 15,881). **CRATER** is the daily crate pass. **16ch Channel D + 11a live.** **11b parked.** **13 on hold.** **Next: Floor 10** ([#9](https://github.com/ixamal/ix/issues/9)). Hardware leftover: **40** ([#10](https://github.com/ixamal/ix/issues/10)). Play history **41** ([#13](https://github.com/ixamal/ix/issues/13)). Reviews **2026-09-16** / **2026-10-09**. Publish: alkalurop mirror with this tip.
+Last update: 2026-09-30. **Rock STEMIT done** ([milestone 12](https://github.com/ixamal/ix/milestone/12), [#21](https://github.com/ixamal/ix/issues/21)). Library conversion ≈ **23%** of `MUSIC/GENRES` (3,691 mixes / 15,881). **CRATER** is the daily crate pass. **16ch Channel D + 11a live.** **11b parked.** **13 on hold.** **Next: Floor Phase 1** (local ComfyUI on the MacBook). Existing UE OSC slice still [#9](https://github.com/ixamal/ix/issues/9) (Phase 3). Hardware leftover: **40** ([#10](https://github.com/ixamal/ix/issues/10)). Play history **41** ([#13](https://github.com/ixamal/ix/issues/13)). Reviews **2026-09-16** / **2026-10-09**. Publish: alkalurop mirror with this tip.
 
 ## Now
 
 Crate is path-stable. Music.app, Traktor, and Rekordbox are playable from the same files. Sync Library Off. STEMIT + Music folders are in the xml sidecar and imported. Rock genre factory batch is off the open list.
 
-**Next:** **Floor 10** (Rekordbox/Traktor OSC → UE). Unreal MCP + PCG + OSC PoC first; RedefineFX Chaos & Niagara Destruction is the performant-effects learning track; do not start Blender before Unreal/Maya. 11 + 11a proven. **11b parked** (FLX10 aggregate silenced the Sony until a reboot, 2026-09-23 correction). **13 on hold** (S8 pads → S88). Hardware leftover: **40**. If 16ch fails, **Aggregate Device Maschine** + `~/Music/blackhole_2ch/`. Crate leftover: reload Rekordbox xml (`<>`) / analyze DJ Sets, or STEMIT Alternative **1–3** (TODO 17) when David names it. Daily playlists: **CRATER** (`ix_crate crater`). Never write Apple Music from the factory. Never stem **Acapella**. Do not farm 35k to the cloud. Do not Discogs-blast.
+**Next:** **Floor Phase 1** — local ComfyUI on the MacBook (Apple Silicon, PyTorch MPS, force-fp16, distilled 1–4 step models at 512×512, OSC listener on `127.0.0.1:8000`). Then Phase 2 texture passing (Syphon/NDI → UE dynamic material), then Phase 3 stage reactivity (Niagara + lighting on the same OSC). RedefineFX Chaos & Niagara Destruction stays the performant-effects learning track (Phase 3). TouchDesigner later, not Phase 1. Do not start Blender/Maya before the ComfyUI slice. 11 + 11a proven. **11b parked** (FLX10 aggregate silenced the Sony until a reboot, 2026-09-23 correction). **13 on hold** (S8 pads → S88). Hardware leftover: **40**. If 16ch fails, **Aggregate Device Maschine** + `~/Music/blackhole_2ch/`. Crate leftover: reload Rekordbox xml (`<>`) / analyze DJ Sets, or STEMIT Alternative **1–3** (TODO 17) when David names it. Daily playlists: **CRATER** (`ix_crate crater`). Never write Apple Music from the factory. Never stem **Acapella**. Do not farm 35k to the cloud. Do not Discogs-blast.
 
 ## Crate (done)
 
@@ -67,49 +67,72 @@ Crate is path-stable. Music.app, Traktor, and Rekordbox are playable from the sa
 - [x] 16c. **Rock genre STEMIT.** 2026-09-24: Music.app Rock batch complete (paged factory + catch-up; existing `.stem.m4a` skipped). FairPlay `drms` → `apple drm`. Off open work ([milestone 12](https://github.com/ixamal/ix/milestone/12), [#21](https://github.com/ixamal/ix/issues/21); stems [#1](https://github.com/ixamal/stems/issues/1) closed). **≈ 23%** of `MUSIC/GENRES` converted (3,691 mixes / 15,881). Publish via alkalurop bridge.
 - [ ] 17. **Alternative, tracks 1–3 only.** [#8](https://github.com/ixamal/ix/issues/8). Same STEMIT path, genre batch instead of a playlist. Skip existing `stems_audio` Artist/Album/Title. Never stem Acapella.
 
-## Floor / Elysium — DCC / Unreal pipeline (next)
+## Floor / Elysium — generative visual pipeline (next)
 
 Notes only — priorities for work on the Ix machine. Do not install software, enroll in courses, or implement from this list. Drive with **Grok/Gemini** via Cursor / Grok Bot; Claude CLI is optional and **not required** for DCC MCP.
 
 Licenses available: Unreal Engine, Maya, Blender.
 
-Hit these in this order when Floor opens. Existing 10 / 10a–c stay the live Niagara slice; they sit inside the Unreal-first PoC. RedefineFX Chaos & Niagara Destruction is the learning-session track for performant Chaos + Niagara effects.
+**Pipeline (in order):** DJ software or DAW (Ableton, Traktor, Rekordbox) sends OSC/MIDI on the local network into a ComfyUI node pipeline (Apple MPS, TensorRT, LCM, SDXL Turbo). ComfyUI streams live video via Syphon/NDI into Unreal Engine 5 or TouchDesigner (lighting and Niagara). That is the stage output.
 
-### Priority order
+**Target:** macOS Apple Silicon. PyTorch MPS, force-fp16. High frame rate at low latent resolution (~512×512), then scale in the 3D engine. Memory has to stay low enough to run beside a DAW.
 
-1. **Unreal MCP + PCG + OSC PoC first** (simplest platform pipe)
-   - [ ] 10. Rekordbox/Traktor OSC on `127.0.0.1:9000` (`/rekordbox/bpm`, `/fader`, `/beat_phase`) into UE. No ID3, no library convert. Parent issue: [#9](https://github.com/ixamal/ix/issues/9).
-   - [ ] 10a. Enable UE OSC plugin. Listen `127.0.0.1:9000`.
-   - [ ] 10b. Niagara Grid 3D Gas/Smoke. Record 15s sim cache.
-   - [ ] 10c. Bind `/rekordbox/bpm` and `/rekordbox/fader` to cache Explicit Time / density.
-   - [ ] 10d. **Unreal MCP** (global `~/.cursor/mcp.json`, adapters off-repo).
-   - [ ] 10e. **PCG** in the same Unreal project as the OSC / Niagara PoC.
-   - [ ] 10f. OSC **Router** + shared **param bus** (one bus for DJ live path and MCP-driven params).
-   - [ ] 10g. Smoke test driven by Grok/Gemini (not Claude-required).
+This replaces the old Unreal-MCP-first → Maya → Blender → Houdini order. Existing 10 / 10a–c Niagara slice still matters; it sits in Phase 3. RedefineFX Chaos & Niagara Destruction is the learning-session track for performant Chaos + Niagara effects (Phase 3).
 
-   Learning sessions (Unreal performant effects; notes only — do not enroll or install from this list):
-   - [ ] 10i. **RedefineFX Chaos & Niagara Destruction** ([redefinefx.com](https://redefinefx.com) / [Chaos & Niagara Destruction](https://redefinefx.com/chaos/)). Learning sessions for Unreal performant effects (Chaos destruction + Niagara). Sits with Floor Unreal / Niagara work (10 / 10a–c); not a substitute for the live OSC → sim-cache slice.
+### Phase 1 — local ComfyUI on the MacBook
 
-2. **Maya second**
-   - [ ] 42. Modeling / character animation → cached or static content for Unreal. Not live in the beat loop.
+Native Apple Silicon. Python 3.11. PyTorch MPS, force-fp16. Distilled models (SDXL Turbo, LCM, Flux.1 schnell), 1–4 steps, 512×512. Lightweight OSC listener on UDP `127.0.0.1:8000` for amplitude and frequency bands, threaded so it never locks generation. Route those floats into prompt weights, denoise, or latent seed.
 
-3. **Blender third / later**
-   - [ ] 43. Same content role as Maya (cached/static for UE). User knows Maya/Blender best; still do not start Blender before Unreal/Maya.
+- [ ] 46. **ComfyUI native on Apple Silicon.** Python 3.11, PyTorch MPS, force-fp16. Notes only from this list — do not install from here.
+- [ ] 46a. **Distilled models.** SDXL Turbo, LCM, Flux.1 schnell. 1–4 steps at 512×512. High frame rate at the latent; scale later in the 3D engine.
+- [ ] 46b. **OSC listener node.** UDP `127.0.0.1:8000`. Amplitude and frequency bands. Threaded; must not lock generation.
+- [ ] 46c. **Route OSC floats** into prompt weights, denoise, or latent seed.
+- [ ] 10h. **Rekordbox + Traktor → OSC/MIDI** into the same param bus that feeds ComfyUI (and, in Phase 3, Unreal). Live path. **No LLM** in the beat loop — ComfyUI diffusion is not the Ollama oracle.
+- [ ] 10f. OSC **Router** + shared **param bus** (DJ live path into ComfyUI and, later, UE lighting / Niagara).
+- [ ] 10g. Smoke test driven by Grok/Gemini (not Claude-required).
 
-4. **Houdini last to wire** (desired future, not v1)
-   - [ ] 44. Procedural + MCP + HDA-in-UE. Niagara cache remains the v1 live path; no Houdini required for the first slice.
+### Phase 2 — texture passing ComfyUI → Unreal
 
-### Cross-cutting
+Syphon or NDI exporter that sends tensors from memory, no disk. UE5 receiver bound to a dynamic material.
 
-- [ ] 10h. **Rekordbox + Traktor → OSC/MIDI** into the same shared Unreal param bus. Live path. **No LLM** in the beat loop.
-- [ ] 45. Shared **dcc-mcp gateway** as the multi-DCC backbone when more than one DCC is needed. Not a substitute for the Unreal-first PoC.
+- [ ] 47. **Syphon/NDI exporter** from ComfyUI. Tensors from memory; no disk.
+- [ ] 47a. **UE5 receiver** bound to a dynamic material.
+- [ ] 10d. **Unreal MCP** (global `~/.cursor/mcp.json`, adapters off-repo). Same Unreal project as the material receiver.
+
+### Phase 3 — stage reactivity
+
+Map the live material onto panels, projection meshes, or stage geometry. Niagara and lighting driven by the same OSC channels.
+
+- [ ] 48. Map the live material onto panels, projection meshes, or stage geometry.
+- [ ] 10. Rekordbox/Traktor OSC on `127.0.0.1:9000` (`/rekordbox/bpm`, `/fader`, `/beat_phase`) into UE. No ID3, no library convert. Parent issue: [#9](https://github.com/ixamal/ix/issues/9).
+- [ ] 10a. Enable UE OSC plugin. Listen `127.0.0.1:9000`.
+- [ ] 10b. Niagara Grid 3D Gas/Smoke. Record 15s sim cache.
+- [ ] 10c. Bind `/rekordbox/bpm` and `/rekordbox/fader` to cache Explicit Time / density.
+- [ ] 10e. **PCG** in the same Unreal project as the OSC / Niagara / live-material work.
+- [ ] 10i. **RedefineFX Chaos & Niagara Destruction** ([redefinefx.com](https://redefinefx.com) / [Chaos & Niagara Destruction](https://redefinefx.com/chaos/)). Learning sessions for Unreal performant effects (Chaos destruction + Niagara). Sits with Phase 3 Niagara work (10 / 10a–c); not a substitute for the live OSC → material / lighting slice. Notes only — do not enroll or install from this list.
+
+### Later — TouchDesigner
+
+TouchDesigner is a later integration, not a competitor and not Phase 1. Alkalurops as an AI engine that plugs into TD via Syphon/Spout or a custom node.
+
+- [ ] 49. TouchDesigner via Syphon/Spout or a custom node. After Phase 1–3. Not v1 of the MacBook booth slice.
+
+### Later — DCC content (not live in the beat loop)
+
+- [ ] 42. **Maya.** Modeling / character animation → cached or static content for Unreal. Not live in the beat loop.
+- [ ] 43. **Blender.** Same content role as Maya (cached/static for UE). User knows Maya/Blender best; still do not start Blender before the ComfyUI → UE slice.
+- [ ] 44. **Houdini last to wire** (desired future, not v1). Procedural + MCP + HDA-in-UE. No Houdini required for the first slice.
+- [ ] 45. Shared **dcc-mcp gateway** as the multi-DCC backbone when more than one DCC is needed. Not a substitute for Phases 1–3.
 
 ### Explicit non-goals for now
 
-- Do not put an LLM in the live DJ → Unreal beat loop.
+- Do not install software, enroll in courses, or implement ComfyUI / Syphon / UE nodes from this list.
+- Do not put an LLM (Ollama) in the live DJ beat loop. ComfyUI diffusion is the generative path; the oracle stays off the beat.
+- TouchDesigner is not Phase 1 and is not a competitor.
+- Do not start Blender / Maya / Houdini before the ComfyUI → Unreal slice.
 - Do not assume Claude is required for Houdini / Maya / Blender MCP.
-- Do not start Blender before Unreal / Maya per this order.
 - Do not enroll in RedefineFX or install course materials from this list.
+- Do not put patent strategy, pricing, or conference travel budgets in this list.
 
 ## NI / Maschine (13 on hold)
 
