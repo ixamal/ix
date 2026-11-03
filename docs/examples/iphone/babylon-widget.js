@@ -7,7 +7,9 @@
 // Looks in Scriptable's iCloud folder (ix/babylon-status.json), then a
 // Scriptable file bookmark named "ix" (Settings → File Bookmarks → iCloud Drive/ix).
 
+const VERSION = "v4";
 const STATUS_NAME = "babylon-status.json";
+const CACHE_NAME = "babylon-status-cache.json";
 const STALE_MIN = 10;
 const REFRESH_MIN = 5;
 
@@ -18,7 +20,35 @@ const OK = new Color("#34c759");
 const WARN = new Color("#ff9f0a");
 const BAD = new Color("#ff453a");
 
+function newer(a, b) {
+  if (!a) return b;
+  if (!b) return a;
+  return Date.parse(a.updated_at) >= Date.parse(b.updated_at) ? a : b;
+}
+
+// Widgets sometimes cannot pull from iCloud; keep the last good copy on the phone.
 async function readStatus() {
+  const local = FileManager.local();
+  const cachePath = local.joinPath(local.cacheDirectory(), CACHE_NAME);
+  let cached = null;
+  try {
+    if (local.fileExists(cachePath)) cached = JSON.parse(local.readString(cachePath));
+  } catch (e) {
+    cached = null;
+  }
+  const fresh = await readICloud();
+  const best = newer(fresh, cached);
+  if (best && best === fresh) {
+    try {
+      local.writeString(cachePath, JSON.stringify(fresh));
+    } catch (e) {
+      // cache is best-effort
+    }
+  }
+  return best;
+}
+
+async function readICloud() {
   const fm = FileManager.iCloud();
   const paths = [fm.joinPath(fm.joinPath(fm.documentsDirectory(), "ix"), STATUS_NAME)];
   if (fm.bookmarkExists("ix")) {
@@ -57,7 +87,8 @@ function view(s) {
       title: "BABYLON",
       phase: "No status file yet",
       passes: "Start BABYLON on the Mac",
-      summary: "Looking in Scriptable/ix and bookmark \"ix\"",
+      summary: `Looking in Scriptable/ix and bookmark "ix" (${VERSION})`,
+      updated: VERSION,
       pct: 0,
     };
   }
@@ -79,7 +110,7 @@ function view(s) {
   const passes = p.total ? `${p.done}/${p.total} passes${p.failed ? ` · ${p.failed} fail` : ""}` : s.step || "";
   const track = s.track ? `${s.track}${s.track_pct != null ? `  ${s.track_pct}%` : ""}` : "";
   const eta = s.state === "running" && s.eta_min != null ? `ETA ${fmtMin(s.eta_min)}` : "";
-  const updated = ago != null ? `Mac update ${fmtMin(ago)} ago` : "";
+  const updated = ago != null ? `Mac update ${fmtMin(ago)} ago · ${VERSION}` : VERSION;
   return {
     state,
     color,
@@ -161,7 +192,7 @@ function lockWidget(v, family) {
   }
   text(w, `${v.title} · ${v.state}`, 13, FG, { bold: true });
   text(w, v.passes || v.phase, 12, FG);
-  text(w, v.eta || v.updated, 11, FG);
+  text(w, v.eta ? `${v.eta} · ${VERSION}` : v.updated, 11, FG);
   return w;
 }
 
