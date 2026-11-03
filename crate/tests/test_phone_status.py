@@ -58,6 +58,15 @@ class PhoneStatusTests(unittest.TestCase):
             status.feed("fail 1/4 a.m4a: audio-separator failed (1)\nProcessing file: /x/b.mp3", now=6)
         self.assertEqual(status.step, "")
 
+    def test_container_pass_names_track(self) -> None:
+        with TemporaryDirectory() as tmp:
+            status = PhoneStatus("BABYLON", Path(tmp) / STATUS_NAME, started=0)
+            status.feed(
+                "Starting processing track:  /var/folders/x/T/stems-bs-1/in/05 Native Therapy (Original Mix).mp3",
+                now=5,
+            )
+        self.assertEqual(status.track, "05 Native Therapy (Original Mix)")
+
     def test_queue_planning_step(self) -> None:
         with TemporaryDirectory() as tmp:
             status = PhoneStatus("BABYLON", Path(tmp) / STATUS_NAME, started=0)

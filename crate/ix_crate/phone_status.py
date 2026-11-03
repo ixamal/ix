@@ -35,7 +35,7 @@ WRITE_EVERY_S = 15.0
 
 PHASE = re.compile(r"^=== phase (?:(\d+)/(\d+): )?(.+?) ===$")
 PASS = re.compile(r"^(ok|fail) (\d+)/(\d+)\b\s*(.*)")
-FILE = re.compile(r"Processing file: (.+)$")
+FILE = re.compile(r"(?:Processing file|Starting processing track):\s+(.+)$")
 STAMP = re.compile(r"^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})")
 CHUNKS = re.compile(r"Processing audio chunks:\s+(\d+)%")
 SCAN = re.compile(r"^(?:scan|library|dump) (\d+)/(\d+)", re.I)
