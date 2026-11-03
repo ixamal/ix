@@ -1,4 +1,5 @@
 // BABYLON / STEMIT progress widget for Scriptable (iOS).
+// Version v5, built 2026-11-03 17:26 CST. Bump VERSION below with every edit.
 //
 // Reads babylon-status.json that `ix_crate phone-status` (or BABYLON itself)
 // writes to your iCloud Drive. Nothing leaves your Apple ID: no server, no
@@ -7,7 +8,7 @@
 // Looks in Scriptable's iCloud folder (ix/babylon-status.json), then a
 // Scriptable file bookmark named "ix" (Settings → File Bookmarks → iCloud Drive/ix).
 
-const VERSION = "v4";
+const VERSION = "v5 11/03 17:26";
 const STATUS_NAME = "babylon-status.json";
 const CACHE_NAME = "babylon-status-cache.json";
 const STALE_MIN = 10;
