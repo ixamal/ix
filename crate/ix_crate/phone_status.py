@@ -142,6 +142,8 @@ class PhoneStatus:
             if self.stem_started is None:
                 self.stem_started = now
             self.passes_done, self.passes_total = done, total
+            if self.step.startswith("error"):
+                self.step = ""
             if kind == "fail":
                 self.passes_failed += 1
                 self.last_fail = rest.split(":", 1)[0].strip()
@@ -152,6 +154,8 @@ class PhoneStatus:
         if m:
             self.track = Path(m.group(1).strip()).stem
             self.track_pct = 0
+            if self.step.startswith("error"):
+                self.step = ""
             if self.stem_started is None:
                 self.stem_started = _line_time(line) or now
             self._dirty = True

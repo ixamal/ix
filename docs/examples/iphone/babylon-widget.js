@@ -50,7 +50,15 @@ function fmtMin(min) {
 
 function view(s) {
   if (!s) {
-    return { state: "no data", color: DIM, line1: "No status yet", line2: "Run BABYLON on the Mac", pct: 0 };
+    return {
+      state: "no data",
+      color: DIM,
+      title: "BABYLON",
+      phase: "No status file yet",
+      passes: "Start BABYLON on the Mac",
+      summary: "Looking in Scriptable/ix and bookmark \"ix\"",
+      pct: 0,
+    };
   }
   const ago = minutesAgo(s.updated_at);
   let state = s.state;

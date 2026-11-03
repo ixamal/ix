@@ -50,6 +50,14 @@ class PhoneStatusTests(unittest.TestCase):
             status.feed("Processing file: /x/a.mp3\nProcessing audio chunks:  10%|\rProcessing audio chunks:  43%|", now=5)
         self.assertEqual(status.track_pct, 43)
 
+    def test_track_traceback_clears_on_next_track(self) -> None:
+        with TemporaryDirectory() as tmp:
+            status = PhoneStatus("BABYLON", Path(tmp) / STATUS_NAME, started=0)
+            status.feed("=== phase 5/8: stemit-chain-1 ===\nTraceback (most recent call last):", now=5)
+            self.assertEqual(status.step, "error in stemit-chain-1")
+            status.feed("fail 1/4 a.m4a: audio-separator failed (1)\nProcessing file: /x/b.mp3", now=6)
+        self.assertEqual(status.step, "")
+
     def test_queue_planning_step(self) -> None:
         with TemporaryDirectory() as tmp:
             status = PhoneStatus("BABYLON", Path(tmp) / STATUS_NAME, started=0)
