@@ -160,21 +160,36 @@ end tell
     return _parse_repair_rows(_run_osascript(script, timeout=180))
 
 
+GENRE_PAGE = 250
+
+
 def dump_genre(genre: str, *, limit: int = 0, offset: int = 0) -> list[RepairRow]:
-    """Library file tracks whose genre matches exactly, in library order."""
+    """Library file tracks whose genre matches exactly, in library order.
+
+    Paged: Music.app answers ~0.13 s per track, so one call over a
+    2,500-track genre (Electronica) blows the osascript timeout.
+    """
     if not music_running():
         raise MusicDupesError("Music.app is not running. Open it and retry.")
-    quoted = genre.replace("\\", "\\\\").replace('"', '\\"')
     skip = max(int(offset), 0)
     cap = max(int(limit), 0)
+    rows: list[RepairRow] = []
+    while not cap or len(rows) < cap:
+        size = min(GENRE_PAGE, cap - len(rows)) if cap else GENRE_PAGE
+        page = _dump_genre_page(genre, skip + len(rows), size)
+        rows.extend(page)
+        if len(page) < size:
+            break
+    return rows
+
+
+def _dump_genre_page(genre: str, skip: int, size: int) -> list[RepairRow]:
+    quoted = genre.replace("\\", "\\\\").replace('"', '\\"')
     start = skip + 1
-    if cap:
-        end_line = (
-            f"set endIndex to {skip + cap}\n"
-            f"  if endIndex > n then set endIndex to n"
-        )
-    else:
-        end_line = "set endIndex to n"
+    end_line = (
+        f"set endIndex to {skip + size}\n"
+        f"  if endIndex > n then set endIndex to n"
+    )
     script = f'''
 tell application "Music"
   set hits to every file track of library playlist 1 whose genre is "{quoted}"

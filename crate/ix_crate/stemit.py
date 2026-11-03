@@ -17,7 +17,7 @@ on Industry Stems WAV packs from the crate, patches Traktor NML, and
 keeps one STEMIT playlist row per identity. ``--fix-titles`` pretties Beatport catalog TITLEs in NML and drops
 Google Drive shortcut rows. ``--genres`` promotes STEMIT/Genres into ``rekordbox.xml`` from the
 current NML. NML stays unless ``--nml``. Never mutagen-writes
-``.stem.m4a``. Never stems Acapella. Skip if
+``.stem.m4a``. Never stems Acapella or mix sets over 45 min. Skip if
 that Artist/Album/Title already has a ``.stem.m4a``. Dry-run is the
 default.
 """
@@ -48,6 +48,7 @@ TOOL_ID = "ix.crate.stemit"
 QUEUE_DIR = REPORTS.parent / "stemit-queues"
 ACAPELLA = re.compile(r"\b(?:a\s*c+ap+ella|acapella|cappella)\b", re.I)
 OWNED_EXT = {".mp3", ".m4a", ".wav", ".aiff", ".aif", ".flac"}
+MAX_STEM_SECONDS = 45 * 60
 
 
 def is_acapella_row(row: RepairRow) -> bool:
@@ -98,6 +99,8 @@ def skip_reason(row: RepairRow, *, stems_root: Path | None = None) -> str:
         return "role file"
     if is_acapella_row(row):
         return "acapella"
+    if row.duration > MAX_STEM_SECONDS:
+        return "mix set over 45 min"
     dest = dest_mix(row, stems_root=stems_root)
     if stem_sibling(dest).is_file():
         return "already has .stem.m4a"

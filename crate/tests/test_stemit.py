@@ -14,6 +14,7 @@ def _row(
     album: str = "Jazz In The Park",
     genre: str = "Deep House",
     location: str = "",
+    duration: float = 180,
 ) -> RepairRow:
     return RepairRow(
         persistent_id="PID",
@@ -22,7 +23,7 @@ def _row(
         album=album,
         name=name,
         genre=genre,
-        duration=180,
+        duration=duration,
         location=location,
     )
 
@@ -86,6 +87,20 @@ class StemitPlanTests(unittest.TestCase):
             src.write_bytes(b"x")
             row = _row("Stream", location=str(src))
             self.assertEqual(skip_reason(row, stems_root=Path(tmp) / "stems"), "skip stem or m4p")
+
+    def test_skips_mix_set_over_45_min(self) -> None:
+        with TemporaryDirectory() as tmp:
+            src = Path(tmp) / "Guy J - ECHOS 02.10.2020.mp3"
+            src.write_bytes(b"x")
+            row = _row("ECHOS 02.10.2020", artist="Guy J", location=str(src), duration=45 * 60 + 1)
+            self.assertEqual(skip_reason(row, stems_root=Path(tmp) / "stems"), "mix set over 45 min")
+
+    def test_stems_track_at_45_min(self) -> None:
+        with TemporaryDirectory() as tmp:
+            src = Path(tmp) / "long.mp3"
+            src.write_bytes(b"x")
+            row = _row("Long Extended Mix", location=str(src), duration=45 * 60)
+            self.assertEqual(skip_reason(row, stems_root=Path(tmp) / "stems"), "")
 
     def test_plan_uses_supplied_rows(self) -> None:
         with TemporaryDirectory() as tmp:
