@@ -58,6 +58,10 @@ def main(argv: list[str] | None = None) -> int:
         from ix_crate.stemit_chain import main as stemit_chain_main
 
         return stemit_chain_main(argv[1:])
+    if argv and argv[0] == "phone-status":
+        from ix_crate.phone_status import main as phone_status_main
+
+        return phone_status_main(argv[1:])
     if argv and argv[0] == "riff-repair":
         from ix_crate.riff_repair import main as riff_repair_main
 

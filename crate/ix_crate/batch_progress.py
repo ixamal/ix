@@ -103,9 +103,12 @@ def run_phase(
     index: int,
     total_phases: int,
     spec: PhaseSpec,
+    status: Any | None = None,
 ) -> int:
     if panel is not None:
         panel.set_job(index, total_phases, spec.name, "start")
+    if status is not None:
+        status.phase(index, total_phases, spec.name)
     print(f"\n=== phase {index}/{total_phases}: {spec.name} ===", flush=True)
     t0 = time.perf_counter()
     argv = _phase_argv(spec, panel)
@@ -122,6 +125,8 @@ def run_phase(
             print(line, end="", flush=True)
             if panel is not None:
                 panel.write(line)
+            if status is not None:
+                status.feed(line)
             _parse_progress_line(line, spec.name, panel)
         code = proc.wait()
     except Exception as exc:
@@ -269,6 +274,13 @@ def run_with_runlog(
         extra=extra or {},
         panel=panel,
     )
+    status = None
+    if not dry_run:
+        from ix_crate.phone_status import PhoneStatus
+
+        status = PhoneStatus.open(title)
+        if status is not None:
+            print(f"phone status: {status.out}", flush=True)
     if panel is not None:
         panel.set_totals(len(phases), len(phases))
         if hasattr(panel, "set_phase_plan"):
@@ -288,6 +300,8 @@ def run_with_runlog(
                 print("\n=== phase quit-decks ===", flush=True)
                 if panel is not None:
                     panel.set_job(i, len(phases), spec.name, "quit")
+                if status is not None:
+                    status.phase(i, len(phases), spec.name)
                 from ix_crate.deck_quit import ensure_decks_closed
 
                 ensure_decks_closed(
@@ -299,7 +313,7 @@ def run_with_runlog(
                 continue
             if spec.name.startswith("stemit-chain"):
                 open_music()
-            code = run_phase(logger, panel, i, len(phases), spec)
+            code = run_phase(logger, panel, i, len(phases), spec, status)
             if panel is not None and hasattr(panel, "set_phase_state"):
                 panel.set_phase_state(i, "fail" if code != 0 and not spec.allow_fail else "done")
             if code != 0 and not spec.allow_fail:
@@ -320,6 +334,8 @@ def run_with_runlog(
         if n_fail:
             summary = f"{title} finished with {n_fail} failed phase(s)"
         charts = resolve_charts(payload)
+        if status is not None:
+            status.finish("done" if code == 0 and not n_fail else "failed", summary)
         if want_notify(log_args, dry_run):
             notify_complete(title=tool_id, body=summary, payload=payload)
         if panel is not None:
