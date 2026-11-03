@@ -31,7 +31,7 @@ STATUS_NAME = "babylon-status.json"
 MOBILE_DOCS = Path.home() / "Library" / "Mobile Documents"
 SCRIPTABLE_DOCS = MOBILE_DOCS / "iCloud~dk~simonbs~Scriptable" / "Documents"
 ICLOUD_DRIVE = MOBILE_DOCS / "com~apple~CloudDocs"
-WRITE_EVERY_S = 15.0
+WRITE_EVERY_S = 60.0
 
 PHASE = re.compile(r"^=== phase (?:(\d+)/(\d+): )?(.+?) ===$")
 PASS = re.compile(r"^(ok|fail) (\d+)/(\d+)\b\s*(.*)")
@@ -75,7 +75,7 @@ def enabled() -> bool:
 
 
 class PhoneStatus:
-    """Parse progress lines; write ``babylon-status.json`` at most every 15 s."""
+    """Parse progress lines; write ``babylon-status.json`` at most once a minute."""
 
     def __init__(self, title: str, out: Path, *, started: float | None = None) -> None:
         self.title = title

@@ -25,10 +25,11 @@ async function readStatus() {
     paths.push(fm.joinPath(fm.bookmarkedPath("ix"), STATUS_NAME));
   }
   for (const path of paths) {
-    if (!fm.fileExists(path)) continue;
     try {
+      // Not-yet-downloaded iCloud files are placeholders that fileExists()
+      // misses, so always ask iCloud first.
       await fm.downloadFileFromiCloud(path);
-      return JSON.parse(fm.readString(path));
+      if (fm.fileExists(path)) return JSON.parse(fm.readString(path));
     } catch (e) {
       // try the next location
     }
@@ -64,7 +65,7 @@ function view(s) {
   let state = s.state;
   let color = state === "done" ? OK : state === "running" ? OK : state === "failed" ? BAD : WARN;
   if (state === "running" && ago != null && ago > STALE_MIN) {
-    state = "stale";
+    state = "iCloud behind";
     color = WARN;
   }
   const p = s.passes || {};
@@ -78,7 +79,7 @@ function view(s) {
   const passes = p.total ? `${p.done}/${p.total} passes${p.failed ? ` · ${p.failed} fail` : ""}` : s.step || "";
   const track = s.track ? `${s.track}${s.track_pct != null ? `  ${s.track_pct}%` : ""}` : "";
   const eta = s.state === "running" && s.eta_min != null ? `ETA ${fmtMin(s.eta_min)}` : "";
-  const updated = ago != null ? `updated ${fmtMin(ago)} ago` : "";
+  const updated = ago != null ? `Mac update ${fmtMin(ago)} ago` : "";
   return {
     state,
     color,
