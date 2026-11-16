@@ -6,11 +6,13 @@ not. Files that are not yet in the collection get a location row so
 the playlist can exist before Import / Analyze. Analyze stays in-app.
 
 Crates: **Mixes** (the hardlink / parallel original), **Stems**,
-**Acapellas**, **Instrumentals**.
+**Acapellas**, **Instrumentals**. Genre folders also get **Tracks**
+(vocals / drums / bass / other) from ``Title.role.m4a`` components.
 """
 
 from __future__ import annotations
 
+import re
 import shutil
 import subprocess
 import uuid
@@ -28,6 +30,9 @@ from ix_crate.riff_repair import finder_copy_number
 from ix_crate.xml_io import write_tree
 
 PLAYLISTS = ("Mixes", "Stems", "Acapellas", "Instrumentals")
+TRACKS_FOLDER = "Tracks"
+TRACK_ROLES = ("vocals", "drums", "bass", "other")
+DOT_COMPONENT = re.compile(r"\.(drums|bass|other|vocals)$", re.IGNORECASE)
 TRAKTOR_NML = (
     Path.home() / "Documents" / "Native Instruments" / "Traktor 4.5.1" / "collection.nml"
 )
@@ -48,6 +53,7 @@ KIND = {
 class DiskFile:
     path: Path
     crate: str
+    track_role: str = ""
 
 
 @dataclass
@@ -68,8 +74,21 @@ class SyncPlan:
     added_rekordbox: int = 0
 
 
+def track_component_role(path: Path) -> str:
+    """``Title.drums.m4a`` style Traktor remix cells (not root Mixes/Stems crates)."""
+    if path.suffix.lower() not in {".m4a", ".mp3"}:
+        return ""
+    match = DOT_COMPONENT.search(path.stem)
+    if not match:
+        return ""
+    role = match.group(1).lower()
+    return role if role in TRACK_ROLES else ""
+
+
 def classify(path: Path) -> str | None:
     """Which STEMIT crate a stems_audio file belongs in, if any."""
+    if track_component_role(path):
+        return None
     name = path.name.lower()
     if any(name.endswith(suffix) for suffix in STEM_SUFFIXES):
         return "Stems"
@@ -114,11 +133,24 @@ def walk_stems(root: Path | None = None) -> list[DiskFile]:
             continue
         if finder_copy_number(path) > 0:
             continue
+        role = track_component_role(path)
+        if role:
+            found.append(DiskFile(path=path.resolve(), crate="", track_role=role))
+            continue
         crate = classify(path)
         if crate:
             found.append(DiskFile(path=path.resolve(), crate=crate))
-    found.sort(key=lambda item: (item.crate, str(item.path).lower()))
+    found.sort(key=lambda item: (item.crate or "Tracks", item.track_role, str(item.path).lower()))
     return found
+
+
+def all_sync_files(root: Path | None = None) -> list[DiskFile]:
+    """Main crate keepers plus every dot-component file."""
+    base = (root or STEMS_AUDIO).expanduser()
+    walked = walk_stems(base)
+    main = [item for item in walked if not item.track_role]
+    components = [item for item in walked if item.track_role]
+    return prefer_crate_files(main, base) + components
 
 
 def filing_from_path(path: Path, root: Path) -> tuple[str, str, str]:
@@ -385,7 +417,7 @@ def plan_sync(
     xml: Path | None = None,
 ) -> tuple[SyncPlan, list[DiskFile]]:
     root = (stems_root or STEMS_AUDIO).expanduser()
-    files = prefer_crate_files(walk_stems(root), root)
+    files = all_sync_files(root)
     plan = SyncPlan(scanned=len(files))
     for name in PLAYLISTS:
         plan.crates[name] = PlaylistSync(crate=name)
@@ -396,6 +428,8 @@ def plan_sync(
     plan.traktor_nml = nml_path if nml_path.is_file() else None
     plan.rekordbox_xml = xml_path if xml_path.is_file() else None
     for item in files:
+        if item.track_role or not item.crate:
+            continue
         crate = plan.crates[item.crate]
         crate.on_disk += 1
         if item.path in trakt or item.path in rekord:
@@ -525,6 +559,8 @@ def write_traktor(
     _prune_empty_playlist_nodes(folder, PLAYLISTS)
     by_crate: dict[str, list[DiskFile]] = {name: [] for name in PLAYLISTS}
     for item in files:
+        if item.track_role or not item.crate:
+            continue
         by_crate[item.crate].append(item)
     for name in PLAYLISTS:
         playlist = _ensure_traktor_playlist(folder, name)
@@ -632,6 +668,8 @@ def write_rekordbox(
     folder = _rb_folder(playlists, FOLDER_NAME)
     by_crate: dict[str, list[DiskFile]] = {name: [] for name in PLAYLISTS}
     for item in files:
+        if item.track_role or not item.crate:
+            continue
         by_crate[item.crate].append(item)
     for name in PLAYLISTS:
         keys = [index[item.path] for item in by_crate[name] if item.path in index]
@@ -664,7 +702,7 @@ def rebuild_stemit_nml(
     """Rewrite Traktor STEMIT crates only. Does not touch rekordbox.xml."""
     nml_path = nml or TRAKTOR_NML
     root = (stems_root or STEMS_AUDIO).expanduser()
-    files = prefer_crate_files(walk_stems(root), root)
+    files = all_sync_files(root)
     return write_traktor(files, traktor_index(nml_path), nml_path, stems_root=root)
 
 
@@ -680,7 +718,7 @@ def rebuild_stemit_xml(
     """
     xml_path = xml or REKORDBOX_XML
     root = (stems_root or STEMS_AUDIO).expanduser()
-    files = prefer_crate_files(walk_stems(root), root)
+    files = all_sync_files(root)
     return write_rekordbox(
         files,
         rekordbox_index(xml_path) if xml_path.is_file() else {},
@@ -697,10 +735,15 @@ def sync_playlists(
     nml: Path | None = None,
     xml: Path | None = None,
 ) -> SyncPlan:
+    root = (stems_root or STEMS_AUDIO).expanduser()
+    from ix_crate.stem_tracks import run_extract_tracks
+
+    code = run_extract_tracks(execute=execute, root=root)
     plan, files = plan_sync(stems_root=stems_root, nml=nml, xml=xml)
     if not execute:
         return plan
-    root = (stems_root or STEMS_AUDIO).expanduser()
+    if code != 0:
+        print(f"STEMIT extract-tracks exited {code} (playlist sync continues).", flush=True)
     if plan.traktor_nml:
         plan.added_traktor = write_traktor(
             files, traktor_index(plan.traktor_nml), plan.traktor_nml, stems_root=root

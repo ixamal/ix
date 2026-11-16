@@ -19,6 +19,7 @@ ROLE_SPACE_ALT = "|".join(
     if role in {"vocals", "instrumental", "acapella", "a cappella", "acappella"}
 )
 ROLE_SPACE = re.compile(rf"\s+({ROLE_SPACE_ALT})$", re.IGNORECASE)
+DOT_COMPONENT = re.compile(r"\.(drums|bass|other|vocals)$", re.IGNORECASE)
 ROLE_BARE = re.compile(rf"^(?:{ROLE_ALT})(?:\s+\(\d+\))?$", re.IGNORECASE)
 STEM_LEFTOVER = re.compile(r"\.stem$", re.IGNORECASE)
 CONTAINER_LEFTOVER = re.compile(r"\.(?:wmv|avi|mov|mkv)$", re.IGNORECASE)
@@ -34,6 +35,7 @@ def strip_role_markup(name: str) -> str:
     text = ROLE_UNDERSCORE.sub("", text)
     text = ROLE_PAREN.sub("", text)
     text = ROLE_SPACE.sub("", text)
+    text = DOT_COMPONENT.sub("", text)
     text = text.strip()
     if ROLE_BARE.fullmatch(text):
         return ""

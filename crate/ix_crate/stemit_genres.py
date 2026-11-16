@@ -1,6 +1,6 @@
 """STEMIT genre crates from cleaned NML / file tags.
 
-Rebuilds ``STEMIT/Genres/<Genre>/{Mixes,Stems,Acapellas,Instrumentals}``
+Rebuilds ``STEMIT/Genres/<Genre>/{Mixes,Stems,Acapellas,Instrumentals,Tracks/…}``
 from the same disk keepers as the four root STEMIT crates. Safe to re-run
 when stems are added or copies dropped.
 
@@ -27,14 +27,15 @@ from ix_crate.paths import REPORTS
 from ix_crate.stems_playlists import (
     FOLDER_NAME,
     PLAYLISTS,
+    TRACKS_FOLDER,
+    TRACK_ROLES,
     TRAKTOR_NML,
     DiskFile,
     _ensure_traktor_folder,
     _ensure_traktor_playlist,
     _loc_to_path,
+    all_sync_files,
     classify,
-    prefer_crate_files,
-    walk_stems,
 )
 from ix_crate.traktor_nml import is_stem_container
 
@@ -179,7 +180,7 @@ def plan_genre_crates(
 
     root = (stems_root or STEMS_AUDIO).expanduser()
     nml_path = nml or TRAKTOR_NML
-    keepers = files if files is not None else prefer_crate_files(walk_stems(root), root)
+    keepers = files if files is not None else all_sync_files(root)
     plan = GenreCratePlan(files=len(keepers))
     assigned: dict[Path, str] = {}
     entries: dict[Path, object] = {}
@@ -246,14 +247,40 @@ def write_genre_crates(
     )
     for item in files:
         genre = assigned.get(item.path.resolve()) or UNTAGGED
+        if item.track_role or not item.crate:
+            continue
         if item.crate in grouped[genre]:
             grouped[genre][item.crate].append(item)
-    for genre in sorted(grouped, key=str.lower):
+    track_by_genre: dict[str, dict[str, list[DiskFile]]] = defaultdict(
+        lambda: {role: [] for role in TRACK_ROLES}
+    )
+    for item in files:
+        if not item.track_role:
+            continue
+        genre = assigned.get(item.path.resolve()) or UNTAGGED
+        track_by_genre[genre][item.track_role].append(item)
+    genre_names = set(grouped) | set(track_by_genre)
+    for genre in sorted(genre_names, key=str.lower):
         folder = _append_folder(genres_folder, genre)
         for name in PLAYLISTS:
             playlist = _ensure_traktor_playlist(folder, name)
             count = 0
-            for item in grouped[genre][name]:
+            for item in grouped[genre].get(name, []):
+                hit = index.get(item.path)
+                if not hit:
+                    continue
+                pk_type, key = hit
+                entry = ET.SubElement(playlist, "ENTRY")
+                ET.SubElement(entry, "PRIMARYKEY", TYPE=pk_type, KEY=key)
+                count += 1
+            playlist.set("ENTRIES", str(count))
+        if not any(track_by_genre[genre].values()):
+            continue
+        tracks_folder = _append_folder(folder, TRACKS_FOLDER)
+        for role in TRACK_ROLES:
+            playlist = _ensure_traktor_playlist(tracks_folder, role)
+            count = 0
+            for item in track_by_genre[genre][role]:
                 hit = index.get(item.path)
                 if not hit:
                     continue
@@ -294,22 +321,30 @@ def write_rekordbox_genre_crates(
     grouped: dict[str, dict[str, list[DiskFile]]] = defaultdict(
         lambda: {name: [] for name in PLAYLISTS}
     )
+    track_by_genre: dict[str, dict[str, list[DiskFile]]] = defaultdict(
+        lambda: {role: [] for role in TRACK_ROLES}
+    )
     for item in files:
         genre = assigned.get(item.path.resolve()) or UNTAGGED
+        if item.track_role:
+            track_by_genre[genre][item.track_role].append(item)
+            continue
         if item.crate in grouped[genre]:
             grouped[genre][item.crate].append(item)
     genres_folder = ET.SubElement(
         stemit_folder, "NODE", Name=GENRES_FOLDER, Type="0", Count="0"
     )
     genre_count = 0
-    for genre in sorted(grouped, key=str.lower):
+    genre_names = set(grouped) | set(track_by_genre)
+    for genre in sorted(genre_names, key=str.lower):
+        child_count = len(PLAYLISTS) + (1 if any(track_by_genre[genre].values()) else 0)
         folder = ET.SubElement(
-            genres_folder, "NODE", Name=genre, Type="0", Count=str(len(PLAYLISTS))
+            genres_folder, "NODE", Name=genre, Type="0", Count=str(child_count)
         )
         for name in PLAYLISTS:
             keys = [
                 index[item.path]
-                for item in grouped[genre][name]
+                for item in grouped[genre].get(name, [])
                 if item.path in index
             ]
             node = ET.SubElement(
@@ -322,6 +357,26 @@ def write_rekordbox_genre_crates(
             )
             for tid in keys:
                 ET.SubElement(node, "TRACK", Key=tid)
+        if any(track_by_genre[genre].values()):
+            tracks_folder = ET.SubElement(
+                folder, "NODE", Name=TRACKS_FOLDER, Type="0", Count=str(len(TRACK_ROLES))
+            )
+            for role in TRACK_ROLES:
+                keys = [
+                    index[item.path]
+                    for item in track_by_genre[genre][role]
+                    if item.path in index
+                ]
+                node = ET.SubElement(
+                    tracks_folder,
+                    "NODE",
+                    Name=role,
+                    Type="1",
+                    KeyType="0",
+                    Entries=str(len(keys)),
+                )
+                for tid in keys:
+                    ET.SubElement(node, "TRACK", Key=tid)
         genre_count += 1
     genres_folder.set("Count", str(genre_count))
     return genre_count
