@@ -157,6 +157,8 @@ export OLLAMA_MODELS=~/local_tools/ollama/models
 
 Point Cursor Models at `http://127.0.0.1:11434/v1`. Full steps: `docs/local-setup.md`.
 
+**ComfyUI (Floor Phase 1, off-repo).** Server on `127.0.0.1:8188` via LaunchAgent `ai.ixamal.comfyui`. Model manifest: `schemas/comfyui-models.manifest.json`. Install weights: `docs/examples/comfyui-models.sh`. Workflows in git: `docs/examples/comfyui/`.
+
 ## Halls
 
 - **Engine** — UE 5.x Niagara 3D fluids + 15s sim cache, OSC scrub

@@ -1,0 +1,11 @@
+{
+  "1": {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": "sd_xl_turbo_1.0_fp16.safetensors"}},
+  "2": {"class_type": "CLIPTextEncode", "inputs": {"clip": ["1", 1], "text": "liquid chrome crescent moon and spire, volumetric smoke, concert stage lighting, deep blue and magenta haze, cinematic"}},
+  "3": {"class_type": "CLIPTextEncode", "inputs": {"clip": ["1", 1], "text": ""}},
+  "4": {"class_type": "EmptyLatentImage", "inputs": {"width": 512, "height": 512, "batch_size": 1}},
+  "5": {"class_type": "SDTurboScheduler", "inputs": {"model": ["1", 0], "steps": 1, "denoise": 1.0}},
+  "6": {"class_type": "KSamplerSelect", "inputs": {"sampler_name": "euler_ancestral"}},
+  "7": {"class_type": "SamplerCustom", "inputs": {"model": ["1", 0], "add_noise": true, "noise_seed": 20260930, "cfg": 1.0, "positive": ["2", 0], "negative": ["3", 0], "sampler": ["6", 0], "sigmas": ["5", 0], "latent_image": ["4", 0]}},
+  "8": {"class_type": "VAEDecode", "inputs": {"samples": ["7", 0], "vae": ["1", 2]}},
+  "9": {"class_type": "SaveImage", "inputs": {"images": ["8", 0], "filename_prefix": "ix_floor_test"}}
+}

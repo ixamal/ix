@@ -10,7 +10,7 @@ ix is public. The Mac is not.
 | Safety allowlists | Ollama binary + weights |
 | Rehearsal UI | CDJ Ethernet / Pioneer sockets |
 | Loopback runtime source | Absolute Unreal project paths |
-| Loopback host:port names | LaunchAgents, `~/local_tools/ollama/env.sh` |
+| Loopback host:port names | LaunchAgents, `~/local_tools/ollama/env.sh`, `~/local_tools/comfyui/env.sh` |
 
 ## Rules
 1. **Loopback.** Every socket this project opens uses `127.0.0.1`. The safety module rejects `0.0.0.0`.
