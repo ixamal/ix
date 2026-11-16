@@ -15,7 +15,8 @@ class BabylonPhaseTests(unittest.TestCase):
         )
         names = [p.name for p in phases]
         self.assertIn("music-genre", names)
-        self.assertIn("crater", names)
+        self.assertIn("stemit-sync", names)
+        self.assertIn("mixed-in", names)
         self.assertNotIn("stemit-chain-1", names)
         self.assertEqual(names.index("quit-decks"), names.index("music-genre") + 1)
 

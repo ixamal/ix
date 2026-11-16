@@ -6,4 +6,4 @@
 set -euo pipefail
 cd "${HOME}/github/ixamal/ix"
 export PYTHONPATH=crate
-nice -n 10 python3 -m ix_crate crater --execute
+nice -n 10 python3 -m ix_crate crater --execute --plain --no-gui --no-notify

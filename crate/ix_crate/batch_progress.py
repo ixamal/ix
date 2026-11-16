@@ -18,6 +18,8 @@ STEM_OK_PROGRESS = re.compile(r"^ok (\d+)/(\d+)\s", re.I)
 DUMP_PROGRESS = re.compile(r"^dump (\d+)/(\d+)\s", re.I)
 TOOL_ID = "ix.crate.babylon"
 HUD_TITLE = "BABYLON"
+CRATER_TOOL_ID = "ix.crate.crater"
+CRATER_HUD_TITLE = "CRATER"
 
 
 @dataclass(frozen=True)
@@ -216,10 +218,64 @@ def build_babylon_phases(
             ]
         )
 
-    crater = ix_argv("crater", "--execute")
-    if not follow:
-        crater.append("--skip-follow")
-    phases.append(PhaseSpec("crater", crater))
+    phases.extend(
+        build_crater_phases(
+            skip_follow=not follow,
+            skip_stemit=False,
+            skip_music=False,
+            plain=True,
+        )
+    )
+    return phases
+
+
+def build_crater_phases(
+    *,
+    skip_follow: bool,
+    skip_stemit: bool,
+    skip_music: bool,
+    force: bool = False,
+    plain: bool = False,
+    nml: Path | None = None,
+    xml: Path | None = None,
+) -> list[PhaseSpec]:
+    """One RunLogger phase per CRATER step (stdout teed to the stems HUD)."""
+    extra: list[str] = ["--execute"]
+    if plain:
+        extra.append("--plain")
+    if skip_follow:
+        extra.append("--skip-follow")
+    if skip_stemit:
+        extra.append("--skip-stemit")
+    if skip_music:
+        extra.append("--skip-music")
+    if force:
+        extra.append("--force")
+    if nml is not None:
+        extra.extend(["--nml", str(nml)])
+    if xml is not None:
+        extra.extend(["--xml", str(xml)])
+
+    def step(name: str) -> PhaseSpec:
+        return PhaseSpec(name, ix_argv("crater", "--step", name, *extra))
+
+    phases: list[PhaseSpec] = [
+        step("favorites"),
+    ]
+    if not skip_follow:
+        phases.append(step("follow"))
+    if not skip_stemit:
+        phases.extend([step("stemit-sync"), step("stemit-genres")])
+    if not skip_music:
+        phases.append(step("music-crates"))
+    phases.extend(
+        [
+            step("xml-prune"),
+            step("rekordbox-samplers"),
+            step("traktor-remix"),
+            step("mixed-in"),
+        ]
+    )
     return phases
 
 

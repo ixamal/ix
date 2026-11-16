@@ -183,6 +183,11 @@ def run_xml_prune(*, execute: bool, xml: Path) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    from ix_crate.stems_path import ensure_stems_path
+
+    ensure_stems_path()
+    from py.utils.runlog import add_log_flags
+
     parser = argparse.ArgumentParser(prog="ix_crate crater", description=__doc__)
     parser.add_argument("--nml", type=Path, default=TRAKTOR_NML)
     parser.add_argument("--xml", type=Path, default=REKORDBOX_XML)
@@ -206,31 +211,87 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Skip Music.app user-playlist bridge even if Music is open.",
     )
+    parser.add_argument(
+        "--step",
+        choices=(
+            "favorites",
+            "follow",
+            "stemit-sync",
+            "stemit-genres",
+            "music-crates",
+            "xml-prune",
+            "rekordbox-samplers",
+            "traktor-remix",
+            "mixed-in",
+        ),
+        help="Run a single phase (used by the CRATER / BABYLON HUD).",
+    )
+    parser.add_argument(
+        "--plain",
+        action="store_true",
+        help="No Tk HUD or iPhone status; linear stdout (nightly LaunchAgent).",
+    )
     parser.add_argument("--execute", action="store_true")
+    add_log_flags(parser)
+    parser.set_defaults(gui=True, notify=True)
     return parser
 
 
-def main(argv: list[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
-    print("CRATER  celestial crate pass", flush=True)
-    code = require_xml(args.xml)
-    if code:
-        return code
+def _deck_notes() -> None:
     if rekordbox_is_running():
         print("note: Rekordbox is open — xml writes will skip.", flush=True)
     if traktor_is_running():
         print("note: Traktor is open — NML writes will skip.", flush=True)
 
-    code = run_favorites(execute=args.execute, force=args.force or args.execute, nml=args.nml, xml=args.xml)
+
+def _run_step(name: str, args: argparse.Namespace) -> int:
+    execute = args.execute
+    nml, xml = args.nml, args.xml
+    force = args.force or execute
+    if name == "favorites":
+        print("CRATER favorites", flush=True)
+        return run_favorites(execute=execute, force=force, nml=nml, xml=xml)
+    if name == "follow":
+        print("CRATER follow unmatched ACAPELLAS", flush=True)
+        return run_follow(execute=execute)
+    if name == "stemit-sync":
+        print("CRATER STEMIT sync", flush=True)
+        return run_stemit_sync(execute=execute)
+    if name == "stemit-genres":
+        print("CRATER STEMIT genres", flush=True)
+        return run_stemit_genres(execute=execute)
+    if name == "music-crates":
+        print("CRATER Music playlists", flush=True)
+        return run_music_crates(execute=execute)
+    if name == "xml-prune":
+        print("CRATER prune dead rekordbox.xml rows", flush=True)
+        return run_xml_prune(execute=execute, xml=xml)
+    if name == "rekordbox-samplers":
+        print("CRATER rekordbox Capture → SAMPLES/Samplers", flush=True)
+        return run_rekordbox_sample_crate(execute=execute, nml=nml, xml=xml)
+    if name == "traktor-remix":
+        print("CRATER Traktor remix sets → SAMPLES/Remixes/*", flush=True)
+        return run_traktor_remix_crate(execute=execute, nml=nml, xml=xml)
+    if name == "mixed-in":
+        print("CRATER Mixed In Key → MIXED IN KEY", flush=True)
+        return run_mixed_in_crate(execute=execute, nml=nml, xml=xml)
+    raise ValueError(f"unknown step {name!r}")
+
+
+def _run_sequential(args: argparse.Namespace) -> int:
+    code = run_favorites(
+        execute=args.execute,
+        force=args.force or args.execute,
+        nml=args.nml,
+        xml=args.xml,
+    )
     if code:
         return code
-
     if not args.skip_follow:
         print("CRATER follow unmatched ACAPELLAS", flush=True)
         code = run_follow(execute=args.execute)
         if code:
             return code
-
     if not args.skip_stemit:
         print("CRATER STEMIT sync", flush=True)
         code = run_stemit_sync(execute=args.execute)
@@ -240,16 +301,13 @@ def main(argv: list[str] | None = None) -> int:
         code = run_stemit_genres(execute=args.execute)
         if code:
             return code
-
     if not args.skip_music:
         print("CRATER Music playlists", flush=True)
         code = run_music_crates(execute=args.execute)
         if code:
             return code
-
     print("CRATER prune dead rekordbox.xml rows", flush=True)
     run_xml_prune(execute=args.execute, xml=args.xml)
-
     print("CRATER rekordbox Capture → SAMPLES/Samplers", flush=True)
     code = run_rekordbox_sample_crate(execute=args.execute, nml=args.nml, xml=args.xml)
     if code:
@@ -258,14 +316,71 @@ def main(argv: list[str] | None = None) -> int:
     code = run_traktor_remix_crate(execute=args.execute, nml=args.nml, xml=args.xml)
     if code:
         return code
-
     print("CRATER Mixed In Key → MIXED IN KEY", flush=True)
     code = run_mixed_in_crate(execute=args.execute, nml=args.nml, xml=args.xml)
     if code:
         return code
-
     print("CRATER done.", flush=True)
     return 0
+
+
+def _run_with_progress(args: argparse.Namespace) -> int:
+    from ix_crate.batch_progress import (
+        CRATER_HUD_TITLE,
+        CRATER_TOOL_ID,
+        build_crater_phases,
+        open_music,
+        run_with_runlog,
+    )
+
+    phases = build_crater_phases(
+        skip_follow=args.skip_follow,
+        skip_stemit=args.skip_stemit,
+        skip_music=args.skip_music,
+        force=args.force,
+        plain=False,
+        nml=args.nml,
+        xml=args.xml,
+    )
+    if not phases:
+        print("nothing to do (all steps skipped)", flush=True)
+        return 0
+    open_music()
+    code = run_with_runlog(
+        tool_id=CRATER_TOOL_ID,
+        title=CRATER_HUD_TITLE,
+        phases=phases,
+        extra={"crater_steps": [p.name for p in phases]},
+        log_args=args,
+    )
+    if code == 0:
+        print("CRATER done.", flush=True)
+        print("\nReload rekordbox xml (<>). Don't ask again + No on tag overwrite.", flush=True)
+    return code
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    print("CRATER  celestial crate pass", flush=True)
+    code = require_xml(args.xml)
+    if code:
+        return code
+    _deck_notes()
+
+    if args.step:
+        return _run_step(args.step, args)
+
+    if not args.execute:
+        return _run_sequential(args)
+
+    if args.plain:
+        return _run_sequential(args)
+
+    if args.gui is None:
+        args.gui = True
+    if args.notify is None:
+        args.notify = True
+    return _run_with_progress(args)
 
 
 if __name__ == "__main__":

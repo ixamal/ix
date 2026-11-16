@@ -312,7 +312,11 @@ PYTHONPATH=crate python3 -m ix_crate crates --from nml --to music --playlist "Hu
 ```bash
 PYTHONPATH=crate python3 -m ix_crate crater
 PYTHONPATH=crate python3 -m ix_crate crater --execute
+# LaunchAgent / log-only (no Tk, no iPhone JSON):
+PYTHONPATH=crate python3 -m ix_crate crater --execute --plain
 ```
+
+**CRATER HUD (same stack as BABYLON).** `--execute` from a Terminal opens stems **ProgressPanel** titled **CRATER**, tees every phase subprocess to the window and stdout (`=== phase N/M: stemit-sync ===`), writes RunLogger JSON under `stems/log/*ix.crate.crater*`, and updates **`babylon-status.json`** on iCloud (title **CRATER**) once a minute. STEMIT extract runs with **`--no-gui`** so you do not get a second STEMS window. **`--plain`** or **`--no-gui`** keeps the old linear pass (nightly `crater-nightly.sh` uses `--plain`).
 
 Nightly 5:00: `docs/examples/crater-nightly.sh` + `ai.ixamal.crater.plist`. Quit Traktor for NML; quit Rekordbox for xml. `favorites-nightly.sh` still works as a thin wrapper to CRATER.
 

@@ -45,6 +45,8 @@ def run_extract_tracks(*, execute: bool, root: Path | None = None) -> int:
         cmd.append("--execute")
     else:
         cmd.append("--dry-run")
+    # Parent batch (CRATER / BABYLON) owns the HUD — avoid blocking on a second Tk window.
+    cmd.extend(["--no-gui", "--no-notify"])
     print(f"STEMIT extract-tracks: {' '.join(cmd)}", flush=True)
     env = os.environ.copy()
     env["PYTHONPATH"] = str(STEMS_REPO)
