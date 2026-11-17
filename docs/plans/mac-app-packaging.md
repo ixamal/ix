@@ -66,7 +66,7 @@ Default **strict** (safe for strangers). **Aggressive** is a checkbox, off unles
 3. AcoustID — `acoustid.acoustid_identify` via bundled `fpcalc`. Aggressive only. Never submit fingerprints.
 4. iTunes + Deezer — `catalog_identify`. Title + duration, or both catalogs agree on artist. Skip mashups, clips, mixes ≥20 min (`LONG_MIX_SEC`).
 5. MusicBrainz — album fill when artist is already known (`musicbrainz_search`, score ≥80). Aggressive: duration search when artist is still empty.
-6. Shazam — **opt-in, off by default.** See licensing.
+6. Shazam — **not v1.** Personal `shazam.py` stays. Public app: omit, or later opt-in (see Future).
 7. Ollama — **omit from the app.** Loopback-only, model-dependent, owner-machine. Keep it in `crate/`.
 
 Unidentified leftovers stay untouched. Do not salvage as Various Artists (`music-fix` already refuses this).
@@ -99,8 +99,8 @@ crateid scan  <folder>     # dry-run JSON + table; default
 crateid apply <folder>     # write tags from last scan (or rescan)
 crateid undo  <folder>     # restore from the undo log
 crateid --strict | --aggressive
-crateid --shazam           # opt-in unofficial recognizer
 crateid --offline          # filename + tags only
+# --shazam is backlog (unofficial); ShazamKit is backlog (official)
 ```
 
 Exit 0 on success, 2 on safety errors (same as crate CLI). Scan writes `~/Library/Application Support/CrateID/scans/<utc>.json` plus a copy next to the folder if writable.
@@ -285,8 +285,8 @@ GitHub Releases are the store. README badge: Sponsors + Ko-fi. Crate ID stays fr
 | mutagen (`crate/pyproject.toml`) | **GPL-2.0-or-later** | A binary that includes mutagen is a GPL combined work (treat as GPL-3.0). OSS + paid *notarized convenience* is fine. A **closed** paid build is not, unless mutagen is replaced. Do not close Crate Bridge. |
 | Chromaprint `fpcalc` | LGPL | separate helper binary |
 | PySide6 / Qt | LGPL-3.0 | dynamic Qt dylibs |
-| shazamio | unofficial Shazam HTTP | **off by default**, Settings checkbox, first-run warning that this is not an Apple API and can break. Do not put it in the default cascade. |
-| ShazamKit | Apple | later, Mac-only, official; Swift helper. Not v1. |
+| shazamio | unofficial Shazam HTTP | Keep in `crate/ix_crate/shazam.py`. Public app: **omit in v1**, or later opt-in/off with disclosure (Future). |
+| ShazamKit | Apple | Official file match. Not v1. Swift helper or PyObjC (Future). |
 | AcoustID | non-commercial public key | today's `ACOUSTID_CLIENT = "v8pQ6oyB"` is the public client id (`acoustid.py`). Register an application at acoustid.org. Ship with `ACOUSTID_API_KEY` from env / `~/Library/Application Support/CrateID/config.toml`. Never submit fingerprints (existing comment: "Never submit fingerprints. Never Discogs."). |
 | MusicBrainz | live service | 1 req/s (`MB_GAP = 1.1`). Descriptive User-Agent with URL. Cache hits. |
 | iTunes Search / Deezer | public HTTP | `CATALOG_GAP = 0.35`. Fail soft. |
@@ -295,7 +295,7 @@ GitHub Releases are the store. README badge: Sponsors + Ko-fi. Crate ID stays fr
 
 NOTICE file in each `.app` / dmg: Apache-2.0, GPL-2.0+ mutagen, LGPL Qt, LGPL Chromaprint, MusicBrainz / AcoustID terms.
 
-Python 3.12 + shazamio stay an optional extra (`[project.optional-dependencies] shazam` already exists). The app extra is a checkbox, not a pip extra the user sees.
+`crate/pyproject.toml` already has optional `shazam = ["shazamio>=0.8"]` for the personal venv. Do not add that extra to the v1 dmg.
 
 ---
 
@@ -376,9 +376,9 @@ Rough, one person, no factory / CRATER work in the same weekend.
 | **6** | `crate_core` playlist PathIndex + xml/nml apply + remap | `cratebridge scan --from nml --to xml` on a fixture |
 | **7** | Crate Bridge UI + Music.app optional adapter | drop nml + xml, preview, apply, Rekordbox `<>` reminder |
 | **8** | Sparkle + tag workflow + Sponsors/Ko-fi blurb in README | second signed build updates the first |
-| **9** (optional) | Shazam opt-in **or** ShazamKit spike; paid Bridge dmg | checkbox works; unofficial stays off by default |
+| **9** (optional) | Paid Bridge dmg (same source) | notarized convenience, not a closed fork |
 
-Weekends 1–5 are Crate ID. 6–8 are Crate Bridge. Slip Shazam without slipping the dmg.
+Weekends 1–5 are Crate ID. 6–8 are Crate Bridge. ShazamIO / ShazamKit are Future, not these weekends.
 
 ---
 
@@ -422,12 +422,65 @@ Weekends 1–5 are Crate ID. 6–8 are Crate Bridge. Slip Shazam without slippin
 - [ ] Same sign/notary/Sparkle pipeline.
 - [ ] Paid dmg only after legal pass on mutagen (keep source identical).
 
-### Later
+### Later (see Future)
 
 - [ ] Optional `crate/ix_crate` import of `crate_core` (one cascade, two UIs).
-- [ ] ShazamKit helper.
 - [ ] Universal binary (arm64 + x86_64) if Intel still matters.
 - [ ] Genre-clean checkbox; never a silent library rewrite.
+
+---
+
+## Future / backlog
+
+Planned-eventually. **Not v1.** Do not block the first signed dmg on any of this. Personal `crate/ix_crate` scripts keep working as they are.
+
+### ShazamIO (unofficial) — keep personal; public app omit or opt-in
+
+Today: `shazam.py` runs `shazamio` in `~/local_tools/crate/shazam-venv` (Python 3.12) because Homebrew 3.14 segfaults `shazamio-core`. Optional `songrec`. Gap 1.6 s, timeout 90 s. Aggressive `music-fix` / `lookup.resolve` only.
+
+PyInstaller **can** bundle it in a dmg: shazamio is mostly Python on `aiohttp`, plus a small compiled audio helper (`shazamio-core`). Pin the bundle to **CPython 3.12** so that wheel matches. No user-installed Python required.
+
+It still calls **Shazam’s unofficial private HTTP API**. Terms risk. The endpoint can change without notice (that is why the crate already treats it as best-effort).
+
+| Surface | Rule |
+| --- | --- |
+| Personal scripts | Keep. `shazam.py` + 3.12 venv. Do not rip it out of `crate/`. |
+| Public Crate ID v1 | **Omit.** Default cascade is filename → tags → AcoustID → iTunes/Deezer → MusicBrainz. |
+| Public app, later | If shipped at all: Settings toggle **off by default**, first-run disclosure (“not an Apple API; may break; not ShazamKit”), never in the default cascade. |
+
+### ShazamKit (official) — file match, Swift helper
+
+Confirmed: ShazamKit can match **audio files**, not only the mic.
+
+Flow (Apple):
+
+1. Load the file as `AVAsset`.
+2. `SHSignatureGenerator.signature(from:)` / `generateSignature(from:completionHandler:)` → `SHSignature`. Multi-track assets are mixed into one signature.
+3. `SHSession.match` against the Shazam catalog. Use **`SHSession`**, not `SHManagedSession` (`SHManagedSession` is the mic / live session).
+4. Cut about **10 s from the middle** of the track. Catalog queries have a max signature duration (`SHCatalog.minQuerySignatureDuration` / `maxQuerySignatureDuration`). A whole mix-length signature will fail or be ignored.
+
+Ship as a **small signed Swift helper** under `Crate ID.app/Contents/Helpers/shazamkit-match` (same pattern as bundled `fpcalc`). Python core calls it per track; JSON on stdout (`artist`, `title`, `album`, `isrc`, error). PyObjC is a fallback if we want in-process, but a helper is easier to codesign and replace.
+
+Requires: Apple Developer account; **ShazamKit enabled on the App ID**; hardened-runtime entitlements for the helper; network to Apple’s catalog.
+
+Sources: [SHSignatureGenerator.generateSignature(from:)](https://apple-docs.everest.mt/docs/shazamkit/shsignaturegenerator/generatesignature(from:completionhandler:)/) · [WWDC 2023 10051](https://developer.apple.com/videos/play/wwdc2023/10051/).
+
+When this lands, it replaces any ShazamIO toggle as the supported recognizer. Until then, unidentified leftovers stay untouched.
+
+### Performance fixes — app core first, optional back-port
+
+These are the removable wins from Performance. Implement in `packages/crate_core` when that tree exists. Each line may later be copied into `crate/ix_crate` **only** if David wants it; v1 of the apps must not edit the personal scripts.
+
+| Fix | App (`crate_core`) | Back-port to personal scripts? |
+| --- | --- | --- |
+| SQLite lookup cache (replace `lookup-cache.json` pretty-print rewrite) | [ ] | [ ] optional (`lookup._save_cache`) |
+| Parse each NML/XML **once** per run; pass the tree | [ ] | [ ] optional (`crates.py`, CRATER phases) |
+| `fpcalc` process pool + fingerprint cache `(dev, ino, mtime, size)` | [ ] | [ ] optional (`acoustid.py`) |
+| Incremental scans `(path, mtime, size)` | [ ] | [ ] optional (`plan.py` / `music-fix`) |
+| Parallel iTunes ∥ Deezer with per-host limiter | [ ] | [ ] optional (`catalog_identify`) |
+| Skip Music.app scripting (files / iTunes XML instead of osascript) | [ ] Crate ID has no Music.app. Bridge reads: XML. | [ ] optional for dumps; **do not** drop Music writes David still needs |
+
+Hard limits stay: MusicBrainz 1 req/s, AcoustID courtesy gap, Music.app **writes**, Rekordbox `master.db` encryption, atomic `write_tree`.
 
 ---
 
