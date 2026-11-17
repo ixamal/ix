@@ -299,6 +299,68 @@ Python 3.12 + shazamio stay an optional extra (`[project.optional-dependencies] 
 
 ---
 
+## Performance
+
+The `.app` wrapper does not make Python faster. The wins are **architecture**: skip Music.app, stop rewriting a JSON cache on every HTTP miss, parse NML/XML once, overlap lookups that are not MusicBrainz, fingerprint in a process pool, scan only files whose `(path, mtime, size)` changed.
+
+Numbers below are **estimates** unless marked measured. This cloud VM has no Music.app, no `fpcalc`, and no 6-minute library files. Tiny synthetic files and a 20k-row XML/NML were timed 2026-11-17 on CPython 3.12. Owner-box numbers already in the crate source are cited as **documented**.
+
+### What is slow today
+
+| Path | What the code actually does |
+| --- | --- |
+| AppleScript | `music_dupes._run_osascript` launches a new `osascript` process per script. Reads are batched (`BATCH = 200` in `music_repair` / `music_dupes`; `GENRE_PAGE = 250` in `music_fix.dump_genre`). **Writes are one script per track** (`set_track_fields`, `set_track_location`, timeout 45s). `crates.dump_user_playlist_index` is **one 600s osascript per playlist**, sequential. `music_fix.py` documents **~0.13 s/track** for genre dumps — 2,500 Electronica tracks blow the timeout. CRATER `music-crates` runs `crates --from music --all` **twice** (NML then xml), so every Music playlist is dumped twice. |
+| Sequential lookups | `lookup.resolve` is one family at a time. Inside a miss: AcoustID → iTunes **then** Deezer → MusicBrainz → Shazam, each `print` + `time.sleep(gap)` **before** the HTTP (`_http_json`). Sleep floors: AcoustID 0.4 s, catalog 0.35 s each, MusicBrainz **1.1 s**, Shazam 1.6 s. Aggressive unidentified stack = **3.8 s of sleeps alone**, before bodies or `fpcalc`. iTunes and Deezer never overlap. `catalog_identify` always waits for both even when the first dual-agree hit is enough. |
+| MusicBrainz cap | `MB_GAP = 1.1` (~1 req/s). `library_genres.musicbrainz_identity` does **two** MB calls (search + `inc=genres`) per unmatched ACAPELLA — CRATER `--skip-follow` exists because this is hours. User-Agent `ix-crate/0.2`. **Hard limit.** |
+| `fpcalc` | `acoustid.fingerprint`: new subprocess per file, 45 s timeout, `/opt/homebrew/bin/fpcalc` fallback. Then `ACOUSTID_GAP` 0.4 s + HTTP. Cache key is `path + mtime` (good) but the JSON cache rewrite (below) still fires. |
+| Tag reads | `identify.tags_from_family` opens mutagen on each candidate; `Family.mix_duration` opens it **again** on the mix. `resolve` then may fingerprint the same mix. Tiny WAV on this VM: `_read_tags` **0.07 ms**, `mix_duration` **0.09 ms**, `identify()` **0.11 ms** (measured, 200 files). Real 6-minute `.m4a` unmeasured; expect 1–20 ms, still noise next to HTTP. |
+| Lookup cache | `paths.CACHE` = one `lookup-cache.json`. `_load_cache` on **every** `resolve()`. `_save_cache` = `json.dumps(..., indent=2)` of the **whole dict after every HTTP miss** (`_http_json`, AcoustID, Shazam, Ollama). Measured 5,000 fake iTunes keys: indent dump **118 ms / 6.13 MB**; compact **23 ms / 3.88 MB**; SQLite replace-one-key **1.9 ms**. Owner cache with real payloads will be larger. |
+| XML / NML | `ET.parse` everywhere. `crates.main`: `dest_index` parses, `load_xml_playlists` / `load_nml_playlists` parse **again**, `apply_*` parse a **third** time, `ingest_*` calls `dj_metadata._genre_lookup_indexes` which parses NML + iTunes plist again. CRATER phases each parse `collection.nml` / `rekordbox.xml` on their own (`stems_playlists`, `stemit_genres`, `xml_prune`, `mixed_in_crate`, `favorites` — "master.db is encrypted; PlayCount comes from rekordbox.xml"). Measured 20k-track synthetic XML: parse **33 ms**, `write_tree` **48 ms**, NML parse **62 ms**. `xml_path_index`-style walk with `Path.resolve()` on missing files: **0.81 s / 20k**. Parse is cheap; **re-parse × 8–15 per CRATER** and **stat/resolve per row** add up. Live files are bigger (cues, waveforms comments) — parse unmeasured, likely a few hundred ms, not minutes. |
+| music_migration | `update_nml_paths`: `rglob` entire `~/Music/Music` + `stems_audio` into a basename map, then one `ET.parse`, rewrite DIR/FILE. `relocate_rekordbox_collection`: same rglob, then **pyrekordbox** on encrypted `master.db`. Prefix remap from `music-organize` `remaps[]` is the cheaper slice Crate Bridge should ship. |
+
+Local filename work is already fast (`parse_filename` **24 µs** measured). Do not optimize that.
+
+### Fixes and estimated speedups
+
+Ranges are wall-clock vs the **current crate command on a cold 200–20k track library**. **Hard** = service or OS rule we must keep. **Removable** = our code.
+
+| Bottleneck | Fix in `crate_core` / apps | Est. speedup | Limit |
+| --- | --- | --- | --- |
+| Music.app round-trips | **Crate ID: do not talk to Music.app.** Tag files. Dest index for Bridge: `music_path_index` iTunes XML (already in `crates.py`) instead of per-playlist osascript. Batch AppleScript writes if Music dest stays. CRATER-style `--all` Music dump once, reuse for NML and xml. | Crate ID vs `music-fix`: **eliminate dump + per-track `set_track_fields`** (documented 0.13 s/track read; writes unmeasured, likely similar or worse). Bridge Music→xml `--all`: **5–20×** on the dump (one XML read vs N playlists × 2 CRATER passes). Music **writes** stay AppleScript — **~1×** unless we drop `--to music`. | Reads: removable. Music writes: **hard** (no public write API). |
+| Sequential catalog | Pipeline: filename/tags first (skip network if solid). Remaining misses: **iTunes ∥ Deezer** with a per-host limiter (~3–5 in flight). Stop when dual-agree or duration match. Do **not** wait on MusicBrainz before catalogs finish. | Strict miss: **~2×** (0.70 s sequential sleeps → ~0.35 s). Aggressive first-hit: **2–4×** wall (sleeps overlap; fpcalc overlaps HTTP of *other* files). | Polite concurrency removable. Do not hammer. |
+| MusicBrainz 1 req/s | Keep 1.1 s gap. One worker. Overlap with catalogs/fpcalc of other files. Cache recording id → album. `follow` two-call genre lookup: cache the recording, skip the second hop when genres came on the search. | MB-bound work: **~1×** (hard). Whole-folder aggressive: **1.5–3×** if MB is not the only waiter. CRATER follow: still ~1–2 s/unmatched vocal. | **Hard.** |
+| `fpcalc` per file | Process pool (`os.cpu_count()`, cap 4–8). Skip if tags/filename already named the track. SQLite key `(dev, ino, mtime, size)` → fingerprint. Bundle helper, no Homebrew PATH search. | Fingerprint stage: **4–8×** on Apple Silicon (unmeasured here — no `fpcalc` on the VM). First-run still ~0.3–2 s/file of CPU (industry guess). Repeat: **~100×** (cache hit, no subprocess). | CPU removable. AcoustID HTTP ~0.4 s gap: keep. |
+| Repeated mutagen | One `File()` per path; pass duration + tags into `resolve`. | Local identify: **2–3×** of a tiny stage (**0.1 ms → noise**). Not a product-level win. | Removable, do it anyway. |
+| JSON cache | SQLite WAL at `~/Library/Caches/CrateID/lookup.sqlite`. One row per key. No pretty-print of the world. | Per-miss write: **~10–60×** vs indent JSON (1.9 ms vs 118 ms measured at 5k keys; gap grows with cache size). Repeat scan of a named folder: **5–20×** (no HTTP). | Removable. |
+| XML/NML parse | Parse each library **once** per run; pass the tree into index / ingest / apply / prune / genre-fill. Incremental: rewrite playlist NODE only (`write_tree` still whole-document — ElementTree has no patch writer; **lxml or streaming write** later). Skip `Path.resolve()`+`stat` when the Location string already matches the index key. | Single `crates` apply: **2–3×**. CRATER xml/nml phases: **5–15×** (8–15 parses → 1–2). `PathIndex` 20k missing-path resolve: **0.81 s → tens of ms** if we index the raw Location string first. Whole-file write stays ~50–200 ms. | Removable. Do **not** in-place `ElementTree.write` (truncation bug `xml_io.py`). |
+| Full-folder scans | Incremental: SQLite file index; only re-identify when mtime/size change; keep last proposed tags. UI "Scan new only". | Second scan of a stable folder: **10–100×**. First scan: **1×**. | Removable. |
+| Traktor / Rekordbox "DBs" | Traktor **is** `collection.nml` — already a file, not AppleScript. Rekordbox **live** `master.db` is encrypted (`favorites.py`; music_migration uses `pyrekordbox`). Crate Bridge v1 stays on xml/nml. Optional later: pyrekordbox relocate (quit Rekordbox) to skip `<>` import. ANLZ/cue binaries: do not parse. | Membership NML↔XML: already file-based; parse-once is the win (**2–3×**). pyrekordbox vs XML remap: **~1–2×** plus no export round-trip — **not v1**. vs Music.app scripting: **5–20×** as above. | Rekordbox encryption: **hard** without pyrekordbox. |
+| music_migration remap | Prefer `remaps[]` prefix replace (`music-organize` report) over `rglob` basename of the whole crate. One parse, `write_tree`, backup. | Known-root USB→`~/Music`: **5–20×** vs full-disk `rglob` + basename collisions. Unknown-root "find this file anywhere": `rglob` stays, **~1×**. | Removable for the common case. |
+
+### Product-level (estimates)
+
+Assume owner's ~22k file tracks (`docs/crate.md`), SSD, network like a home fiber line.
+
+| Job | Today | Packaged / shared core | Notes |
+| --- | --- | --- | --- |
+| **Crate ID** 200-track folder, already tagged, `--offline` | N/A in crate (music-fix always hits Music.app + `resolve`) | **< 2 s** | Measured local identify is 0.11 ms/file on tiny WAV; real tags unmeasured but this job is disk-bound. |
+| **Crate ID** 200 unidentified, `--strict` (catalog) | `music-fix` playlist dump + sequential iTunes+Deezer (~0.7 s sleep + RTT each) | **~1–3 min** first run; **seconds** on repeat (SQLite) | First run still network. Dual catalog in parallel ~2× vs crate. |
+| **Crate ID** 200 unidentified, `--aggressive` | sleeps 3.8 s + fpcalc + Shazam if opt-in | **~5–15 min** first run with Shazam **off**; Shazam on is **hours-adjacent** (1.6 s gap + 90 s timeout, unofficial) | MusicBrainz 1/s **hard**. Process-pool fpcalc helps the CPU slice only. |
+| **Crate Bridge** NML ↔ xml one playlist | one/two full `ET.parse` + PathIndex | **2–3×** parse-once; still **seconds**, not minutes | Parse 20k synthetic is 33–62 ms; live collections unmeasured. |
+| **Crate Bridge** Music `--all` → xml | per-playlist osascript × N, CRATER does it twice | **5–20×** via iTunes XML + dump-once | Documented 0.13 s/track is the Music tax we are deleting. |
+| **Crate Bridge remap** prefix | music_migration `rglob` + NML rewrite | **5–20×** with `remaps[]` | Keep pyrekordbox `master.db` as an optional later button, not v1. |
+| **CRATER** (owner toolkit, not an app) | sequential phases, re-parse, Music `--all` ×2, follow at 1–2 s/vocal | shared core parse-once + dump-once: **maybe 2–5×** on the xml/music slice; follow stays **hard** | Do not productize CRATER. Optional later shim. |
+
+STEMIT factory (~3.7 min/track, `docs/crate.md`) is **out of scope**. Packaging will not speed stems.
+
+### Hard vs removable (short)
+
+**Hard:** MusicBrainz ~1 req/s; AcoustID courtesy gap; Shazam unofficial (leave off); Music.app **writes**; Rekordbox `master.db` encryption; must quit Traktor/Rekordbox before file writes; must `write_tree` atomically.
+
+**Removable:** AppleScript **reads** (use XML/plist); sequential iTunes/Deezer; JSON cache rewrite; re-parsing NML/XML; per-file `fpcalc` in series; scanning unchanged files; `rglob` when we already have `remaps[]`; talking to Music.app at all in Crate ID.
+
+---
+
 ## Milestones (weekends)
 
 Rough, one person, no factory / CRATER work in the same weekend.
@@ -306,8 +368,8 @@ Rough, one person, no factory / CRATER work in the same weekend.
 | | Weekend | Done when |
 | --- | --- | --- |
 | **0** | This doc + PR | review |
-| **1** | `packages/crate_core`: identify + lookup(strict) + tag write + cache injection. Copy tests. No GUI. | `crateid scan testdata/` prints current vs proposed |
-| **2** | AcoustID + bundled `fpcalc` lookup. Config-driven API key. | aggressive scan names a silent file |
+| **1** | `packages/crate_core`: identify + lookup(strict) + tag write + SQLite cache. Copy tests. No GUI. | `crateid scan testdata/` prints current vs proposed |
+| **2** | AcoustID + bundled `fpcalc` lookup + process pool. Config-driven API key. | aggressive scan names a silent file |
 | **3** | `crateid` CLI (`scan` / `apply` / `undo`) + PySide6 drop-folder table | Apply + Undo on a 20-track folder |
 | **4** | PyInstaller `.app`, unsigned dmg, Helpers/fpcalc | double-click on a clean Mac (no Homebrew) |
 | **5** | Developer ID, hardened runtime, notarytool, staple, GitHub Release | Gatekeeper-clean dmg |
@@ -340,6 +402,7 @@ Weekends 1–5 are Crate ID. 6–8 are Crate Bridge. Slip Shazam without slippin
 
 - [ ] `packages/crate_core` identify / catalog / MusicBrainz / AcoustID / tag write.
 - [ ] Injected cache, UA, rate limits, `fpcalc` path.
+- [ ] SQLite lookup cache (not pretty-printed JSON rewrite); incremental `(path, mtime, size)` scans.
 - [ ] CLI `scan` / `apply` / `undo`.
 - [ ] PySide6 drop folder → table (current / proposed / source / confidence).
 - [ ] Tag snapshot undo log.
@@ -350,8 +413,9 @@ Weekends 1–5 are Crate ID. 6–8 are Crate Bridge. Slip Shazam without slippin
 ### Crate Bridge v1
 
 - [ ] PathIndex + playlist load/apply from `crates.py` logic.
+- [ ] Parse each NML/XML once per run; do not `ET.parse` for index then again for apply.
 - [ ] Configurable NML/XML paths and volume name.
-- [ ] Remap old root → new root (and `remaps.json`).
+- [ ] Remap old root → new root (and `remaps.json`); prefix/`remaps[]` first, not a full-disk `rglob`.
 - [ ] Dry-run default; Rekordbox/Traktor running = refuse write.
 - [ ] Backup then `write_tree`.
 - [ ] UI: source/dest, playlist list, ingest counts, remap tab.
